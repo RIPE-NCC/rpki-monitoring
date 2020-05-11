@@ -10,10 +10,20 @@ spring:
   application.name: rpki-monitoring
 
 rrdp.url: https://rrdp.ripe.net
-rsync.url: rsync://rpki.ripe.net
+rsync.url: rsync://rrdp.ripe.net
 
 server:
   port: 9090
+
+
+rpkimonitor:
+  version: "@gitVersion@"
+
+  internal-api-key-header: "X-API_KEY"
+
+  core:
+    url: http://localhost:8080/certification/
+    api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
 # Enable prometheus endpoint
 management:

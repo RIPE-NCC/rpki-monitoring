@@ -1,5 +1,9 @@
 package net.ripe.rpki.monitor.expiration;
 
+import com.google.common.hash.Hashing;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
@@ -15,13 +19,37 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractObjectsAboutToExpireCollector {
+    public final static String UPDATE_COUNTER_DESCRIPTION = "Number of updates by collector by status";
 
     private final RepoFetcher repoFetcher;
 
-    public AbstractObjectsAboutToExpireCollector(final RepoFetcher repoFetcher) {
+    private final AtomicLong lastUpdated = new AtomicLong();
+    private final Counter successCount;
+    private final Counter failureCount;
+
+
+    public AbstractObjectsAboutToExpireCollector(final RepoFetcher repoFetcher, final MeterRegistry registry) {
         this.repoFetcher = repoFetcher;
+
+        Gauge.builder("collector.lastupdated", lastUpdated::get)
+                .description("Last update by collector")
+                .tag("fetcher", repoFetcher.getClass().getSimpleName())
+                .register(registry);
+
+        successCount = Counter.builder("collector.update")
+                .description(UPDATE_COUNTER_DESCRIPTION)
+                .tag("fetcher", repoFetcher.getClass().getSimpleName())
+                .tag("status", "success")
+                .register(registry);
+
+        failureCount = Counter.builder("collector.update")
+                .description(UPDATE_COUNTER_DESCRIPTION)
+                .tag("fetcher", repoFetcher.getClass().getSimpleName())
+                .tag("status", "failure")
+                .register(registry);
     }
 
     protected abstract void setSummary(final ConcurrentSkipListSet<RepoObject> expirationSummary);
@@ -31,15 +59,22 @@ public abstract class AbstractObjectsAboutToExpireCollector {
 
         final ConcurrentSkipListSet<RepoObject> expirationSummary = new ConcurrentSkipListSet();
 
-        final Map<String, byte[]> stringMap = repoFetcher.fetchObjects();
+        try {
+            final Map<String, byte[]> stringMap = repoFetcher.fetchObjects();
 
-        stringMap.forEach((objectUri, object) -> {
-            final Optional<Date> date = getDateFor(objectUri, object);
-            date.stream().forEach(d -> expirationSummary.add(new RepoObject(d, objectUri)));
-        });
+            stringMap.forEach((objectUri, object) -> {
+                final Optional<Date> date = getDateFor(objectUri, object);
+                date.stream().forEach(d -> expirationSummary.add(new RepoObject(d, objectUri, Hashing.sha256().hashBytes(object).asBytes())));
+            });
 
-        setSummary(expirationSummary);
+            setSummary(expirationSummary);
+            successCount.increment();
+            lastUpdated.set(System.currentTimeMillis()/1000);
+        } catch (Exception e) {
+            failureCount.increment();
 
+            throw e;
+        }
     }
 
     Optional<Date> getDateFor(final String objectUri, final byte[] decoded) {

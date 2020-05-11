@@ -1,9 +1,12 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import com.google.common.hash.Hashing;
+import io.micrometer.core.instrument.Gauge;
 import net.ripe.rpki.monitor.util.XML;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -26,7 +29,7 @@ public class RrdpFetcher implements RepoFetcher {
     private final String notificationXmlUrl;
 
     @Autowired
-    public RrdpFetcher(@Value("${rrdp.url}")final String rrdpUrl, final RestTemplate restTemplate) {
+    public RrdpFetcher(@Value("${rrdp.url}")final String rrdpUrl, @Qualifier("rrdp-resttemplate") final RestTemplate restTemplate) {
         this.notificationXmlUrl = String.format("%s/notification.xml", rrdpUrl);
         this.restTemplate = restTemplate;
     }

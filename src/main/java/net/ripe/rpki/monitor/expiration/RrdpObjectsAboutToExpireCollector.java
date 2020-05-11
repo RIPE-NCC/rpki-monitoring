@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,8 +14,11 @@ public class RrdpObjectsAboutToExpireCollector extends AbstractObjectsAboutToExp
     private final SummaryService summaryService;
 
     @Autowired
-    public RrdpObjectsAboutToExpireCollector(final SummaryService summaryService, @Qualifier("RrdpFetcher") final RepoFetcher repoFetcher) {
-        super(repoFetcher);
+    public RrdpObjectsAboutToExpireCollector(
+            final SummaryService summaryService,
+            @Qualifier("RrdpFetcher") final RepoFetcher repoFetcher,
+            final MeterRegistry registry) {
+        super(repoFetcher, registry);
         this.summaryService = summaryService;
     }
 
