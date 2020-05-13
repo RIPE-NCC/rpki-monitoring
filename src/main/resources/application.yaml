@@ -1,0 +1,25 @@
+# Spring Boot always loads `application.yaml`. Afterwards the settings are loaded for the active profile. These are
+# merged: By default, `application.yaml` is loaded and `application-default.yaml` extends it.
+#
+# The default for naming is 'lower-case kebab format' such as 'my.proper-tyname=acme' as recommended in [0].
+# [0]: https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-external-config-relaxed-binding
+#
+spring:
+  main.banner-mode: off
+  output.ansi.enabled: ALWAYS
+  application.name: rpki-monitoring
+
+rrdp.url: https://rrdp.ripe.net
+rsync.url: rsync://rpki.ripe.net
+
+server:
+  port: 9090
+
+# Enable prometheus endpoint
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - prometheus
+          - info
