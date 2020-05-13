@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import lombok.Setter;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import org.joda.time.DateTime;
 import org.quartz.JobBuilder;
@@ -10,16 +11,17 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
 @Component
 public class RsyncObjectsAboutToExpireCollectorJob extends QuartzJobBean {
-
-
     private final RsyncObjectsAboutToExpireCollector collector;
 
     @Autowired
@@ -37,11 +39,14 @@ public class RsyncObjectsAboutToExpireCollectorJob extends QuartzJobBean {
     }
 
     @Bean("Rsync_Expiration_Trigger")
-    public Trigger trigger(@Qualifier("Rsync_Expiration_Job_Detail") JobDetail job) {
+    public Trigger trigger(
+            @Qualifier("Rsync_Expiration_Job_Detail") JobDetail job,
+            @Value("${rsync.interval}") Duration interval
+        ) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("Rsync_Expiration_Trigger")
                 .withDescription("Rsync Expiration trigger")
-                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(20))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
                 .startAt(DateTime.now().plusMinutes(3).toDate())
                 .build();
     }

@@ -3,9 +3,7 @@ package net.ripe.rpki.monitor.publishing;
 import com.google.common.collect.Sets;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Value;
+import lombok.*;
 import net.ripe.rpki.monitor.HasHashAndUri;
 import net.ripe.rpki.monitor.expiration.SummaryService;
 import net.ripe.rpki.monitor.publishing.dto.FileEntry;
@@ -18,11 +16,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-@Data
+@Setter
 @Service
 public class PublishedObjectsSummary {
     public final static String PUBLISHED_OBJECT_DIFF_DESCRIPTION = "Number of objects in <lhs> that are not in <rhs>";
     public final static String PUBLISHED_OBJECT_DIFF = "published.objects.diff";
+    public final static String PUBLISHED_OBJECT_COUNT_DESCRIPTION = "Number of published objects";
+    public final static String PUBLISHED_OBJECT_COUNT = "published.objects.count";
 
     private final SummaryService repositoryObjects;
     private final CoreClient rpkiCoreClient;
@@ -33,6 +33,10 @@ public class PublishedObjectsSummary {
     private final AtomicLong inRRDPNotInRsyncCount = new AtomicLong();
     private final AtomicLong inRsyncNotInCoreCount = new AtomicLong();
     private final AtomicLong inRsyncNotInRRDPCount = new AtomicLong();
+
+    private final AtomicLong rsyncObjectCount = new AtomicLong();
+    private final AtomicLong rrdpObjectCount = new AtomicLong();
+    private final AtomicLong publishedObjectsObjectCount = new AtomicLong();
 
     private final MeterRegistry registry;
 
@@ -52,6 +56,18 @@ public class PublishedObjectsSummary {
         buildObjectDiffGauge(inRRDPNotInRsyncCount, "rrdp", "rsync");
         buildObjectDiffGauge(inRsyncNotInCoreCount, "rsync", "core");
         buildObjectDiffGauge(inRsyncNotInRRDPCount, "rsync", "rrdp");
+
+        buildObjectCountGauge(rsyncObjectCount, "rsync");
+        buildObjectCountGauge(publishedObjectsObjectCount, "core");
+        buildObjectCountGauge(rrdpObjectCount, "rrdp");
+
+    }
+
+    private void buildObjectCountGauge(AtomicLong gauge, String source) {
+        Gauge.builder(PUBLISHED_OBJECT_COUNT, gauge::get)
+                .description(PUBLISHED_OBJECT_DIFF_DESCRIPTION)
+                .tag("source", source)
+                .register(registry);
     }
 
     private void buildObjectDiffGauge(AtomicLong counter, String lhs, String rhs) {
@@ -68,10 +84,15 @@ public class PublishedObjectsSummary {
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    public PublicationDiff compare() {
+    public PublicationDiff getPublishedObjectsDiff() {
         final var rpkiCoreObjects = collectUriHashTuples(rpkiCoreClient.publishedObjects());
         final var rrdpObjects = collectUriHashTuples(repositoryObjects.getRrdpObjects());
         final var rsyncObjects = collectUriHashTuples(repositoryObjects.getRsynObjects());
+
+        publishedObjectsObjectCount.set(rpkiCoreObjects.size());
+        rsyncObjectCount.set(rsyncObjects.size());
+        rrdpObjectCount.set(rrdpObjects.size());
+
 
         final var inCoreNotInRRDP = Sets.difference(rpkiCoreObjects, rrdpObjects);
         final var inCoreNotInRsync = Sets.difference(rpkiCoreObjects, rsyncObjects);

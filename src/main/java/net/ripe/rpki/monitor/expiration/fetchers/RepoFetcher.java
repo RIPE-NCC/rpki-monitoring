@@ -4,5 +4,5 @@ import java.util.Map;
 
 public interface RepoFetcher {
 
-    Map<String, byte[]> fetchObjects() throws FetcherException;
+    Map<String, byte[]> fetchObjects() throws FetcherException, SnapshotNotModifiedException;
 }

@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration.fetchers;
 
 import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.Gauge;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.util.XML;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -23,18 +24,24 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@Slf4j
 @Component("RrdpFetcher")
 public class RrdpFetcher implements RepoFetcher {
     private final RestTemplate restTemplate;
     private final String notificationXmlUrl;
 
+    private String lastSnapshotUrl;
+
     @Autowired
-    public RrdpFetcher(@Value("${rrdp.url}")final String rrdpUrl, @Qualifier("rrdp-resttemplate") final RestTemplate restTemplate) {
+    public RrdpFetcher(
+            @Value("${rrdp.url}")final String rrdpUrl,
+            @Qualifier("rrdp-resttemplate") final RestTemplate restTemplate
+    ) {
         this.notificationXmlUrl = String.format("%s/notification.xml", rrdpUrl);
         this.restTemplate = restTemplate;
     }
 
-    public Map<String, byte[]> fetchObjects() throws FetcherException {
+    public Map<String, byte[]> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
@@ -42,6 +49,15 @@ public class RrdpFetcher implements RepoFetcher {
             final Document notificationXmlDoc =  documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
 
             final String snapshotUrl = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0).getAttributes().getNamedItem("uri").getNodeValue();
+
+            assert snapshotUrl != null;
+            if (snapshotUrl.equals(lastSnapshotUrl)) {
+                throw new SnapshotNotModifiedException(snapshotUrl);
+            }
+            lastSnapshotUrl = snapshotUrl;
+
+            log.info("loading rrdp snapshot from {}, referred to by {}", snapshotUrl, notificationXmlUrl);
+
             final String snapshotXml = restTemplate.getForObject(snapshotUrl, String.class);
             assert snapshotXml != null;
             final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(snapshotXml.getBytes()));

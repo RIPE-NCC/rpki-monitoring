@@ -4,9 +4,7 @@ import lombok.Setter;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -27,6 +25,6 @@ public class PublishedObjectStatus {
 
     @GetMapping("/published-object-diffs")
     public PublishedObjectsSummary.PublicationDiff publishedObjectDiffs() {
-        return publishedObjectsSummary.compare();
+        return publishedObjectsSummary.getPublishedObjectsDiff();
     }
 }

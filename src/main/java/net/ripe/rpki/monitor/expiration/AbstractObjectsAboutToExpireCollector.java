@@ -14,6 +14,7 @@ import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
+import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
 
 import java.util.Date;
 import java.util.Map;
@@ -22,11 +23,13 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractObjectsAboutToExpireCollector {
-    public final static String UPDATE_COUNTER_DESCRIPTION = "Number of updates by collector by status";
+    public final static String COLLECTOR_UPDATE_DESCRIPTION = "Number of updates by collector by status";
+    public static final String COLLECTOR_UPDATE_METRIC = "collector.update";
 
     private final RepoFetcher repoFetcher;
 
     private final AtomicLong lastUpdated = new AtomicLong();
+
     private final Counter successCount;
     private final Counter failureCount;
 
@@ -39,14 +42,14 @@ public abstract class AbstractObjectsAboutToExpireCollector {
                 .tag("fetcher", repoFetcher.getClass().getSimpleName())
                 .register(registry);
 
-        successCount = Counter.builder("collector.update")
-                .description(UPDATE_COUNTER_DESCRIPTION)
+        successCount = Counter.builder(COLLECTOR_UPDATE_METRIC)
+                .description(COLLECTOR_UPDATE_DESCRIPTION)
                 .tag("fetcher", repoFetcher.getClass().getSimpleName())
                 .tag("status", "success")
                 .register(registry);
 
         failureCount = Counter.builder("collector.update")
-                .description(UPDATE_COUNTER_DESCRIPTION)
+                .description(COLLECTOR_UPDATE_DESCRIPTION)
                 .tag("fetcher", repoFetcher.getClass().getSimpleName())
                 .tag("status", "failure")
                 .register(registry);
@@ -69,7 +72,10 @@ public abstract class AbstractObjectsAboutToExpireCollector {
 
             setSummary(expirationSummary);
             successCount.increment();
-            lastUpdated.set(System.currentTimeMillis()/1000);
+            lastUpdated.set(System.currentTimeMillis() / 1000);
+        } catch (SnapshotNotModifiedException e) {
+            successCount.increment();
+            lastUpdated.set(System.currentTimeMillis() / 1000);
         } catch (Exception e) {
             failureCount.increment();
 

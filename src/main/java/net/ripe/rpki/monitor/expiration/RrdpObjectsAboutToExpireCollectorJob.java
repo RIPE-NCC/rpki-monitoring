@@ -10,9 +10,12 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
@@ -37,11 +40,14 @@ public class RrdpObjectsAboutToExpireCollectorJob extends QuartzJobBean {
     }
 
     @Bean("Rrdp_Expiration_Trigger")
-    public Trigger trigger(@Qualifier("Rrdp_Expiration_Job_Detail") JobDetail job) {
+    public Trigger trigger(
+            @Qualifier("Rrdp_Expiration_Job_Detail") JobDetail job,
+            @Value("${rrdp.interval}") Duration interval
+    ) {
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("Rrdp_Expiration_Trigger")
                 .withDescription("Rrdp Expiration trigger")
-                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(20))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
                 .startAt(DateTime.now().plusMinutes(3).toDate())
                 .build();
     }

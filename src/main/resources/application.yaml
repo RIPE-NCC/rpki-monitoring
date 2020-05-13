@@ -9,8 +9,14 @@ spring:
   output.ansi.enabled: ALWAYS
   application.name: rpki-monitoring
 
-rrdp.url: https://rrdp.ripe.net
-rsync.url: rsync://rrdp.ripe.net
+rrdp:
+  url: https://rrdp.ripe.net
+  interval: 5M
+
+rsync:
+  url: rsync://localhost:1873
+  timeout: 30
+  interval: 20M
 
 server:
   port: 9090
