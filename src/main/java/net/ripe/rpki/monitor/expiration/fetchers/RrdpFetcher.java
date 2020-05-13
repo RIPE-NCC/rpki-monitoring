@@ -52,6 +52,7 @@ public class RrdpFetcher implements RepoFetcher {
 
             assert snapshotUrl != null;
             if (snapshotUrl.equals(lastSnapshotUrl)) {
+                log.debug("snapshot {} is the same as during the last check.", snapshotUrl);
                 throw new SnapshotNotModifiedException(snapshotUrl);
             }
             lastSnapshotUrl = snapshotUrl;

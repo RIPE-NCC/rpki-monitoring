@@ -31,6 +31,11 @@ rpkimonitor:
     url: http://localhost:8080/certification/
     api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
+logging:
+  level:
+    web: INFO
+    net.ripe.rpki: INFO
+
 # Enable prometheus endpoint
 management:
   endpoints:
