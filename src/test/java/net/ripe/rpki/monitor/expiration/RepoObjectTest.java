@@ -29,9 +29,15 @@ class RepoObjectTest {
     }
 
     @Test
-    public void itShouldCompareByBytesIfDateAndUriareTheSame() {
+    public void itShouldCompareBySha256IfDateAndUriareTheSame() {
         final Date expiration = new Date();
         final var uri = "rsync://example.org/";
+
+        // Note that the hash of "A" is smaller than that of "B":
+        // $ echo "A" | shasum -a 256
+        // > 06f961b802bc46ee168555f066d28f4f0e9afdf3f88174c1ee6f9de004fc30a0  -
+        // $ echo "B" | shasum -a 256
+        // >c0cde77fa8fef97d476c10aad3d2d54fcc2f336140d073651c2dcccf1e379fd6  -
         final RepoObject a = new RepoObject(expiration, uri, "A".getBytes());
         final RepoObject b = new RepoObject(expiration, uri, "B".getBytes());
 

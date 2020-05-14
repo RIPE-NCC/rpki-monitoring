@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.hash.HashCode;
 import net.ripe.rpki.monitor.HasHashAndUri;
 
@@ -22,14 +23,11 @@ public class RepoObject implements Comparable<RepoObject>, HasHashAndUri {
 
     @Override
     public int compareTo(RepoObject o) {
-
-        final int i = this.expiration.compareTo(o.expiration);
-
-        if(i == 0) {
-           return this.getUri().compareTo(o.getUri());
-        }
-
-        return i;
+        return ComparisonChain.start()
+                .compare(this.expiration, o.expiration)
+                .compare(this.getUri(), o.getUri())
+                .compare(this.getSha256(), o.getSha256())
+                .result();
     }
 
     public static final RepoObject fictionalObjectExpiringOn(final Date date) {

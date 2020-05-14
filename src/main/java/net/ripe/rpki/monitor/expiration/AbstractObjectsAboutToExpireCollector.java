@@ -4,6 +4,7 @@ import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.NonNull;
 import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
@@ -34,7 +35,7 @@ public abstract class AbstractObjectsAboutToExpireCollector {
     private final Counter failureCount;
 
 
-    public AbstractObjectsAboutToExpireCollector(final RepoFetcher repoFetcher, final MeterRegistry registry) {
+    public AbstractObjectsAboutToExpireCollector(@NonNull final RepoFetcher repoFetcher, @NonNull final MeterRegistry registry) {
         this.repoFetcher = repoFetcher;
 
         Gauge.builder("collector.lastupdated", lastUpdated::get)

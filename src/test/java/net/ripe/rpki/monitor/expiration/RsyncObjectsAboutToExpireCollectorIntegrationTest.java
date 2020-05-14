@@ -20,9 +20,8 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     public void beforeEach() throws Exception {
         final URI uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
 
-        final var rsyncFetcher = new RsyncFetcher();
+        final RsyncFetcher rsyncFetcher = new RsyncFetcher();
         rsyncFetcher.setRsyncUrl(uri.getPath());
-
         summaryService = new SummaryService();
 
         rsyncObjectsAboutToExpireCollector = new RsyncObjectsAboutToExpireCollector(summaryService, rsyncFetcher, new SimpleMeterRegistry());

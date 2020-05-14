@@ -3,6 +3,7 @@ package net.ripe.rpki.monitor.expiration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
     @Autowired
+    @Qualifier("rrdp-resttemplate")
     private RestTemplate restTemplate;
 
     @Autowired

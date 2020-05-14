@@ -25,19 +25,12 @@ jib {
 	}
 }
 
-// Replace the application version in resources
+// Replace the application version in resources. But not in test resources.
 processResources {
 	filter(ReplaceTokens, tokens:[
 			gitVersion: gitVersion(),
 	])
 }
-
-processTestResources {
-	filter(ReplaceTokens, tokens:[
-			gitVersion: gitVersion(),
-	])
-}
-
 
 group = 'net.ripe.rpki'
 version = '0.0.4-SNAPSHOT'
