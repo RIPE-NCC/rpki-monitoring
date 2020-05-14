@@ -57,7 +57,7 @@ public class RrdpFetcher implements RepoFetcher {
             }
             lastSnapshotUrl = snapshotUrl;
 
-            log.info("loading rrdp snapshot from {}, referred to by {}", snapshotUrl, notificationXmlUrl);
+            log.info("loading rrdp snapshot from {}", snapshotUrl, notificationXmlUrl);
 
             final String snapshotXml = restTemplate.getForObject(snapshotUrl, String.class);
             assert snapshotXml != null;

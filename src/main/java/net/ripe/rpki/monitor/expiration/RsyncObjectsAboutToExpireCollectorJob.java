@@ -47,7 +47,7 @@ public class RsyncObjectsAboutToExpireCollectorJob extends QuartzJobBean {
                 .withIdentity("Rsync_Expiration_Trigger")
                 .withDescription("Rsync Expiration trigger")
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
-                .startAt(DateTime.now().plusMinutes(3).toDate())
+                .startAt(DateTime.now().plusMinutes(1).toDate())
                 .build();
     }
 

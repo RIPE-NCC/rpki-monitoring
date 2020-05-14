@@ -10,13 +10,14 @@ spring:
   application.name: rpki-monitoring
 
 rrdp:
-  url: https://rrdp.ripe.net
+  url: http://pub-server.elasticbeanstalk.com
   interval: 5M
 
 rsync:
-  url: rsync://localhost:1873
+  # *wihout* a trailing slash
+  url: rsync://rpki.prepdev.ripe.net
   timeout: 30
-  interval: 20M
+  interval: 10M
 
 server:
   port: 9090
@@ -28,13 +29,13 @@ rpkimonitor:
   internal-api-key-header: "X-API_KEY"
 
   core:
-    url: http://localhost:8080/certification/
+    url: https://ba-apps.prepdev.ripe.net/certification/
     api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
 logging:
   level:
     web: INFO
-    net.ripe.rpki: INFO
+    net.ripe.rpki: DEBUG
 
 # Enable prometheus endpoint
 management:
@@ -44,3 +45,22 @@ management:
         include:
           - prometheus
           - info
+
+---
+spring:
+  profiles: local
+
+rrdp:
+  url: http://localhost
+  interval: 5M
+
+rsync:
+  # *wihout* a trailing slash
+  url: rsync://localhost:10873
+  timeout: 30
+  interval: 5M
+
+rpkimonitor:
+  core:
+    url: http://localhost:8080/certification/
+    api-key: BAD-TEST-D2Shtf2n5Bwh02P7

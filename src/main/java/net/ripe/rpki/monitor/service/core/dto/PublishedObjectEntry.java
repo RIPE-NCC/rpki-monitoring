@@ -4,12 +4,11 @@ import lombok.Builder;
 import lombok.Value;
 import net.ripe.rpki.monitor.HasHashAndUri;
 
-import java.net.URI;
 import java.time.Instant;
 
 @Builder
 @Value
-public class PublishedObject implements HasHashAndUri {
+public class PublishedObjectEntry implements HasHashAndUri {
     private String uri;
     private Instant updatedAt;
     private String sha256;

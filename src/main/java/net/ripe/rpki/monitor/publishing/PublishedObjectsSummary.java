@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -78,16 +79,13 @@ public class PublishedObjectsSummary {
                 .register(registry);
     }
 
-    private static <T extends HasHashAndUri> Set<FileEntry> collectUriHashTuples(Collection<T> inp) {
-        return inp.stream()
-                .map(FileEntry::from)
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
+    /**
+     * Get the diff of the published objects <b>and update the metrics</b>.
+     */
     public PublicationDiff getPublishedObjectsDiff() {
-        final var rpkiCoreObjects = collectUriHashTuples(rpkiCoreClient.publishedObjects());
-        final var rrdpObjects = collectUriHashTuples(repositoryObjects.getRrdpObjects());
-        final var rsyncObjects = collectUriHashTuples(repositoryObjects.getRsynObjects());
+        final var rpkiCoreObjects = FileEntry.fromObjects(rpkiCoreClient.publishedObjects());
+        final var rrdpObjects = FileEntry.fromObjects(repositoryObjects.getRrdpObjects());
+        final var rsyncObjects = FileEntry.fromObjects(repositoryObjects.getRsynObjects());
 
         publishedObjectsObjectCount.set(rpkiCoreObjects.size());
         rsyncObjectCount.set(rsyncObjects.size());
@@ -109,12 +107,12 @@ public class PublishedObjectsSummary {
         inRsyncNotInRRDPCount.set(inRsyncNotInRRDP.size());
 
         return PublicationDiff.builder()
-                .inCoreNotInRRDP(Sets.difference(rpkiCoreObjects, rrdpObjects))
-                .inCoreNotInRsync(Sets.difference(rpkiCoreObjects, rsyncObjects))
-                .inRRDPNotInCore(Sets.difference(rrdpObjects, rpkiCoreObjects))
-                .inRRDPNotInRsync(Sets.difference(rrdpObjects, rsyncObjects))
-                .inRsyncNotInCore(Sets.difference(rsyncObjects, rpkiCoreObjects))
-                .inRsyncNotInRRDP(Sets.difference(rsyncObjects, rrdpObjects))
+                .inCoreNotInRRDP(inCoreNotInRRDP)
+                .inCoreNotInRsync(inCoreNotInRsync)
+                .inRRDPNotInCore(inRRDPNotInCore)
+                .inRRDPNotInRsync(inRRDPNotInRsync)
+                .inRsyncNotInCore(inRsyncNotInCore)
+                .inRsyncNotInRRDP(inRsyncNotInRRDP)
                 .build();
     }
 

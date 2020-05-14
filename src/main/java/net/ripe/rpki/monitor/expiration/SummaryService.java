@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 @Service
 public class SummaryService {
-
     private ConcurrentSkipListSet<RepoObject> rrdpSummary = new ConcurrentSkipListSet();
     private ConcurrentSkipListSet<RepoObject> rsyncSummary = new ConcurrentSkipListSet();
 
@@ -38,5 +37,4 @@ public class SummaryService {
     public synchronized void setRsyncSummary(final ConcurrentSkipListSet<RepoObject> dateSummary) {
         rsyncSummary = dateSummary;
     }
-
 }

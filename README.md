@@ -7,6 +7,8 @@ gradle bootRun
 gradle bootRun --debug-jvm
 # Select a profile and set needed settings:
 SPRING_PROFILES_ACTIVE=prepdev gradle bootRun
+# Or
+SPRING_PROFILES_ACIVE=local gradle clean bootRun
 ```
 
 #### With Docker
