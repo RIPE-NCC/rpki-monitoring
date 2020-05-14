@@ -80,102 +80,100 @@ docker_build:
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
-## All the package stages only require the test job, so whitesource scanning can
-## progress in parallel since this takes up to ten minutes.
-#manual_build:
-#  stage: package
-#  needs: ["test"]
-#  when: manual
-#  before_script:
-#    - apt update && apt install --no-install-recommends --yes docker.io
-#  script:
-#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-#    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:dev
-#
-#development_build:
-#  stage: package
-#  needs: ["test"]
-#  before_script:
-#    - apt update && apt install --no-install-recommends --yes docker.io
-#  script:
-#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-#    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:debug
-#    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE
-#  only:
-#    - development@rpki/rpki-uncore
-#    - master@rpki/rpki-uncore
+# All the package stages only require the test job, so whitesource scanning can
+# progress in parallel since this takes up to ten minutes.
+manual_build:
+  stage: package
+  needs: ["test"]
+  when: manual
+  before_script:
+    - apt update && apt install --no-install-recommends --yes docker.io rsync
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:dev
 
-#tagged_build:
-#  stage: package
-#  needs: ["test"]
-#  before_script:
-#    - apt update && apt install --no-install-recommends --yes docker.io
-#  script:
-#    - if [[ "$CI_COMMIT_TAG" =~ ^rpki-uncore-.* ]]; then echo "Correct tag"; else exit 1; fi
-#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-#    - gradle jib -Pjib.from.image=$DOCKER_IMAGE --image=$CI_REGISTRY_IMAGE:$(echo $CI_COMMIT_TAG | sed -e's/rpki-uncore-//')
-#    - gradle jib -PJib.from.image=$DOCKER_IMAGE --image=$CI_REGISTRY_IMAGE:production
-#  only:
-#    - tags@rpki/rpki-uncore
+development_build:
+  stage: package
+  needs: ["test"]
+  before_script:
+    - apt update && apt install --no-install-recommends --yes docker.io rsync
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:debug
+    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE
+  only:
+    - master@rpki/rpki-monitoring
 
-#.deploy_template: &deploy_template
-#  stage: deploy
-#  image: debian:buster-backports
-#  before_script:
-#    - apt update && apt install --no-install-recommends --yes jq curl
-#  script:
-#    - echo "SALT_DEPLOY_TARGET=${SALT_DEPLOY_TARGET}"
-#    - echo "Logging into salt-api"
-#    - >
-#      curl -ik https://salt.ripe.net:8000/login \
-#        -c ~/cookies.txt \
-#        -H 'Accept: application/x-yaml' \
-#        -d username='rpkideploy' \
-#        -d password="$RPKIDEPLOY_PASS" \
-#        -d eauth='pam'
-#
-#    - echo "Updating containers via salt on $SALT_DEPLOY_TARGET"
-#    - >
-#      curl -D "/dev/stderr" -k https://salt.ripe.net:8000 \
-#        -b ~/cookies.txt \
-#        -H 'Content-type: application/json' -d"
-#            [{
-#              \"timeout\": 120,
-#              \"failhard\": \"True\",
-#              \"client\": \"local_batch\",
-#              \"batch-size\": \"25%\",
-#              \"fun\": \"state.apply\",
-#              \"tgt_type\": \"glob\",
-#              \"tgt\": \"$SALT_DEPLOY_TARGET\",
-#              \"arg\": [\"docker.f5_container_up\"],
-#              \"kwarg\": {
-#                \"pillar\": {
-#                  \"vars\": {
-#                    \"container\": \"rpki-uncore\",
-#                    \"health_endpoint\": \"http://127.0.0.1:8080/actuator/info\",
-#                    \"drain_time\": \"30\"
-#                  }
-#                }
-#              }
-#            }]
-#            "
-#
-#deploy:dev:
-#  <<: *deploy_template
-#  when: manual
-#  environment:
-#    name: dev
-#    url: https://uncore.rpki.dev.ripe.net
-#
-#deploy:prepdev:
-#  <<: *deploy_template
-#  stage: deploy
-#  environment:
-#    name: prepdev
-#    url: https://uncore.rpki.prepdev.ripe.net
-#  only:
-#    - development@rpki/rpki-uncore
-#    - master@rpki/rpki-uncore
+tagged_build:
+  stage: package
+  needs: ["test"]
+  before_script:
+    - apt update && apt install --no-install-recommends --yes docker.io rsync
+  script:
+    - if [[ "$CI_COMMIT_TAG" =~ ^rpki-monitoring-.* ]]; then echo "Correct tag"; else exit 1; fi
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - gradle jib -Pjib.from.image=$DOCKER_IMAGE --image=$CI_REGISTRY_IMAGE:$(echo $CI_COMMIT_TAG | sed -e's/rpki-monitoring-//')
+    - gradle jib -PJib.from.image=$DOCKER_IMAGE --image=$CI_REGISTRY_IMAGE:production
+  only:
+    - tags@rpki/rpki-monitoring
+
+.deploy_template: &deploy_template
+  stage: deploy
+  image: debian:buster-backports
+  before_script:
+    - apt update && apt install --no-install-recommends --yes jq curl
+  script:
+    - echo "SALT_DEPLOY_TARGET=${SALT_DEPLOY_TARGET}"
+    - echo "Logging into salt-api"
+    - >
+      curl -ik https://salt.ripe.net:8000/login \
+        -c ~/cookies.txt \
+        -H 'Accept: application/x-yaml' \
+        -d username='rpkideploy' \
+        -d password="$RPKIDEPLOY_PASS" \
+        -d eauth='pam'
+
+    - echo "Updating containers via salt on $SALT_DEPLOY_TARGET"
+    - >
+      curl -D "/dev/stderr" -k https://salt.ripe.net:8000 \
+        -b ~/cookies.txt \
+        -H 'Content-type: application/json' -d"
+            [{
+              \"timeout\": 120,
+              \"failhard\": \"True\",
+              \"client\": \"local_batch\",
+              \"batch-size\": \"25%\",
+              \"fun\": \"state.apply\",
+              \"tgt_type\": \"glob\",
+              \"tgt\": \"$SALT_DEPLOY_TARGET\",
+              \"arg\": [\"docker.f5_container_up\"],
+              \"kwarg\": {
+                \"pillar\": {
+                  \"vars\": {
+                    \"container\": \"rpki-monitoring\",
+                    \"health_endpoint\": \"http://127.0.0.1:8080/actuator/info\",
+                    \"drain_time\": \"30\"
+                  }
+                }
+              }
+            }]
+            "
+
+deploy:dev:
+  <<: *deploy_template
+  when: manual
+  environment:
+    name: dev
+    url: https://uncore.rpki.dev.ripe.net
+
+deploy:prepdev:
+  <<: *deploy_template
+  stage: deploy
+  environment:
+    name: prepdev
+    url: https://uncore.rpki.prepdev.ripe.net
+  only:
+    - master@rpki/rpki-monitoring
 #
 #deploy:production:
 #  <<: *deploy_template
@@ -184,4 +182,4 @@ docker_build:
 #    name: production
 #    url: https://uncore.rpki.ripe.net
 #  only:
-#    - tags@rpki/rpki-uncore
+#    - tags@rpki/rpki-monitoring
