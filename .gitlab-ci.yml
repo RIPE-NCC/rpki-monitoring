@@ -151,7 +151,7 @@ tagged_build:
                 \"pillar\": {
                   \"vars\": {
                     \"container\": \"rpki-monitoring\",
-                    \"health_endpoint\": \"http://127.0.0.1:8080/actuator/info\",
+                    \"health_endpoint\": \"http://127.0.0.1:9090/actuator/info\",
                     \"drain_time\": \"30\"
                   }
                 }
