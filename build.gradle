@@ -1,16 +1,16 @@
 plugins {
-	id 'org.springframework.boot' version '2.2.6.RELEASE'
+	id 'org.springframework.boot' version '2.3.0.RELEASE'
 	id 'io.spring.dependency-management' version '1.0.9.RELEASE'
 
 	id 'java'
 	id 'jacoco'
 
 	// Enable Lombok project (https://projectlombok.org/features/all)
-	id "io.freefair.lombok" version "4.1.6"
+	id "io.freefair.lombok" version "5.1.0"
 	// jib: Thinner Java docker images
-	id "com.google.cloud.tools.jib" version "2.1.0"
+	id "com.google.cloud.tools.jib" version "2.2.0"
 	// git version
-	id "com.palantir.git-version" version "0.12.2"
+	id "com.palantir.git-version" version "0.12.3"
 }
 
 jib {
@@ -47,8 +47,6 @@ dependencies {
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {
 		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
 	}
-    implementation 'junit:junit:4.12'
-	implementation 'junit:junit:4.12'
 }
 
 test {
