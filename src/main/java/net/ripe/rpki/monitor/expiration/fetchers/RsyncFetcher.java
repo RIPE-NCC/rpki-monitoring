@@ -4,13 +4,11 @@ import net.ripe.rpki.commons.rsync.Rsync;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.FileSystemUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,10 +48,7 @@ public class RsyncFetcher implements RepoFetcher {
                         }
                     });
 
-            Files.walk(Paths.get(tempDirectory))
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+            FileSystemUtils.deleteRecursively(Paths.get(tempDirectory));
 
             return objects;
         } catch (IOException | RuntimeException e) {
