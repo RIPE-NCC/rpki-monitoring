@@ -16,11 +16,11 @@ gradle jibDockerBuild
 # Or specify a base image
 gradle jibDockerBuild -Pjib.from.image=[image name]
 # And run it
-docker run -p 8080:8080 --rm docker-registry.ripe.net/rpki/rpki-monitoring
+docker run -p 9090:9090 --rm docker-registry.ripe.net/rpki/rpki-monitoring
 # Or for a profile that requires environment variables:
 docker run \
 	-e SPRING_PROFILES_ACTIVE=prepdev \
-	-p 8080:8080 \
+	-p 9090:9090 \
 	--rm docker-registry.ripe.net/rpki/rpki-monitoring
 ```
 
