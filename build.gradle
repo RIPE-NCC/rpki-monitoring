@@ -24,7 +24,7 @@ jib {
 }
 
 group = 'net.ripe.rpki'
-version = '0.0.2-SNAPSHOT'
+version = '0.0.3-SNAPSHOT'
 sourceCompatibility = '11'
 
 
@@ -38,6 +38,8 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-quartz'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	developmentOnly "org.springframework.boot:spring-boot-devtools"
 
 	// Metrics
 	implementation "org.springframework.boot:spring-boot-starter-actuator"
