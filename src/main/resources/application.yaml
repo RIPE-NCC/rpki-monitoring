@@ -9,6 +9,7 @@ spring:
   output.ansi.enabled: ALWAYS
   application.name: rpki-monitoring
 
+
 rrdp:
   url: http://pub-server.elasticbeanstalk.com
   interval: 5M
@@ -21,7 +22,7 @@ rsync:
 
 server:
   port: 9090
-
+  shutdown: graceful
 
 rpkimonitor:
   version: "@gitVersion@"
