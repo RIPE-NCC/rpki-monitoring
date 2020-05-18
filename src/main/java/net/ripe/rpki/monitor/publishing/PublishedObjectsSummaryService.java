@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @Setter
 @Service
-public class PublishedObjectsSummary {
+public class PublishedObjectsSummaryService {
     public final static String PUBLISHED_OBJECT_DIFF_DESCRIPTION = "Number of objects in <lhs> that are not in <rhs>";
     public final static String PUBLISHED_OBJECT_DIFF = "published.objects.diff";
     public final static String PUBLISHED_OBJECT_COUNT_DESCRIPTION = "Number of published objects";
@@ -42,7 +42,7 @@ public class PublishedObjectsSummary {
     private final MeterRegistry registry;
 
     @Autowired
-    public PublishedObjectsSummary(
+    public PublishedObjectsSummaryService(
             final SummaryService repositoryObjects,
             final CoreClient rpkiCoreClient,
             final MeterRegistry registry

@@ -21,7 +21,7 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 public class PublishedObjectsSummaryJob extends QuartzJobBean {
     private final static String PUBLISHED_OBJECTS_JOB = "Published_Objects_Job_Detail";
     @Autowired
-    private PublishedObjectsSummary publishedObjectsSummary;
+    private PublishedObjectsSummaryService publishedObjectsSummaryService;
 
     @Bean(PUBLISHED_OBJECTS_JOB)
     public JobDetail jobDetail() {
@@ -44,6 +44,6 @@ public class PublishedObjectsSummaryJob extends QuartzJobBean {
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        publishedObjectsSummary.getPublishedObjectsDiff();
+        publishedObjectsSummaryService.getPublishedObjectsDiff();
     }
 }
