@@ -24,7 +24,7 @@ jib {
 }
 
 group = 'net.ripe.rpki'
-version = '0.0.3-SNAPSHOT'
+version = '0.0.4-SNAPSHOT'
 sourceCompatibility = '11'
 
 

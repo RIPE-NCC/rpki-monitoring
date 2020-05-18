@@ -142,6 +142,7 @@ tagged_build:
               \"failhard\": \"True\",
               \"client\": \"local_batch\",
               \"batch-size\": \"25%\",
+              \"saltenv\": \"base\",
               \"fun\": \"state.apply\",
               \"tgt_type\": \"glob\",
               \"tgt\": \"$SALT_DEPLOY_TARGET\",
@@ -163,7 +164,7 @@ deploy:dev:
   when: manual
   environment:
     name: dev
-    url: https://uncore.rpki.dev.ripe.net
+    url: http://uncore-1.rpki.dev.ripe.net:9090
 
 deploy:prepdev:
   <<: *deploy_template
