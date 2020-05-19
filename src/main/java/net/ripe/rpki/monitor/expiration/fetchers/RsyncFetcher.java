@@ -1,43 +1,55 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.rsync.Rsync;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.FileSystemUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
+@Setter
 @Component("RsyncFetcher")
 public class RsyncFetcher implements RepoFetcher {
+    @Value("${rsync.timeout}")
+    private int rsyncTimeout;
 
-    private final String rsyncUrl;
+    @Value("${rsync.url}")
+    private String rsyncUrl;
 
-    @Autowired
-    public RsyncFetcher(@Value("${rsync.url}") final String rsyncUrl) {
-        this.rsyncUrl = rsyncUrl;
+    private int rsyncPathFromRepository(String url, Path localPath) throws FetcherException {
+        final var rsync = new Rsync(url, localPath.toString());
+        rsync.addOptions("-a");
+        rsync.setTimeoutInSeconds(rsyncTimeout);
+
+        final var exitCode = rsync.execute();
+        if (exitCode != 0) {
+            throw new FetcherException(String.format("rsync from %s exited with %d", url, exitCode));
+        }
+
+        return exitCode;
     }
 
 
     public Map<String, byte[]> fetchObjects() throws FetcherException {
-
-
+        Path tempPath = null;
         try {
-            final String tempDirectory = Files.createTempDirectory("rsync-monitor").toString();
-            final Rsync rsyncTa = new Rsync(rsyncUrl + "/ta", tempDirectory + "/ta");
-            rsyncTa.addOptions("-a");
-            rsyncTa.execute();
+            tempPath = Files.createTempDirectory("rsync-monitor");
+            final String tempDirectory = tempPath.toString();
 
-            final Rsync rsyncRepo = new Rsync(rsyncUrl + "/repository", tempDirectory + "/repository");
-            rsyncRepo.addOptions("-a");
-            rsyncRepo.execute();
+            log.info("running rsync for '{}' to {}", this.rsyncUrl, tempPath.toString());
+
+            rsyncPathFromRepository(rsyncUrl + "/ta", tempPath.resolve("ta"));
+            rsyncPathFromRepository(rsyncUrl + "/repository", tempPath.resolve("repository"));
 
             final Map<String, byte[]> objects = new HashMap<>();
-            Files.walk(Paths.get(tempDirectory))
+            Files.walk(tempPath)
                     .filter(Files::isRegularFile)
                     .forEach(f -> {
                         final String objectUri = f.toString().replace(tempDirectory, rsyncUrl);
@@ -47,12 +59,15 @@ public class RsyncFetcher implements RepoFetcher {
                             throw new RuntimeException(e);
                         }
                     });
-
-            FileSystemUtils.deleteRecursively(Paths.get(tempDirectory));
-
             return objects;
         } catch (IOException | RuntimeException e) {
             throw new FetcherException(e);
+        } finally {
+            try {
+                FileSystemUtils.deleteRecursively(tempPath);
+            } catch (IOException e) {
+                log.error("Exception while cleaning up after rsync", e);
+            }
         }
     }
 }

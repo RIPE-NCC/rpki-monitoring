@@ -1,5 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import org.junit.jupiter.api.Test;
 
 import java.text.DateFormat;
@@ -12,11 +14,14 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class AbstractObjectsAboutToExpireCollectorTest {
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 
-    AbstractObjectsAboutToExpireCollector collector = new AbstractObjectsAboutToExpireCollector(null) {
+    AbstractObjectsAboutToExpireCollector collector = new AbstractObjectsAboutToExpireCollector(
+            mock(RepoFetcher.class),
+            new SimpleMeterRegistry()) {
         @Override
         protected void setSummary(ConcurrentSkipListSet<RepoObject> expirationSummary) {
 

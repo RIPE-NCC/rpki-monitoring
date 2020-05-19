@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import com.google.common.collect.ImmutableSet;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
@@ -8,7 +9,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 @Service
 public class SummaryService {
-
     private ConcurrentSkipListSet<RepoObject> rrdpSummary = new ConcurrentSkipListSet();
     private ConcurrentSkipListSet<RepoObject> rsyncSummary = new ConcurrentSkipListSet();
 
@@ -22,6 +22,14 @@ public class SummaryService {
         return rsyncSummary.headSet(upTo);
     }
 
+    public Set<RepoObject> getRsynObjects() {
+        return ImmutableSet.copyOf(rsyncSummary);
+    }
+
+    public Set<RepoObject> getRrdpObjects() {
+        return ImmutableSet.copyOf(rrdpSummary);
+    }
+
     public synchronized void setRrdpSummary(final ConcurrentSkipListSet<RepoObject> dateSummary) {
         rrdpSummary = dateSummary;
     }
@@ -29,5 +37,4 @@ public class SummaryService {
     public synchronized void setRsyncSummary(final ConcurrentSkipListSet<RepoObject> dateSummary) {
         rsyncSummary = dateSummary;
     }
-
 }

@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,10 +20,11 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     public void beforeEach() throws Exception {
         final URI uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
 
-        final RsyncFetcher rsyncFetcher = new RsyncFetcher(uri.getPath());
+        final RsyncFetcher rsyncFetcher = new RsyncFetcher();
+        rsyncFetcher.setRsyncUrl(uri.getPath());
         summaryService = new SummaryService();
 
-        rsyncObjectsAboutToExpireCollector = new RsyncObjectsAboutToExpireCollector(summaryService, rsyncFetcher);
+        rsyncObjectsAboutToExpireCollector = new RsyncObjectsAboutToExpireCollector(summaryService, rsyncFetcher, new SimpleMeterRegistry());
 
     }
 
