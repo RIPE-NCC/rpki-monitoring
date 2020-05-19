@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractObjectsAboutToExpireCollector {
     public final static String COLLECTOR_UPDATE_DESCRIPTION = "Number of updates by collector by status";
-    public static final String COLLECTOR_UPDATE_METRIC = "collector.update";
+    public static final String COLLECTOR_UPDATE_METRIC = "rpkimonitoring.collector.update";
 
     private final RepoFetcher repoFetcher;
 
@@ -38,7 +38,7 @@ public abstract class AbstractObjectsAboutToExpireCollector {
     public AbstractObjectsAboutToExpireCollector(@NonNull final RepoFetcher repoFetcher, @NonNull final MeterRegistry registry) {
         this.repoFetcher = repoFetcher;
 
-        Gauge.builder("collector.lastupdated", lastUpdated::get)
+        Gauge.builder("rpkimonitoring.collector.lastupdated", lastUpdated::get)
                 .description("Last update by collector")
                 .tag("fetcher", repoFetcher.getClass().getSimpleName())
                 .register(registry);
@@ -49,7 +49,7 @@ public abstract class AbstractObjectsAboutToExpireCollector {
                 .tag("status", "success")
                 .register(registry);
 
-        failureCount = Counter.builder("collector.update")
+        failureCount = Counter.builder("rpkimonitoring.collector.update")
                 .description(COLLECTOR_UPDATE_DESCRIPTION)
                 .tag("fetcher", repoFetcher.getClass().getSimpleName())
                 .tag("status", "failure")
