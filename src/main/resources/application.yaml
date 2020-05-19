@@ -29,9 +29,9 @@ rpkimonitor:
 
   internal-api-key-header: "X-API_KEY"
 
-  core:
-    url: https://ba-apps.prepdev.ripe.net/certification/
-    api-key: BAD-TEST-D2Shtf2n5Bwh02P7
+core:
+  url: https://ba-apps.prepdev.ripe.net/certification/
+  api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
 logging:
   level:
@@ -61,7 +61,24 @@ rsync:
   timeout: 30
   interval: 5M
 
-rpkimonitor:
-  core:
-    url: http://localhost:8080/certification/
-    api-key: BAD-TEST-D2Shtf2n5Bwh02P7
+core:
+  url: http://localhost:8080/certification/
+  api-key: BAD-TEST-D2Shtf2n5Bwh02P7
+
+---
+spring:
+  profiles: production
+
+rrdp:
+  url: https://rrdp.ripe.net
+  interval: 5M
+
+rsync:
+  # *wihout* a trailing slash
+  url: rsync://rpki.ripe.net
+  timeout: 30
+  interval: 5M
+
+core:
+  url: https://ba-apps.ripe.net/certification/
+  api-key: BAD-TEST-D2Shtf2n5Bwh02P7

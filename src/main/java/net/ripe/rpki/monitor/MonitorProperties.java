@@ -12,16 +12,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties("rpkimonitor")
 public class MonitorProperties {
-    public final static String INTERNAL_API_KEY_HEADER = "X-API_KEY";
-
-    private Core core;
+    /** The api key header */
+    private String internalApiKeyHeader;
 
     /** The git revision */
     private String version;
-
-    @Data
-    public static class Core {
-        private String url;
-        private String apiKey;
-    }
 }

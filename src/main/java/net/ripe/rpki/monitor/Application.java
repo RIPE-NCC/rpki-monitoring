@@ -29,11 +29,13 @@ public class Application {
 	}
 
 	@Bean(name = "rpki-core-resttemplate")
-	public RestTemplate coreClient(RestTemplateBuilder builder) {
+	public RestTemplate coreClient(RestTemplateBuilder builder,
+								   @Value("${core.url}") String coreUrl,
+								   @Value("${core.api-key}") String coreApiKey) {
 		return builder
 				.defaultHeader("user-agent", String.format("rpki-monitor %s", properties.getVersion()))
-				.defaultHeader(MonitorProperties.INTERNAL_API_KEY_HEADER, properties.getCore().getApiKey())
-				.rootUri(properties.getCore().getUrl())
+				.defaultHeader(properties.getInternalApiKeyHeader(), coreApiKey)
+				.rootUri(coreUrl)
 				.build();
 	}
 }
