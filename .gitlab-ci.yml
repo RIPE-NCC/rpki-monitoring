@@ -71,20 +71,12 @@ test:
         - build/test-results/test/*.xml
     expire_in: 1 day
 
-# Build for current branch
-docker_build:
-  stage: package
-  needs: ["test"]
-  before_script:
-    - apt update && apt install --no-install-recommends --yes docker.io rsync
-  script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
 # All the package stages only require the test job, so whitesource scanning can
 # progress in parallel since this takes up to ten minutes.
 manual_build:
   stage: package
   needs: ["test"]
+  when: manual
   before_script:
     - apt update && apt install --no-install-recommends --yes docker.io rsync
   script:
