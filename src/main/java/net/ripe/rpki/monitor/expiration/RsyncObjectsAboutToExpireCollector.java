@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
+import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -17,8 +18,8 @@ public class RsyncObjectsAboutToExpireCollector extends AbstractObjectsAboutToEx
     public RsyncObjectsAboutToExpireCollector(
             final SummaryService summaryService,
             @Qualifier("RsyncFetcher") final RepoFetcher repoFetcher,
-            final MeterRegistry registry) {
-        super(repoFetcher, registry);
+            final CollectorUpdateMetrics collectorUpdateMetrics) {
+        super(repoFetcher, collectorUpdateMetrics);
         this.summaryService = summaryService;
     }
 

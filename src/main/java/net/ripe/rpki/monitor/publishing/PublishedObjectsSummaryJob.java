@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.publishing;
 
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import org.joda.time.DateTime;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
@@ -23,8 +24,12 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 @Component
 public class PublishedObjectsSummaryJob extends QuartzJobBean {
     private final static String PUBLISHED_OBJECTS_JOB = "Published_Objects_Job_Detail";
+
     @Autowired
     private PublishedObjectsSummaryService publishedObjectsSummaryService;
+
+    @Autowired
+    private CollectorUpdateMetrics collectorUpdateMetrics;
 
     @Bean(PUBLISHED_OBJECTS_JOB)
     public JobDetail jobDetail() {
@@ -49,6 +54,12 @@ public class PublishedObjectsSummaryJob extends QuartzJobBean {
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        publishedObjectsSummaryService.getPublishedObjectsDiff();
+        try {
+            publishedObjectsSummaryService.getPublishedObjectsDiff();
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName());
+        } catch (Exception e) {
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName());
+            throw e;
+        }
     }
 }
