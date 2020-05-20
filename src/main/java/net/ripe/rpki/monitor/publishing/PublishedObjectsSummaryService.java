@@ -21,9 +21,9 @@ import java.util.stream.Collectors;
 @Service
 public class PublishedObjectsSummaryService {
     public final static String PUBLISHED_OBJECT_DIFF_DESCRIPTION = "Number of objects in <lhs> that are not in <rhs>";
-    public final static String PUBLISHED_OBJECT_DIFF = "published.objects.diff";
+    public final static String PUBLISHED_OBJECT_DIFF = "rpkimonitoring.published.objects.diff";
     public final static String PUBLISHED_OBJECT_COUNT_DESCRIPTION = "Number of published objects";
-    public final static String PUBLISHED_OBJECT_COUNT = "published.objects.count";
+    public final static String PUBLISHED_OBJECT_COUNT = "rpkimonitoring.published.objects.count";
 
     private final SummaryService repositoryObjects;
     private final CoreClient rpkiCoreClient;
