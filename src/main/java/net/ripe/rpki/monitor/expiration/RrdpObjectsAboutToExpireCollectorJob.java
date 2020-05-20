@@ -48,7 +48,7 @@ public class RrdpObjectsAboutToExpireCollectorJob extends QuartzJobBean {
                 .withIdentity("Rrdp_Expiration_Trigger")
                 .withDescription("Rrdp Expiration trigger")
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
-                .startAt(DateTime.now().plusMinutes(3).toDate())
+                .startAt(DateTime.now().plusSeconds(30).toDate())
                 .build();
     }
 

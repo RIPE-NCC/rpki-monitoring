@@ -10,9 +10,12 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
@@ -33,12 +36,14 @@ public class PublishedObjectsSummaryJob extends QuartzJobBean {
     }
 
     @Bean("Published_Objects_Summary_Trigger")
-    public Trigger trigger(@Qualifier(PUBLISHED_OBJECTS_JOB) JobDetail jobDetail) {
+    public Trigger trigger(@Qualifier(PUBLISHED_OBJECTS_JOB) JobDetail jobDetail,
+                           @Value("${rsync.interval}") Duration interval
+                           ) {
         return TriggerBuilder.newTrigger().forJob(jobDetail)
                 .withIdentity(this.getClass().getName())
                 .withDescription("Published object comparison trigger")
-                .withSchedule(simpleSchedule().repeatForever().withIntervalInMinutes(5))
-                .startAt(DateTime.now().plusMinutes(6).toDate())
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
+                .startAt(DateTime.now().plusMinutes(3).toDate()) // Two minutes after rsync starts
                 .build();
     }
 
