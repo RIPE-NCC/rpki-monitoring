@@ -68,7 +68,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
                 requestTo(new URI("http://localhost.example/notification.xml")))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.TEXT_XML)
                         .body(getNotificationXml(serial, Sha256.asString(snapshotXml)))
                 );
 
@@ -76,7 +76,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
                 requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.TEXT_XML)
                         .body(snapshotXml)
                 );
 
@@ -93,7 +93,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
                 requestTo(new URI("http://localhost.example/notification.xml")))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.TEXT_XML)
                         .body(getNotificationXml(serial, "ababababababababababababababababababab1b1b1b1bababababababababab"))
                 );
 
@@ -101,7 +101,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
                 requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.TEXT_XML)
                         .body(snapshotXml)
                 );
 
