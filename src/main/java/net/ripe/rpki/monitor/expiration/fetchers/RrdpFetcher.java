@@ -49,7 +49,7 @@ public class RrdpFetcher implements RepoFetcher {
 
             final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
             final String snapshotUrl = snapshotTag.getAttributes().getNamedItem("uri").getNodeValue();
-            final String snapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
+            final String desiredSnapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
 
             assert snapshotUrl != null;
             if (snapshotUrl.equals(lastSnapshotUrl)) {
@@ -58,15 +58,15 @@ public class RrdpFetcher implements RepoFetcher {
             }
             lastSnapshotUrl = snapshotUrl;
 
-            log.info("loading rrdp snapshot from {}", snapshotUrl, notificationXmlUrl);
+            log.info("Loading rrdp snapshot {} from {}", snapshotUrl, notificationXmlUrl);
 
             final String snapshotXml = restTemplate.getForObject(snapshotUrl, String.class);
             assert snapshotXml != null;
             final byte[] bytes = snapshotXml.getBytes();
 
-            final String realHash = Sha256.asString(bytes);
-            if (!realHash.toLowerCase().equals(snapshotHash.toLowerCase())) {
-                throw new SnapshotWrongHashException(snapshotHash, realHash);
+            final String realSnapshotHash = Sha256.asString(bytes);
+            if (!realSnapshotHash.toLowerCase().equals(desiredSnapshotHash.toLowerCase())) {
+                throw new SnapshotWrongHashException(desiredSnapshotHash, realSnapshotHash);
             }
 
             final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(bytes));
