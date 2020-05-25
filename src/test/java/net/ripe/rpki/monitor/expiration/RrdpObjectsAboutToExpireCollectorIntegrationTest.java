@@ -114,4 +114,73 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         }
     }
 
+    @Test
+    public void itShouldOnlyDownloadSnapshotWhenNeeded() throws Exception {
+        final String serial = "42";
+        mockServer.expect(ExpectedCount.twice(),
+                requestTo(new URI("http://localhost.example/notification.xml")))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .contentType(MediaType.TEXT_XML)
+                        .body(getNotificationXml(serial, Sha256.asString(snapshotXml)))
+                );
+
+        mockServer.expect(ExpectedCount.once(),
+                requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .contentType(MediaType.TEXT_XML)
+                        .body(snapshotXml)
+                );
+
+        // Run twice
+        rrdpObjectsAboutToExpireCollector.run();
+        rrdpObjectsAboutToExpireCollector.run();
+
+        mockServer.verify();
+    }
+
+    @Test
+    public void itShouldDownloadSnapshotWhenChanged() throws Exception {
+        final String serial = "42";
+
+        mockServer.expect(ExpectedCount.twice(),
+                requestTo(new URI("http://localhost.example/notification.xml")))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .contentType(MediaType.TEXT_XML)
+                        .body(getNotificationXml(serial, Sha256.asString(snapshotXml)))
+                );
+
+        mockServer.expect(ExpectedCount.once(),
+                requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .contentType(MediaType.TEXT_XML)
+                        .body(snapshotXml)
+                );
+
+        mockServer.expect(ExpectedCount.once(),
+                requestTo(new URI("http://localhost.example/notification.xml")))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .contentType(MediaType.TEXT_XML)
+                        .body(getNotificationXml(serial + "1", Sha256.asString(snapshotXml)))
+                );
+
+        mockServer.expect(ExpectedCount.once(),
+                requestTo(new URI("http://localhost.example/" + serial + "1" + "/snapshot.xml")))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .contentType(MediaType.TEXT_XML)
+                        .body(snapshotXml)
+                );
+
+        // Run for original notification, then retrieve new notification + snapshot
+        rrdpObjectsAboutToExpireCollector.run();
+        rrdpObjectsAboutToExpireCollector.run();
+        rrdpObjectsAboutToExpireCollector.run();
+
+        mockServer.verify();
+    }
 }
