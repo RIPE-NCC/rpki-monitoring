@@ -61,14 +61,14 @@ public abstract class AbstractObjectsAboutToExpireCollector {
 
     public void run() throws FetcherException {
 
-        final ConcurrentSkipListSet<RepoObject> expirationSummary = new ConcurrentSkipListSet();
+        final ConcurrentSkipListSet<RepoObject> expirationSummary = new ConcurrentSkipListSet<>();
 
         try {
             final Map<String, byte[]> stringMap = repoFetcher.fetchObjects();
 
             stringMap.forEach((objectUri, object) -> {
                 final Optional<Date> date = getDateFor(objectUri, object);
-                date.stream().forEach(d -> expirationSummary.add(new RepoObject(d, objectUri, Hashing.sha256().hashBytes(object).asBytes())));
+                date.ifPresent(d -> expirationSummary.add(new RepoObject(d, objectUri, Hashing.sha256().hashBytes(object).asBytes())));
             });
 
             setSummary(expirationSummary);
