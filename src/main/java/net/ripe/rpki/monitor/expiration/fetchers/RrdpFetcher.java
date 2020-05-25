@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration.fetchers;
 
 import com.google.common.hash.Hashing;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -63,7 +64,7 @@ public class RrdpFetcher implements RepoFetcher {
             assert snapshotXml != null;
             final byte[] bytes = snapshotXml.getBytes();
 
-            final String realHash = Hashing.sha256().hashBytes(bytes).toString();
+            final String realHash = Sha256.asString(bytes);
             if (!realHash.toLowerCase().equals(snapshotHash.toLowerCase())) {
                 throw new SnapshotWrongHashException(snapshotHash, realHash);
             }

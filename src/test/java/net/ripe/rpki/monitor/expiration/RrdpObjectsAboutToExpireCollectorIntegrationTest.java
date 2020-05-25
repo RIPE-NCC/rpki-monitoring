@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import net.ripe.rpki.monitor.util.Sha256;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,8 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -36,10 +39,14 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
     private MockRestServiceServer mockServer;
 
-    private String notificationXml = "" +
-            "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"574\">" +
-            "<snapshot uri=\"http://localhost.example/574/snapshot.xml\" hash=\"2F045AC17400F468B40F2A104006951C6D379B7C318F326FA62759C6CA7A5EBC\"/>" +
+    private String getNotificationXml(String serial, String snapshotHash)
+    {
+        return "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"" + serial + "\">" +
+            "<snapshot uri=\"http://localhost.example/" + serial + "/snapshot.xml\" hash=\"" + snapshotHash + "\"/>" +
             "</notification>";
+    }
+
+
     private String snapshotXml = "" +
             "<snapshot version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"574\" xmlns=\"http://www.ripe.net/rpki/rrdp\">\n" +
             "<publish uri=\"rsync://rpki.ripe.net/repository/DEFAULT/21/765e79-d0a3-472c-b5df-6d324c51362d/1/Q8uCW6eAw7tnl2QxNmQTf50fxAg.mft\">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</publish>\n" +
@@ -56,16 +63,17 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     @Test
     public void itShouldPopulateRrdpObjectsSummaryList() throws Exception {
 
+        final String serial = "574";
         mockServer.expect(ExpectedCount.once(),
                 requestTo(new URI("http://localhost.example/notification.xml")))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.OK)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(notificationXml)
+                        .body(getNotificationXml(serial, Sha256.asString(snapshotXml)))
                 );
 
         mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/574/snapshot.xml")))
+                requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.OK)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -75,6 +83,35 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         rrdpObjectsAboutToExpireCollector.run();
 
         assertEquals(4,summaryService.getRrdpObjectsAboutToExpire(Integer.MAX_VALUE).size());
+    }
+
+    @Test
+    public void itShouldCheckHash() throws Exception {
+
+        final String serial = "666";
+        mockServer.expect(ExpectedCount.once(),
+                requestTo(new URI("http://localhost.example/notification.xml")))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(getNotificationXml(serial, "ababababababababababababababababababab1b1b1b1bababababababababab"))
+                );
+
+        mockServer.expect(ExpectedCount.once(),
+                requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.OK)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(snapshotXml)
+                );
+
+        try {
+            rrdpObjectsAboutToExpireCollector.run();
+            fail();
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("Snapshot hash (" +Sha256.asString(snapshotXml) + ") is not the same as " +
+                "in notification.xml (ababababababababababababababababababab1b1b1b1bababababababababab)"));
+        }
     }
 
 }
