@@ -46,6 +46,7 @@ management:
         include:
           - prometheus
           - info
+          - health
 
 ---
 spring:
