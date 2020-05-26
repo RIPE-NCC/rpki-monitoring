@@ -43,7 +43,7 @@ public class PublishedObjectsSummaryJob extends QuartzJobBean {
                 .withIdentity(this.getClass().getName())
                 .withDescription("Published object comparison trigger")
                 .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
-                .startAt(DateTime.now().plusMinutes(3).toDate()) // Two minutes after rsync starts
+                .startAt(DateTime.now().plusMinutes(3).toDate()) // After initial rsync run was started.
                 .build();
     }
 
