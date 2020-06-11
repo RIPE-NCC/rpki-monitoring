@@ -44,9 +44,12 @@ public class RsyncFetcher implements RepoFetcher {
             final String tempDirectory = tempPath.toString();
 
             log.info("running rsync for '{}' to {}", this.rsyncUrl, tempPath.toString());
+            final var t0 = System.currentTimeMillis();
 
             rsyncPathFromRepository(rsyncUrl + "/ta", tempPath.resolve("ta"));
             rsyncPathFromRepository(rsyncUrl + "/repository", tempPath.resolve("repository"));
+
+            log.info("rsync finished in {} seconds.", Math.round((System.currentTimeMillis()-t0)/100.0)/10.0);
 
             final Map<String, byte[]> objects = new HashMap<>();
             Files.walk(tempPath)
