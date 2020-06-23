@@ -91,6 +91,7 @@ development_build:
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - gradle jib --image=$CI_REGISTRY_IMAGE
+    - gradle jib --image=$CI_REGISTRY_IMAGE:master
   only:
     - master@rpki/rpki-monitoring
 
