@@ -78,7 +78,7 @@ rsync:
   # *wihout* a trailing slash
   url: rsync://rpki.prepdev.ripe.net
   timeout: 30
-  interval: 5M
+  interval: 10M
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
@@ -95,7 +95,7 @@ rsync:
   # *wihout* a trailing slash
   url: rsync://rpki.ripe.net
   timeout: 30
-  interval: 5M
+  interval: 10M
 
 core:
   url: https://ba-apps.ripe.net/certification/
