@@ -166,12 +166,12 @@ deploy:prepdev:
     url: https://uncore.rpki.prepdev.ripe.net
   only:
     - master@rpki/rpki-monitoring
-#
-#deploy:production:
-#  <<: *deploy_template
-#  stage: deploy
-#  environment:
-#    name: production
-#    url: https://uncore.rpki.ripe.net
-#  only:
-#    - tags@rpki/rpki-monitoring
+
+deploy:production:
+  <<: *deploy_template
+  stage: deploy
+  environment:
+    name: production
+    url: https://uncore.rpki.ripe.net
+  only:
+    - tags@rpki/rpki-monitoring
