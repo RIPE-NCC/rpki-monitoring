@@ -81,7 +81,7 @@ manual_build:
     - apt update && apt install --no-install-recommends --yes docker.io rsync
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:dev
+    - gradle jib --image=$CI_REGISTRY_IMAGE:dev
 
 development_build:
   stage: package
@@ -90,8 +90,7 @@ development_build:
     - apt update && apt install --no-install-recommends --yes docker.io rsync
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:debug
-    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE
+    - gradle jib --image=$CI_REGISTRY_IMAGE
   only:
     - master@rpki/rpki-monitoring
 
@@ -103,8 +102,8 @@ tagged_build:
   script:
     - if [[ "$CI_COMMIT_TAG" =~ ^rpki-monitoring-.* ]]; then echo "Correct tag"; else exit 1; fi
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - gradle jib -Pjib.from.image=$DOCKER_IMAGE --image=$CI_REGISTRY_IMAGE:$(echo $CI_COMMIT_TAG | sed -e's/rpki-monitoring-//')
-    - gradle jib -PJib.from.image=$DOCKER_IMAGE --image=$CI_REGISTRY_IMAGE:production
+    - gradle jib --image=$CI_REGISTRY_IMAGE:$(echo $CI_COMMIT_TAG | sed -e's/rpki-monitoring-//')
+    - gradle jib --image=$CI_REGISTRY_IMAGE:production
   only:
     - tags@rpki/rpki-monitoring
 

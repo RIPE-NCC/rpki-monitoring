@@ -16,8 +16,6 @@ SPRING_PROFILES_ACIVE=local gradle clean bootRun
 ```
 # Build thin image, without explicitly creating a Dockerfile with multi-stage build
 gradle jibDockerBuild
-# Or specify a base image
-gradle jibDockerBuild -Pjib.from.image=[image name]
 # And run it
 docker run -p 9090:9090 --rm docker-registry.ripe.net/rpki/rpki-monitoring
 # Or for a profile that requires environment variables:

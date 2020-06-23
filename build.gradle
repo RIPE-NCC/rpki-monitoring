@@ -10,15 +10,14 @@ plugins {
 	// Enable Lombok project (https://projectlombok.org/features/all)
 	id "io.freefair.lombok" version "5.1.0"
 	// jib: Thinner Java docker images
-	id "com.google.cloud.tools.jib" version "2.2.0"
+	id "com.google.cloud.tools.jib" version "2.4.0"
 	// git version
 	id "com.palantir.git-version" version "0.12.3"
 }
 
 jib {
 	from {
-		image = "${project.findProperty('jib.from.image') ?: 'gcr.io/distroless/java:11'}"
-		// alternative which includes busybox: gcr.io/distroless/java:11-debug"
+		image = "docker-registry.ripe.net/swe/gitlab-ci/adoptopenjdk-rsync:jre-11"
 	}
 	to {
 		image = "docker-registry.ripe.net/rpki/rpki-monitoring"
