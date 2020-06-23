@@ -68,6 +68,23 @@ core:
 
 ---
 spring:
+  profiles: prepdev
+
+rrdp:
+  url: http://pub-server.elasticbeanstalk.com
+  interval: 5M
+
+rsync:
+  # *wihout* a trailing slash
+  url: rsync://rpki.prepdev.ripe.net
+  timeout: 30
+  interval: 5M
+
+core:
+  url: https://ba-apps.prepdev.ripe.net/certification/
+
+---
+spring:
   profiles: production
 
 rrdp:
@@ -82,4 +99,3 @@ rsync:
 
 core:
   url: https://ba-apps.ripe.net/certification/
-  api-key: BAD-TEST-D2Shtf2n5Bwh02P7
