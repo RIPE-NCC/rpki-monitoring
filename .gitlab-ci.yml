@@ -124,6 +124,8 @@ tagged_build:
         -d password="$RPKIDEPLOY_PASS" \
         -d eauth='pam'
 
+    # Run `docker.container_up` state because container is not
+    # behind f5: No reason to use that logic
     - echo "Updating containers via salt on $SALT_DEPLOY_TARGET"
     - >
       curl -D "/dev/stderr" -k https://salt.ripe.net:8000 \
@@ -138,7 +140,7 @@ tagged_build:
               \"fun\": \"state.apply\",
               \"tgt_type\": \"glob\",
               \"tgt\": \"$SALT_DEPLOY_TARGET\",
-              \"arg\": [\"docker.f5_container_up\"],
+              \"arg\": [\"docker.container_up\"],
               \"kwarg\": {
                 \"pillar\": {
                   \"vars\": {
