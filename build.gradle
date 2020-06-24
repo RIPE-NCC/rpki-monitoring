@@ -53,7 +53,7 @@ dependencies {
 	implementation "org.springframework.boot:spring-boot-starter-actuator"
 	implementation "io.micrometer:micrometer-registry-prometheus"
 
-	implementation 'net.ripe.rpki:rpki-commons:1.9.0'
+	implementation 'net.ripe.rpki:rpki-commons:1.10.0'
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {
 		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
 	}
