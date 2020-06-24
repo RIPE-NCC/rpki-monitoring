@@ -52,6 +52,6 @@ public class Application {
 	/** Drop all the http.client.requests metrics to prevent metrics explosion */
 	@Bean
 	public MeterFilter dropHttpClientRequestMetrics() {
-		return MeterFilter.denyNameStartsWith("http_client_requests");
+		return MeterFilter.denyNameStartsWith("http.client.requests");
 	}
 }
