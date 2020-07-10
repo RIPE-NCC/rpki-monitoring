@@ -2,12 +2,14 @@ package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
+import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
 class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
@@ -24,7 +26,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         rsyncFetcher.setRsyncUrl(uri.getPath());
         summaryService = new SummaryService();
 
-        rsyncObjectsAboutToExpireCollector = new RsyncObjectsAboutToExpireCollector(summaryService, rsyncFetcher, new SimpleMeterRegistry());
+        rsyncObjectsAboutToExpireCollector = new RsyncObjectsAboutToExpireCollector(summaryService, rsyncFetcher, mock(CollectorUpdateMetrics.class));
 
     }
 

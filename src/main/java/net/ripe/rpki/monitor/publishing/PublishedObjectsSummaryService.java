@@ -4,18 +4,15 @@ import com.google.common.collect.Sets;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.*;
-import net.ripe.rpki.monitor.HasHashAndUri;
 import net.ripe.rpki.monitor.expiration.SummaryService;
+import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.publishing.dto.FileEntry;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 @Setter
 @Service
@@ -45,8 +42,9 @@ public class PublishedObjectsSummaryService {
     public PublishedObjectsSummaryService(
             final SummaryService repositoryObjects,
             final CoreClient rpkiCoreClient,
-            final MeterRegistry registry
-    ) {
+            final MeterRegistry registry,
+            final CollectorUpdateMetrics collectorUpdateMetrics
+            ) {
         this.repositoryObjects = repositoryObjects;
         this.rpkiCoreClient = rpkiCoreClient;
         this.registry = registry;

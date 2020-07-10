@@ -1,8 +1,5 @@
 package net.ripe.rpki.monitor.expiration;
 
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.NonNull;
 import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
@@ -16,45 +13,20 @@ import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
 import net.ripe.rpki.monitor.util.Sha256;
+import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractObjectsAboutToExpireCollector {
-    public final static String COLLECTOR_UPDATE_DESCRIPTION = "Number of updates by collector by status";
-    public static final String COLLECTOR_UPDATE_METRIC = "rpkimonitoring.collector.update";
-    public static final String METRIC_TAG_FETCHER = "fetcher";
-
     private final RepoFetcher repoFetcher;
+    private final CollectorUpdateMetrics collectorUpdateMetrics;
 
-    private final AtomicLong lastUpdated = new AtomicLong();
-
-    private final Counter successCount;
-    private final Counter failureCount;
-
-
-    public AbstractObjectsAboutToExpireCollector(@NonNull final RepoFetcher repoFetcher, @NonNull final MeterRegistry registry) {
+    public AbstractObjectsAboutToExpireCollector(@NonNull final RepoFetcher repoFetcher, @NonNull CollectorUpdateMetrics metrics) {
         this.repoFetcher = repoFetcher;
-
-        Gauge.builder("rpkimonitoring.collector.lastupdated", lastUpdated::get)
-                .description("Last update by collector")
-                .tag(METRIC_TAG_FETCHER, repoFetcher.getClass().getSimpleName())
-                .register(registry);
-
-        successCount = Counter.builder(COLLECTOR_UPDATE_METRIC)
-                .description(COLLECTOR_UPDATE_DESCRIPTION)
-                .tag(METRIC_TAG_FETCHER, repoFetcher.getClass().getSimpleName())
-                .tag("status", "success")
-                .register(registry);
-
-        failureCount = Counter.builder(COLLECTOR_UPDATE_METRIC)
-                .description(COLLECTOR_UPDATE_DESCRIPTION)
-                .tag(METRIC_TAG_FETCHER, repoFetcher.getClass().getSimpleName())
-                .tag("status", "failure")
-                .register(registry);
+        this.collectorUpdateMetrics = metrics;
     }
 
     protected abstract void setSummary(final ConcurrentSkipListSet<RepoObject> expirationSummary);
@@ -73,13 +45,11 @@ public abstract class AbstractObjectsAboutToExpireCollector {
             });
 
             setSummary(expirationSummary);
-            successCount.increment();
-            lastUpdated.set(System.currentTimeMillis() / 1000);
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName());
         } catch (SnapshotNotModifiedException e) {
-            successCount.increment();
-            lastUpdated.set(System.currentTimeMillis() / 1000);
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName());
         } catch (Exception e) {
-            failureCount.increment();
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName());
             throw e;
         }
     }

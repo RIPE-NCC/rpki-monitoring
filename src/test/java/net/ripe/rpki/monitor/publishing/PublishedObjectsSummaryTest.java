@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.expiration.RepoObject;
 import net.ripe.rpki.monitor.expiration.SummaryService;
+import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 public class PublishedObjectsSummaryTest {
@@ -35,7 +37,7 @@ public class PublishedObjectsSummaryTest {
     public void init() {
         meterRegistry = new SimpleMeterRegistry();
 
-        publishedObjectsSummaryService = new PublishedObjectsSummaryService(summaryService, rpkiCoreClient, meterRegistry);
+        publishedObjectsSummaryService = new PublishedObjectsSummaryService(summaryService, rpkiCoreClient, meterRegistry, mock(CollectorUpdateMetrics.class));
     }
 
     @Test

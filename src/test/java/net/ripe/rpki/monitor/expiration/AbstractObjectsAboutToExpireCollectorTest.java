@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
+import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import org.junit.jupiter.api.Test;
 
 import java.text.DateFormat;
@@ -21,7 +22,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
 
     AbstractObjectsAboutToExpireCollector collector = new AbstractObjectsAboutToExpireCollector(
             mock(RepoFetcher.class),
-            new SimpleMeterRegistry()) {
+            mock(CollectorUpdateMetrics.class)) {
         @Override
         protected void setSummary(ConcurrentSkipListSet<RepoObject> expirationSummary) {
 
