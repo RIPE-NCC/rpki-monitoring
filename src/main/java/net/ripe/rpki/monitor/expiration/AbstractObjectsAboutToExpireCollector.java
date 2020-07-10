@@ -1,6 +1,5 @@
 package net.ripe.rpki.monitor.expiration;
 
-import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -16,6 +15,7 @@ import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
+import net.ripe.rpki.monitor.util.Sha256;
 
 import java.util.Date;
 import java.util.Map;
@@ -62,14 +62,14 @@ public abstract class AbstractObjectsAboutToExpireCollector {
 
     public void run() throws FetcherException {
 
-        final ConcurrentSkipListSet<RepoObject> expirationSummary = new ConcurrentSkipListSet();
+        final ConcurrentSkipListSet<RepoObject> expirationSummary = new ConcurrentSkipListSet<>();
 
         try {
             final Map<String, byte[]> stringMap = repoFetcher.fetchObjects();
 
             stringMap.forEach((objectUri, object) -> {
                 final Optional<Date> date = getDateFor(objectUri, object);
-                date.stream().forEach(d -> expirationSummary.add(new RepoObject(d, objectUri, Hashing.sha256().hashBytes(object).asBytes())));
+                date.ifPresent(d -> expirationSummary.add(new RepoObject(d, objectUri, Sha256.asBytes(object))));
             });
 
             setSummary(expirationSummary);
@@ -80,7 +80,6 @@ public abstract class AbstractObjectsAboutToExpireCollector {
             lastUpdated.set(System.currentTimeMillis() / 1000);
         } catch (Exception e) {
             failureCount.increment();
-
             throw e;
         }
     }

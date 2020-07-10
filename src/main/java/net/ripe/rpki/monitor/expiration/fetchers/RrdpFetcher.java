@@ -1,8 +1,7 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
-import com.google.common.hash.Hashing;
-import io.micrometer.core.instrument.Gauge;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -12,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -34,8 +34,8 @@ public class RrdpFetcher implements RepoFetcher {
 
     @Autowired
     public RrdpFetcher(
-            @Value("${rrdp.url}")final String rrdpUrl,
-            @Qualifier("rrdp-resttemplate") final RestTemplate restTemplate
+        @Value("${rrdp.url}") final String rrdpUrl,
+        @Qualifier("rrdp-resttemplate") final RestTemplate restTemplate
     ) {
         this.notificationXmlUrl = String.format("%s/notification.xml", rrdpUrl);
         this.restTemplate = restTemplate;
@@ -46,9 +46,11 @@ public class RrdpFetcher implements RepoFetcher {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
             final String notificationXml = restTemplate.getForObject(notificationXmlUrl, String.class);
-            final Document notificationXmlDoc =  documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
+            final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
 
-            final String snapshotUrl = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0).getAttributes().getNamedItem("uri").getNodeValue();
+            final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
+            final String snapshotUrl = snapshotTag.getAttributes().getNamedItem("uri").getNodeValue();
+            final String desiredSnapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
 
             assert snapshotUrl != null;
             if (snapshotUrl.equals(lastSnapshotUrl)) {
@@ -57,26 +59,34 @@ public class RrdpFetcher implements RepoFetcher {
             }
             lastSnapshotUrl = snapshotUrl;
 
-            log.info("loading rrdp snapshot from {}", snapshotUrl, notificationXmlUrl);
+            log.info("Loading rrdp snapshot {} from {}", snapshotUrl, notificationXmlUrl);
 
             final String snapshotXml = restTemplate.getForObject(snapshotUrl, String.class);
             assert snapshotXml != null;
-            final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(snapshotXml.getBytes()));
+            final byte[] bytes = snapshotXml.getBytes();
 
+            final String realSnapshotHash = Sha256.asString(bytes);
+            if (!realSnapshotHash.toLowerCase().equals(desiredSnapshotHash.toLowerCase())) {
+                throw new SnapshotWrongHashException(desiredSnapshotHash, realSnapshotHash);
+            }
+
+            final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(bytes));
             final NodeList publishedObjects = snapshotXmlDoc.getDocumentElement().getElementsByTagName("publish");
 
             return IntStream
-                    .range(0, publishedObjects.getLength())
-                    .mapToObj(publishedObjects::item)
-                    .map(item -> {
-                        final String objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
+                .range(0, publishedObjects.getLength())
+                .mapToObj(publishedObjects::item)
+                .map(item -> {
+                    final String objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
 
-                        final Base64.Decoder decoder = Base64.getDecoder();
-                        final byte[] decoded = decoder.decode(item.getTextContent());
+                    final Base64.Decoder decoder = Base64.getDecoder();
+                    final byte[] decoded = decoder.decode(item.getTextContent());
 
-                        return ImmutablePair.of(objectUri, decoded);
-                    }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
-        } catch (ParserConfigurationException | SAXException | IOException e) {
+                    return ImmutablePair.of(objectUri, decoded);
+                })
+                .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+
+        } catch (ParserConfigurationException | SAXException | IOException | SnapshotWrongHashException e) {
             throw new FetcherException(e);
         }
     }
