@@ -27,7 +27,7 @@ server:
 rpkimonitor:
   version: "@gitVersion@"
 
-  internal-api-key-header: "X-API_KEY"
+  internal-api-key-header: "ncc-internal-api-key"
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
