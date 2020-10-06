@@ -2,7 +2,7 @@
 # This is the Gradle build system for JVM applications
 # https://gradle.org/
 # https://github.com/gradle/gradle
-image: gradle:jdk11
+image: docker-registry.ripe.net/swe/gitlab-ci/gradle-buildenv:jdk-11
 
 stages:
   - build
@@ -57,8 +57,6 @@ build:
 
 test:
   stage: test
-  before_script:
-    - apt update && apt install --no-install-recommends --yes docker.io rsync
   script:
     - gradle check
     - cat build/reports/jacoco/test/html/index.html
@@ -77,8 +75,6 @@ manual_build:
   stage: package
   needs: ["test"]
   when: manual
-  before_script:
-    - apt update && apt install --no-install-recommends --yes docker.io rsync
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - gradle jib --image=$CI_REGISTRY_IMAGE:dev
@@ -86,8 +82,6 @@ manual_build:
 development_build:
   stage: package
   needs: ["test"]
-  before_script:
-    - apt update && apt install --no-install-recommends --yes docker.io rsync
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - gradle jib --image=$CI_REGISTRY_IMAGE
@@ -98,8 +92,6 @@ development_build:
 tagged_build:
   stage: package
   needs: ["test"]
-  before_script:
-    - apt update && apt install --no-install-recommends --yes docker.io rsync
   script:
     - if [[ "$CI_COMMIT_TAG" =~ ^rpki-monitoring-.* ]]; then echo "Correct tag"; else exit 1; fi
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -110,9 +102,7 @@ tagged_build:
 
 .deploy_template: &deploy_template
   stage: deploy
-  image: debian:buster-backports
-  before_script:
-    - apt update && apt install --no-install-recommends --yes jq curl
+  image: docker-registry.ripe.net/swe/gitlab-ci/debian-deployenv
   script:
     - echo "SALT_DEPLOY_TARGET=${SALT_DEPLOY_TARGET}"
     - echo "Logging into salt-api"
