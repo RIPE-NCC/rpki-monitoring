@@ -107,7 +107,7 @@ tagged_build:
     - echo "SALT_DEPLOY_TARGET=${SALT_DEPLOY_TARGET}"
     - echo "Logging into salt-api"
     - >
-      curl -ik https://salt.ripe.net:8000/login \
+      curl -f -ik https://salt.ripe.net:8000/login \
         -c ~/cookies.txt \
         -H 'Accept: application/x-yaml' \
         -d username='rpkideploy' \
@@ -118,7 +118,7 @@ tagged_build:
     # behind f5: No reason to use that logic
     - echo "Updating containers via salt on $SALT_DEPLOY_TARGET"
     - >
-      curl -D "/dev/stderr" -k https://salt.ripe.net:8000 \
+      curl -f -D "/dev/stderr" -k https://salt.ripe.net:8000 \
         -b ~/cookies.txt \
         -H 'Content-type: application/json' -d"
             [{
