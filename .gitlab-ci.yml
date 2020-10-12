@@ -104,6 +104,7 @@ tagged_build:
   stage: deploy
   image: docker-registry.ripe.net/swe/gitlab-ci/debian-deployenv
   script:
+    - if [ -z "${SALT_DEPLOY_TARGET}" ]; then echo "set SALT_DEPLOY_TARGET"; exit 2; fi;
     - echo "SALT_DEPLOY_TARGET=${SALT_DEPLOY_TARGET}"
     - echo "Logging into salt-api"
     - >
