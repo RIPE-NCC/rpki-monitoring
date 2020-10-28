@@ -1,5 +1,16 @@
 # rpki-monitoring
 
+RPKI monitoring is deployed through gitlab as a docker container. It is available
+on `uncore-{1,2}.rpki.(environment?).ripe.net:9090`.
+
+### Endpoints:
+
+  * Difference in published objects: `/published-object-diffs`
+  * Objects that are about to expire in `in_hours=...` hours:
+    * rsync: `/about_to_expire/rsync?in_hours=12`
+    * rrdp: `/about_to_expire/rrdp?in_hours=12`
+
+
 ### Running it:
 ```
 gradle bootRun
