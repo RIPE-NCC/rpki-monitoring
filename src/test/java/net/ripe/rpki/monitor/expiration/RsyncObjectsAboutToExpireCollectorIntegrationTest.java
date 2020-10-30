@@ -1,6 +1,5 @@
 package net.ripe.rpki.monitor.expiration;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +26,6 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         summaryService = new SummaryService();
 
         rsyncObjectsAboutToExpireCollector = new RsyncObjectsAboutToExpireCollector(summaryService, rsyncFetcher, mock(CollectorUpdateMetrics.class));
-
     }
 
     @Test
@@ -35,7 +33,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
         rsyncObjectsAboutToExpireCollector.run();
 
-        assertEquals(4,summaryService.getRsyncObjectsAboutToExpire(Integer.MAX_VALUE).size());
+        assertEquals(4, summaryService.getRsyncObjectsAboutToExpire(Integer.MAX_VALUE).size());
     }
 
 }
