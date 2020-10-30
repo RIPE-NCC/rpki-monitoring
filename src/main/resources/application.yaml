@@ -19,6 +19,7 @@ rsync:
   url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
+  aws-url: rsync://pub-server.elasticbeanstalk.com/
 
 server:
   port: 9090
@@ -61,6 +62,7 @@ rsync:
   url: rsync://localhost:10873
   timeout: 30
   interval: 5M
+  aws-url: rsync://pub-server.elasticbeanstalk.com/
 
 core:
   url: http://localhost:8080/certification/
