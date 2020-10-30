@@ -79,6 +79,8 @@ rsync:
   url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
+  # url to the AWS hosted
+  aws-url: rsync://pub-server.elasticbeanstalk.com/
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
@@ -96,6 +98,8 @@ rsync:
   url: rsync://rpki.ripe.net
   timeout: 30
   interval: 10M
+  # url to the AWS hosted
+  aws-url: rsync://pub-server-prod.elasticbeanstalk.com/
 
 core:
   url: https://ba-apps.ripe.net/certification/
