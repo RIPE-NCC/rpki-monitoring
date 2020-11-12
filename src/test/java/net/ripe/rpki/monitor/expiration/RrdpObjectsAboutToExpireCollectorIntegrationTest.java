@@ -1,7 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
 import net.ripe.rpki.monitor.AppConfig;
-import net.ripe.rpki.monitor.expiration.fetchers.Fetchers;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
