@@ -1,5 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
+import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.expiration.fetchers.Fetchers;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,10 +34,15 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     private RestTemplate restTemplate;
 
     @Autowired
-    private SummaryService summaryService;
+    private RepositoryObjects repositoryObjects;
 
     @Autowired
-    private RrdpObjectsAboutToExpireCollector rrdpObjectsAboutToExpireCollector;
+    private Collectors collectors;
+
+    @Autowired
+    private AppConfig appConfig;
+
+    private ObjectAndDateCollector rrdpObjectsAboutToExpireCollector;
 
     private MockRestServiceServer mockServer;
 
@@ -58,14 +65,18 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     @BeforeEach
     public void init() {
         mockServer = MockRestServiceServer.createServer(restTemplate);
+        appConfig.setRestTemplate(restTemplate);
+        rrdpObjectsAboutToExpireCollector = collectors.getRrdpCollector();
     }
 
     @Test
     public void itShouldPopulateRrdpObjectsSummaryList() throws Exception {
 
         final String serial = "574";
+        final URI repositoryURI = new URI("http://localhost.example/notification.xml");
+
         mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/notification.xml")))
+                requestTo(repositoryURI))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.OK)
                         .contentType(MediaType.TEXT_XML)
@@ -82,7 +93,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
         rrdpObjectsAboutToExpireCollector.run();
 
-        assertEquals(4,summaryService.getRrdpObjectsAboutToExpire(Integer.MAX_VALUE).size());
+        assertEquals(4, repositoryObjects.geRepositoryObjectsAboutToExpire("http://localhost.example", Integer.MAX_VALUE).size());
     }
 
     @Test

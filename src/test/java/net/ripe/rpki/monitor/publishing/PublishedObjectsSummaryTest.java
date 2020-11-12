@@ -2,9 +2,10 @@ package net.ripe.rpki.monitor.publishing;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import net.ripe.rpki.monitor.AppConfig;
 import net.ripe.rpki.monitor.expiration.RepoObject;
-import net.ripe.rpki.monitor.expiration.SummaryService;
-import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.expiration.RepositoryObjects;
+import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,16 +19,12 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.BDDAssertions.then;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 public class PublishedObjectsSummaryTest {
     @Mock
-    private SummaryService summaryService;
-
-    @Mock
     private CoreClient rpkiCoreClient;
+
 
     private PublishedObjectsSummaryService publishedObjectsSummaryService;
 
@@ -37,16 +34,18 @@ public class PublishedObjectsSummaryTest {
     public void init() {
         meterRegistry = new SimpleMeterRegistry();
 
-        publishedObjectsSummaryService = new PublishedObjectsSummaryService(summaryService, rpkiCoreClient, meterRegistry, mock(CollectorUpdateMetrics.class));
+        RepositoryObjects repositoryObjects = new RepositoryObjects();
+        AppConfig appConfig = new AppConfig();
+        publishedObjectsSummaryService = new PublishedObjectsSummaryService(repositoryObjects, rpkiCoreClient, meterRegistry, appConfig);
     }
 
     @Test
     public void itShouldNotReportADifferencesBetweenEmptySources() {
-        given(summaryService.getRrdpObjects()).willReturn(Set.of());
-        given(summaryService.getRsynObjects()).willReturn(Set.of());
-        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
+//        given(repositoryObjects.getObjects()).willReturn(Set.of());
+//        given(repositoryObjects.getRsynObjects()).willReturn(Set.of());
+//        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
 
-        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff();
+        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(Set.of(), Set.of(), Set.of());
 
         then(res.getInCoreNotInRRDP()).isEmpty();
         then(res.getInCoreNotInRsync()).isEmpty();
@@ -55,24 +54,26 @@ public class PublishedObjectsSummaryTest {
         then(res.getInRRDPNotInCore()).isEmpty();
         then(res.getInRRDPNotInRsync()).isEmpty();
 
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT).gauges())
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT).gauges())
             .allMatch(gauge -> gauge.value() == 0.0);
 
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF).gauges())
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF).gauges())
             .allMatch(gauge -> gauge.value() == 0.0);
     }
 
     @Test
     public void itShouldReportADifference_caused_by_core() {
-        given(summaryService.getRrdpObjects()).willReturn(Set.of());
-        given(summaryService.getRsynObjects()).willReturn(Set.of());
-        given(rpkiCoreClient.publishedObjects()).willReturn(List.of(
-                PublishedObjectEntry.builder()
-                        .sha256("not-a-sha256-but-will-do")
-                        .uri("rsync://example.org/index.txt")
-                        .build()));
+//        given(summaryService.getRrdpObjects()).willReturn(Set.of());
+//        given(summaryService.getRsynObjects()).willReturn(Set.of());
+        final Set<PublishedObjectEntry> object = Set.of(
+            PublishedObjectEntry.builder()
+                .sha256("not-a-sha256-but-will-do")
+                .uri("rsync://example.org/index.txt")
+                .build());
 
-        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff();
+//        given(rpkiCoreClient.publishedObjects()).willReturn(build);
+
+        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(object, Set.of(), Set.of());
 
         then(res.getInCoreNotInRRDP()).hasSize(1);
         then(res.getInCoreNotInRsync()).hasSize(1);
@@ -81,31 +82,32 @@ public class PublishedObjectsSummaryTest {
         then(res.getInRRDPNotInCore()).isEmpty();
         then(res.getInRRDPNotInRsync()).isEmpty();
 
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isEqualTo(1);
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "rsync").gauge().value()).isZero();
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "rrdp").gauge().value()).isZero();
 
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rsync").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rrdp").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
     }
 
     @Test
     public void itShouldReportADifference_caused_by_rrdp_objects() {
-        given(summaryService.getRrdpObjects()).willReturn(Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
-        given(summaryService.getRsynObjects()).willReturn(Set.of());
-        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
+//        given(summaryService.getRrdpObjects()).willReturn(Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
+//        given(summaryService.getRsynObjects()).willReturn(Set.of());
+//        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
 
-        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff();
+        final var res = publishedObjectsSummaryService
+            .getPublishedObjectsDiff(Set.of(), Set.of(RepoObject.fictionalObjectExpiringOn(new Date())), Set.of());
 
         then(res.getInCoreNotInRRDP()).isEmpty();
         then(res.getInCoreNotInRsync()).isEmpty();
@@ -114,31 +116,32 @@ public class PublishedObjectsSummaryTest {
         then(res.getInRRDPNotInCore()).hasSize(1);
         then(res.getInRRDPNotInRsync()).hasSize(1);
 
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isZero();
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "rsync").gauge().value()).isZero();
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                     .tags("source", "rrdp").gauge().value()).isEqualTo(1);
 
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rsync").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rrdp").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
     }
 
     @Test
     public void itShouldReportADifference_caused_by_rsync_objects() {
-        given(summaryService.getRrdpObjects()).willReturn(Set.of());
-        given(summaryService.getRsynObjects()).willReturn(Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
-        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
+//        given(summaryService.getRrdpObjects()).willReturn(Set.of());
+//        given(summaryService.getRsynObjects()).willReturn(Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
+//        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
 
-        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff();
+        final var res = publishedObjectsSummaryService
+            .getPublishedObjectsDiff(List.of(), Set.of(), Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
 
         then(res.getInCoreNotInRRDP()).isEmpty();
         then(res.getInCoreNotInRsync()).isEmpty();
@@ -147,20 +150,20 @@ public class PublishedObjectsSummaryTest {
         then(res.getInRRDPNotInCore()).isEmpty();
         then(res.getInRRDPNotInRsync()).isEmpty();
 
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isZero();
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "rsync").gauge().value()).isEqualTo(1);
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "rrdp").gauge().value()).isZero();
 
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rsync").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
-        then(meterRegistry.get(PublishedObjectsSummaryService.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rrdp").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
     }

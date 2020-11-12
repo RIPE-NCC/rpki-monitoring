@@ -22,34 +22,33 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 @Component
 public class RrdpObjectsAboutToExpireCollectorJob extends QuartzJobBean {
 
-
-    private final RrdpObjectsAboutToExpireCollector collector;
+    private final ObjectAndDateCollector collector;
 
     @Autowired
-    public RrdpObjectsAboutToExpireCollectorJob(final RrdpObjectsAboutToExpireCollector collector) {
-        this.collector = collector;
+    public RrdpObjectsAboutToExpireCollectorJob(final Collectors collectors) {
+        this.collector = collectors.getRrdpCollector();
     }
 
     @Bean("Rrdp_Expiration_Job_Detail")
     public JobDetail jobDetail() {
         return JobBuilder.newJob().ofType(RrdpObjectsAboutToExpireCollectorJob.class)
-                .storeDurably()
-                .withIdentity("Rrdp_Expiration_Job_Detail")
-                .withDescription("Invoke Rrdp Expiration Job service...")
-                .build();
+            .storeDurably()
+            .withIdentity("Rrdp_Expiration_Job_Detail")
+            .withDescription("Invoke Rrdp Expiration Job service...")
+            .build();
     }
 
     @Bean("Rrdp_Expiration_Trigger")
     public Trigger trigger(
-            @Qualifier("Rrdp_Expiration_Job_Detail") JobDetail job,
-            @Value("${rrdp.interval}") Duration interval
+        @Qualifier("Rrdp_Expiration_Job_Detail") JobDetail job,
+        @Value("${rrdp.interval}") Duration interval
     ) {
         return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("Rrdp_Expiration_Trigger")
-                .withDescription("Rrdp Expiration trigger")
-                .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
-                .startAt(DateTime.now().plusSeconds(30).toDate())
-                .build();
+            .withIdentity("Rrdp_Expiration_Trigger")
+            .withDescription("Rrdp Expiration trigger")
+            .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int) interval.toSeconds()))
+            .startAt(DateTime.now().plusSeconds(30).toDate())
+            .build();
     }
 
     @Override

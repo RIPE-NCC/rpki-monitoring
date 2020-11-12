@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Setter
 @RestController
-public class PublishedObjectStatus {
+public class PublishedObjectStatusController {
     @Autowired
     private PublishedObjectsSummaryService publishedObjectsSummaryService;
 

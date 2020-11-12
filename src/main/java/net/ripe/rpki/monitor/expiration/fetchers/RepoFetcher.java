@@ -1,8 +1,12 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
+
 import java.util.Map;
 
 public interface RepoFetcher {
 
-    Map<String, byte[]> fetchObjects() throws FetcherException, SnapshotNotModifiedException;
+    Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException;
+
+    String repositoryUrl();
 }

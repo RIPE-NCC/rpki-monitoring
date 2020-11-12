@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -19,29 +20,32 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
-@Component("RrdpFetcher")
 public class RrdpFetcher implements RepoFetcher {
+
     private final RestTemplate restTemplate;
     private final String notificationXmlUrl;
-
+    private final String rrdpUrl;
     private String lastSnapshotUrl;
 
-    @Autowired
-    public RrdpFetcher(
-        @Value("${rrdp.url}") final String rrdpUrl,
-        @Qualifier("rrdp-resttemplate") final RestTemplate restTemplate
-    ) {
+    public RrdpFetcher(String rrdpUrl, RestTemplate restTemplate) {
+        this.rrdpUrl = rrdpUrl;
         this.notificationXmlUrl = String.format("%s/notification.xml", rrdpUrl);
         this.restTemplate = restTemplate;
     }
 
-    public Map<String, byte[]> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
+    @Override
+    public String repositoryUrl() {
+        return rrdpUrl;
+    }
+
+    public Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
@@ -59,7 +63,7 @@ public class RrdpFetcher implements RepoFetcher {
             }
             lastSnapshotUrl = snapshotUrl;
 
-            log.info("loading rrdp snapshot from {}", snapshotUrl);
+            log.info("loading RRDP snapshot from {}", snapshotUrl);
 
             final String snapshotXml = restTemplate.getForObject(snapshotUrl, String.class);
             assert snapshotXml != null;
@@ -82,7 +86,7 @@ public class RrdpFetcher implements RepoFetcher {
                     final Base64.Decoder decoder = Base64.getDecoder();
                     final byte[] decoded = decoder.decode(item.getTextContent());
 
-                    return ImmutablePair.of(objectUri, decoded);
+                    return ImmutablePair.of(objectUri, new RpkiObject(decoded));
                 })
                 .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 

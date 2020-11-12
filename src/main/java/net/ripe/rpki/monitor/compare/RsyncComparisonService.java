@@ -1,16 +1,17 @@
 package net.ripe.rpki.monitor.compare;
 
-import com.google.common.collect.Sets;
-import lombok.extern.slf4j.Slf4j;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.RsyncConfig;
+import net.ripe.rpki.monitor.expiration.RepoObject;
+import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.publishing.dto.FileEntry;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -21,30 +22,31 @@ import java.util.Optional;
 public class RsyncComparisonService {
 
     private final MeterRegistry registry;
-    private final String rsyncPremise;
-    private final String rsyncAws;
+    private final RsyncConfig rsyncConfig;
+
+    private final AtomicLong onAwsNotOnPremiseCount = new AtomicLong();
+    private final AtomicLong onPremiseNotOnAwsCount = new AtomicLong();
 
     @Autowired
     public RsyncComparisonService(MeterRegistry registry,
-                                  @Value("${rsync.url}") String rsyncPremise,
-                                  @Value("${rsync.aws-url}") String rsyncAws) {
+                                  RsyncConfig rsyncConfig) {
         this.registry = registry;
-        this.rsyncPremise = rsyncPremise;
-        this.rsyncAws = rsyncAws;
+        this.rsyncConfig = rsyncConfig;
+
+        Metrics.buildObjectDiffGauge(registry, onAwsNotOnPremiseCount, "on-aws", "rrdp");
+        Metrics.buildObjectDiffGauge(registry, onPremiseNotOnAwsCount, "core", "rsync");
     }
 
+    void getRsyncComparison() {
+//        final Set<RepoObject> rrdpObjects = summaryService.getRrdpObjects();
+//        final Set<RepoObject> rsynObjects = summaryService.getRsynObjects();
 
-    void updateRsyncComparisonMetrics() {
-        final RsyncComparison comparison = new RsyncComparison(rsyncPremise, rsyncAws);
-        Optional<Pair<Map<String, byte[]>, Map<String, byte[]>>> maps = comparison.fetchBoth();
-        if (maps.isEmpty()) {
-            log.info("Could not fetch at least one of the repositories, bailing out");
-        } else {
-            Map<String, byte[]> m1 = maps.get().getLeft();
-            Map<String, byte[]> m2 = maps.get().getRight();
+    }
 
-
-
-        }
+    @Builder
+    @lombok.Value
+    public static class RsyncDiff {
+        private Set<FileEntry> onAwsNotOnPremise;
+        private Set<FileEntry> onPremiseNotOnAws;
     }
 }

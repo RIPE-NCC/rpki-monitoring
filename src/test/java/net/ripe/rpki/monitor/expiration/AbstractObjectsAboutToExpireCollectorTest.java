@@ -1,6 +1,5 @@
 package net.ripe.rpki.monitor.expiration;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import org.junit.jupiter.api.Test;
@@ -11,7 +10,6 @@ import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,14 +18,12 @@ import static org.mockito.Mockito.mock;
 class AbstractObjectsAboutToExpireCollectorTest {
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 
-    AbstractObjectsAboutToExpireCollector collector = new AbstractObjectsAboutToExpireCollector(
-            mock(RepoFetcher.class),
-            mock(CollectorUpdateMetrics.class)) {
-        @Override
-        protected void setSummary(ConcurrentSkipListSet<RepoObject> expirationSummary) {
+    private final RepositoryObjects repositoryObjects = new RepositoryObjects();
 
-        }
-    };
+    ObjectAndDateCollector collector = new ObjectAndDateCollector(
+            mock(RepoFetcher.class),
+            mock(CollectorUpdateMetrics.class),
+            repositoryObjects);
 
     @Test
     public void itShouldGetCerNotAfterDate() throws ParseException {
