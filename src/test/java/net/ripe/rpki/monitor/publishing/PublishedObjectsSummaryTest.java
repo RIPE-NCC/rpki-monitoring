@@ -47,12 +47,12 @@ public class PublishedObjectsSummaryTest {
 
         final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(Set.of(), Set.of(), Set.of());
 
-        then(res.getInCoreNotInRRDP()).isEmpty();
-        then(res.getInCoreNotInRsync()).isEmpty();
-        then(res.getInRsyncNotInCore()).isEmpty();
-        then(res.getInRsyncNotInRRDP()).isEmpty();
-        then(res.getInRRDPNotInCore()).isEmpty();
-        then(res.getInRRDPNotInRsync()).isEmpty();
+        then(res.get("core-diff-rrdp")).isEmpty();
+        then(res.get("core-diff-rsync")).isEmpty();
+        then(res.get("rsync-diff-core")).isEmpty();
+        then(res.get("rsync-diff-rrdp")).isEmpty();
+        then(res.get("rrdp-diff-core")).isEmpty();
+        then(res.get("rrdp-diff-rsync")).isEmpty();
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT).gauges())
             .allMatch(gauge -> gauge.value() == 0.0);
@@ -75,12 +75,12 @@ public class PublishedObjectsSummaryTest {
 
         final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(object, Set.of(), Set.of());
 
-        then(res.getInCoreNotInRRDP()).hasSize(1);
-        then(res.getInCoreNotInRsync()).hasSize(1);
-        then(res.getInRsyncNotInCore()).isEmpty();
-        then(res.getInRsyncNotInRRDP()).isEmpty();
-        then(res.getInRRDPNotInCore()).isEmpty();
-        then(res.getInRRDPNotInRsync()).isEmpty();
+        then(res.get("core-diff-rrdp")).hasSize(1);
+        then(res.get("core-diff-rsync")).hasSize(1);
+        then(res.get("rsync-diff-core")).isEmpty();
+        then(res.get("rsync-diff-rrdp")).isEmpty();
+        then(res.get("rrdp-diff-core")).isEmpty();
+        then(res.get("rrdp-diff-rsync")).isEmpty();
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isEqualTo(1);
@@ -109,12 +109,12 @@ public class PublishedObjectsSummaryTest {
         final var res = publishedObjectsSummaryService
             .getPublishedObjectsDiff(Set.of(), Set.of(RepoObject.fictionalObjectExpiringOn(new Date())), Set.of());
 
-        then(res.getInCoreNotInRRDP()).isEmpty();
-        then(res.getInCoreNotInRsync()).isEmpty();
-        then(res.getInRsyncNotInCore()).isEmpty();
-        then(res.getInRsyncNotInRRDP()).isEmpty();
-        then(res.getInRRDPNotInCore()).hasSize(1);
-        then(res.getInRRDPNotInRsync()).hasSize(1);
+        then(res.get("core-diff-rrdp")).isEmpty();
+        then(res.get("core-diff-rsync")).isEmpty();
+        then(res.get("rsync-diff-core")).isEmpty();
+        then(res.get("rsync-diff-rrdp")).isEmpty();
+        then(res.get("rrdp-diff-core")).hasSize(1);
+        then(res.get("rrdp-diff-rsync")).hasSize(1);
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isZero();
@@ -143,12 +143,12 @@ public class PublishedObjectsSummaryTest {
         final var res = publishedObjectsSummaryService
             .getPublishedObjectsDiff(List.of(), Set.of(), Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
 
-        then(res.getInCoreNotInRRDP()).isEmpty();
-        then(res.getInCoreNotInRsync()).isEmpty();
-        then(res.getInRsyncNotInCore()).hasSize(1);
-        then(res.getInRsyncNotInRRDP()).hasSize(1);
-        then(res.getInRRDPNotInCore()).isEmpty();
-        then(res.getInRRDPNotInRsync()).isEmpty();
+        then(res.get("core-diff-rrdp")).isEmpty();
+        then(res.get("core-diff-rsync")).isEmpty();
+        then(res.get("rsync-diff-core")).hasSize(1);
+        then(res.get("rsync-diff-rrdp")).hasSize(1);
+        then(res.get("rrdp-diff-core")).isEmpty();
+        then(res.get("rrdp-diff-rsync")).isEmpty();
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isZero();
