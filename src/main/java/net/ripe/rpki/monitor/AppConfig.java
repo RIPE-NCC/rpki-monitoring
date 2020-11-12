@@ -22,6 +22,7 @@ public class AppConfig {
     @Value("${rsync.url}")
     private String rsyncUrl;
 
+    @Autowired
     @Qualifier("rrdp-resttemplate")
     private RestTemplate restTemplate;
 
