@@ -25,7 +25,6 @@ public class PublishedObjectsSummaryTest {
     @Mock
     private CoreClient rpkiCoreClient;
 
-
     private PublishedObjectsSummaryService publishedObjectsSummaryService;
 
     private MeterRegistry meterRegistry;
@@ -41,10 +40,6 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldNotReportADifferencesBetweenEmptySources() {
-//        given(repositoryObjects.getObjects()).willReturn(Set.of());
-//        given(repositoryObjects.getRsynObjects()).willReturn(Set.of());
-//        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
-
         final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(Set.of(), Set.of(), Set.of());
 
         then(res.get("core-diff-rrdp")).isEmpty();
@@ -63,15 +58,11 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldReportADifference_caused_by_core() {
-//        given(summaryService.getRrdpObjects()).willReturn(Set.of());
-//        given(summaryService.getRsynObjects()).willReturn(Set.of());
         final Set<PublishedObjectEntry> object = Set.of(
             PublishedObjectEntry.builder()
                 .sha256("not-a-sha256-but-will-do")
                 .uri("rsync://example.org/index.txt")
                 .build());
-
-//        given(rpkiCoreClient.publishedObjects()).willReturn(build);
 
         final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(object, Set.of(), Set.of());
 
@@ -102,10 +93,6 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldReportADifference_caused_by_rrdp_objects() {
-//        given(summaryService.getRrdpObjects()).willReturn(Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
-//        given(summaryService.getRsynObjects()).willReturn(Set.of());
-//        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
-
         final var res = publishedObjectsSummaryService
             .getPublishedObjectsDiff(Set.of(), Set.of(RepoObject.fictionalObjectExpiringOn(new Date())), Set.of());
 
@@ -136,10 +123,6 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldReportADifference_caused_by_rsync_objects() {
-//        given(summaryService.getRrdpObjects()).willReturn(Set.of());
-//        given(summaryService.getRsynObjects()).willReturn(Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
-//        given(rpkiCoreClient.publishedObjects()).willReturn(List.of());
-
         final var res = publishedObjectsSummaryService
             .getPublishedObjectsDiff(List.of(), Set.of(), Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
 
