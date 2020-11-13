@@ -2,7 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableSet;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Value;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
@@ -13,14 +13,14 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 @Service
 public class RepositoryObjects {
-    private final Map<String, RepositoryContent> overalContent = new ConcurrentHashMap<>();
+    private final Map<String, RepositoryContent> overallContent = new ConcurrentHashMap<>();
 
     public void setRepositoryObject(String repositoryUrl, final ConcurrentSkipListSet<RepoObject> repoObjects) {
-        overalContent.put(repositoryUrl, new RepositoryContent(repoObjects));
+        overallContent.put(repositoryUrl, new RepositoryContent(repoObjects));
     }
 
     public Set<RepoObject> geRepositoryObjectsAboutToExpire(String repositoryUrl, final int inHours) {
-        final RepositoryContent repositoryContent = overalContent.get(repositoryUrl);
+        final RepositoryContent repositoryContent = overallContent.get(repositoryUrl);
         if (repositoryContent == null) {
             return ImmutableSet.of();
         }
@@ -29,14 +29,14 @@ public class RepositoryObjects {
     }
 
     public Set<RepoObject> getObjects(String repositoryUrl) {
-        final RepositoryContent repositoryContent = overalContent.get(repositoryUrl);
+        final RepositoryContent repositoryContent = overallContent.get(repositoryUrl);
         if (repositoryContent == null) {
             return ImmutableSet.of();
         }
         return ImmutableSet.copyOf(repositoryContent.objects);
     }
 
-    @Data
+    @Value
     @AllArgsConstructor
     public static class RepositoryContent {
         ConcurrentSkipListSet<RepoObject> objects;
