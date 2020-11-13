@@ -1,7 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableSet;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
@@ -37,7 +36,6 @@ public class RepositoryObjects {
     }
 
     @Value
-    @AllArgsConstructor
     public static class RepositoryContent {
         ConcurrentSkipListSet<RepoObject> objects;
     }
