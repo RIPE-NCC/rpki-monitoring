@@ -6,16 +6,16 @@ import lombok.Data;
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 @Service
 public class RepositoryObjects {
-    private Map<String, RepositoryContent> overalContent = new HashMap<>();
+    private final Map<String, RepositoryContent> overalContent = new ConcurrentHashMap<>();
 
-    public synchronized void setRepositoryObject(String repositoryUrl, final ConcurrentSkipListSet<RepoObject> repoObjects) {
+    public void setRepositoryObject(String repositoryUrl, final ConcurrentSkipListSet<RepoObject> repoObjects) {
         overalContent.put(repositoryUrl, new RepositoryContent(repoObjects));
     }
 
