@@ -1,10 +1,10 @@
 package net.ripe.rpki.monitor.publishing.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Value;
 
 @AllArgsConstructor
-@Data
+@Value
 public class RpkiObject {
-    private byte[] bytes;
+    byte[] bytes;
 }
