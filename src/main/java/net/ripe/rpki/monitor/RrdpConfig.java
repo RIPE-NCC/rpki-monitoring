@@ -8,11 +8,9 @@ import java.time.Duration;
 import java.util.List;
 
 @Component
-@ConfigurationProperties("rsync")
+@ConfigurationProperties("rrdp")
 @Data
-public class RsyncConfig {
-    private String onPremiseUrl;
-    private int timeout;
+public class RrdpConfig {
+    private String url;
     private Duration interval;
-    private List<String> awsUrl;
 }

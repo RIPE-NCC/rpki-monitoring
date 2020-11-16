@@ -24,12 +24,12 @@ public class ObjectsAboutToExpireController {
 
     @GetMapping(value = "rrdp")
     public Set<RepoObject> rrdpSummary(@RequestParam(value = "in_hours", defaultValue = "2") int inHours) {
-        return repositoryObjects.geRepositoryObjectsAboutToExpire(appConfig.getRrdpUrl(), inHours);
+        return repositoryObjects.geRepositoryObjectsAboutToExpire(appConfig.getRrdpConfig().getUrl(), inHours);
     }
 
     @GetMapping(value = "rsync")
     public Set<RepoObject> rsyncSummary(@RequestParam(value = "in_hours", defaultValue = "2") int inHours) {
-        return repositoryObjects.geRepositoryObjectsAboutToExpire(appConfig.getRsyncUrl(), inHours);
+        return repositoryObjects.geRepositoryObjectsAboutToExpire(appConfig.getRsyncConfig().getOnPremiseUrl(), inHours);
     }
 
 }

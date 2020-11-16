@@ -49,14 +49,14 @@ public class PublishedObjectsSummaryService {
     public Map<String, Set<FileEntry>> getPublishedObjectsDiff() {
         return getPublishedObjectsDiff(
             rpkiCoreClient.publishedObjects(),
-            repositoryObjects.getObjects(appConfig.getRrdpUrl()),
-            repositoryObjects.getObjects(appConfig.getRsyncUrl())
+            repositoryObjects.getObjects(appConfig.getRrdpConfig().getUrl()),
+            repositoryObjects.getObjects(appConfig.getRsyncConfig().getOnPremiseUrl())
         );
     }
 
     Map<String, Set<FileEntry>> getRsyncDiff() {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
-        final String mainRsyncUrl = appConfig.getRsyncUrl();
+        final String mainRsyncUrl = appConfig.getRsyncConfig().getOnPremiseUrl();
         final var mainRepository = FileEntry.fromObjects(repositoryObjects.getObjects(mainRsyncUrl));
         for (var awsUrl : appConfig.getRsyncConfig().getAwsUrl()) {
             final var diffCount = getOrCreateDiffCounter(mainRsyncUrl, awsUrl);

@@ -32,7 +32,7 @@ public class Collectors {
     // can have potentially arbitrary number of cloud-hosted repositories.
     public List<ObjectAndDateCollector> getRsyncCollectors() {
         ObjectAndDateCollector mainRsyncCollector = new ObjectAndDateCollector(
-            getRsyncFetcher(config.getRsyncUrl()),
+            getRsyncFetcher(config.getRsyncConfig().getOnPremiseUrl()),
             metrics,
             repositoryObjects);
 
@@ -50,11 +50,11 @@ public class Collectors {
     }
 
     private RepoFetcher getRsyncFetcher(String rsyncUrl) {
-        return new RsyncFetcher(rsyncUrl, config.getRsyncTimeout());
+        return new RsyncFetcher(rsyncUrl, config.getRsyncConfig().getTimeout());
     }
 
     public ObjectAndDateCollector getRrdpCollector() {
-        final RrdpFetcher rrdpFetcher = new RrdpFetcher(config.getRrdpUrl(), config.getRestTemplate());
+        final RrdpFetcher rrdpFetcher = new RrdpFetcher(config.getRrdpConfig().getUrl(), config.getRestTemplate());
         return new ObjectAndDateCollector(rrdpFetcher, metrics, repositoryObjects);
     }
 

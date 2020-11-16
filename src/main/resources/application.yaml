@@ -16,7 +16,7 @@ rrdp:
 
 rsync:
   # *without* the trailing slash
-  url: rsync://rpki.prepdev.ripe.net
+  on-premise-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
   aws-url:
@@ -59,7 +59,7 @@ rrdp:
 
 rsync:
   # *without* the trailing slash
-  url: rsync://localhost:10873
+  on-premise-url: rsync://localhost:10873
   timeout: 30
   interval: 5M
   aws-url:
@@ -80,7 +80,7 @@ rrdp:
 
 rsync:
   # *wihout* a trailing slash
-  url: rsync://rpki.prepdev.ripe.net
+  on-premise-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
   # url to the AWS hosted
@@ -100,7 +100,7 @@ rrdp:
 
 rsync:
   # *without* the trailing slash
-  url: rsync://rpki.ripe.net
+  on-premise-url: rsync://rpki.ripe.net
   timeout: 30
   interval: 10M
   # url to the AWS hosted
