@@ -20,7 +20,7 @@ rsync:
   timeout: 30
   interval: 10M
   aws-url:
-    - rsync://pub-server.elasticbeanstalk.com/
+    - rsync://pub-server.elasticbeanstalk.com
 
 server:
   port: 9090
@@ -63,8 +63,8 @@ rsync:
   timeout: 30
   interval: 5M
   aws-url:
-    - rsync://pub-server.elasticbeanstalk.com/
-    - rsync://pub-server.elasticbeanstalk.com/
+    - rsync://pub-server.elasticbeanstalk.com
+    - rsync://pub-server.elasticbeanstalk.com
 
 core:
   url: http://localhost:8080/certification/
@@ -85,7 +85,7 @@ rsync:
   interval: 10M
   # url to the AWS hosted
   aws-url:
-    - rsync://pub-server.elasticbeanstalk.com/
+    - rsync://pub-server.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
@@ -105,7 +105,7 @@ rsync:
   interval: 10M
   # url to the AWS hosted
   aws-url:
-    - rsync://pub-server-prod.elasticbeanstalk.com/
+    - rsync://pub-server-prod.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.ripe.net/certification/
