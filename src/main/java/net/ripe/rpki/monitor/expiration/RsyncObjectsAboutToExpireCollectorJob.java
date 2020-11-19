@@ -53,12 +53,10 @@ public class RsyncObjectsAboutToExpireCollectorJob extends QuartzJobBean {
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        for (var c : collectors) {
-            try {
-                c.run();
-            } catch (FetcherException e) {
-                throw new JobExecutionException(e);
-            }
+        try {
+            collectors.parallelStream().forEach(ObjectAndDateCollector::run);
+        } catch (FetcherException e) {
+            throw new JobExecutionException(e);
         }
     }
 }

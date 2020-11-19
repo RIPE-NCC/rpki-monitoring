@@ -39,10 +39,14 @@ public class ObjectAndDateCollector {
         final ConcurrentSkipListSet<RepoObject> expirationSummary = new ConcurrentSkipListSet<>();
 
         try {
-            repoFetcher.fetchObjects().forEach((objectUri, object) -> {
+            repoFetcher.fetchObjects().entrySet().parallelStream().map(e -> {
+                var objectUri = e.getKey();
+                var object = e.getValue();
                 final Optional<Date> date = getDateFor(objectUri, object.getBytes());
-                date.ifPresent(d -> expirationSummary.add(new RepoObject(d, objectUri, Sha256.asBytes(object))));
-            });
+                return date.map(d -> new RepoObject(d, objectUri, Sha256.asBytes(object)));
+            }).forEach(date ->
+                date.ifPresent(d -> expirationSummary.add(d))
+            );
 
             repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
 

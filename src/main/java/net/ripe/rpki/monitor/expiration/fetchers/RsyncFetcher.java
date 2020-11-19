@@ -4,16 +4,14 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.rsync.Rsync;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.util.FileSystemUtils;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Setter
@@ -43,10 +41,13 @@ public class RsyncFetcher implements RepoFetcher {
         rsync.addOptions("-a");
         rsync.setTimeoutInSeconds(rsyncTimeout);
 
+        log.info("Running rsync {} to {}", url, localPath.toString());
+        final var t0 = System.currentTimeMillis();
         final var exitCode = rsync.execute();
         if (exitCode != 0) {
-            throw new FetcherException(String.format("rsync from %s exited with %d", url, exitCode));
+            throw new FetcherException(String.format("rsync from %s to %s exited with %d", url, localPath, exitCode));
         }
+        log.info("rsync  {} to {} finished in {} seconds.", url, localPath.toString(), (System.currentTimeMillis() - t0) / 1000);
     }
 
 
@@ -56,17 +57,13 @@ public class RsyncFetcher implements RepoFetcher {
             tempPath = Files.createTempDirectory("rsync-monitor");
             final String tempDirectory = tempPath.toString();
 
-            log.info("running rsync for '{}' to {}", this.rsyncUrl, tempPath.toString());
-            final var t0 = System.currentTimeMillis();
-
             rsyncPathFromRepository(rsyncUrl + "/ta", tempPath.resolve("ta"));
             rsyncPathFromRepository(rsyncUrl + "/repository", tempPath.resolve("repository"));
 
-            log.info("rsync finished in {} seconds.", Math.round((System.currentTimeMillis()-t0)/100.0)/10.0);
-
-            final Map<String, RpkiObject> objects = new HashMap<>();
+            final Map<String, RpkiObject> objects = new ConcurrentHashMap<>();
             Files.walk(tempPath)
                     .filter(Files::isRegularFile)
+                    .parallel()
                     .forEach(f -> {
                         final String objectUri = f.toString().replace(tempDirectory, rsyncUrl);
                         try {
@@ -77,6 +74,7 @@ public class RsyncFetcher implements RepoFetcher {
                     });
             return objects;
         } catch (IOException | RuntimeException e) {
+            log.error("Rsync fetch failed", e);
             throw new FetcherException(e);
         } finally {
             try {

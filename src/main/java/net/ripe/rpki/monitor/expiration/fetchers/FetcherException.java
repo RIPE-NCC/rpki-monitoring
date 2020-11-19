@@ -1,6 +1,6 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
-public class FetcherException extends Exception {
+public class FetcherException extends RuntimeException {
 
     public FetcherException(final Throwable e) {
         super(e);
