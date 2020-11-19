@@ -1,8 +1,6 @@
 package net.ripe.rpki.monitor.service.core;
 
-import lombok.Data;
 import lombok.Setter;
-import net.ripe.rpki.monitor.MonitorProperties;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +14,6 @@ import java.util.List;
 @Setter
 @Service
 public class CoreClient {
-    private MonitorProperties config;
 
     @Qualifier("rpki-core-resttemplate")
     @Autowired

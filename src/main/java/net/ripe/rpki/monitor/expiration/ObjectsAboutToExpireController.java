@@ -1,8 +1,11 @@
 package net.ripe.rpki.monitor.expiration;
 
+import net.ripe.rpki.monitor.AppConfig;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Set;
 
@@ -10,21 +13,23 @@ import java.util.Set;
 @RequestMapping("/about_to_expire")
 public class ObjectsAboutToExpireController {
 
-    final SummaryService summaryService;
+    private final RepositoryObjects repositoryObjects;
+    private final AppConfig appConfig;
 
     @Autowired
-    public ObjectsAboutToExpireController(SummaryService summaryService) {
-        this.summaryService = summaryService;
+    public ObjectsAboutToExpireController(RepositoryObjects repositoryObjects, AppConfig appConfig) {
+        this.repositoryObjects = repositoryObjects;
+        this.appConfig = appConfig;
     }
 
     @GetMapping(value = "rrdp")
     public Set<RepoObject> rrdpSummary(@RequestParam(value = "in_hours", defaultValue = "2") int inHours) {
-        return summaryService.getRrdpObjectsAboutToExpire(inHours);
+        return repositoryObjects.geRepositoryObjectsAboutToExpire(appConfig.getRrdpConfig().getUrl(), inHours);
     }
 
     @GetMapping(value = "rsync")
     public Set<RepoObject> rsyncSummary(@RequestParam(value = "in_hours", defaultValue = "2") int inHours) {
-        return summaryService.getRsyncObjectsAboutToExpire(inHours);
+        return repositoryObjects.geRepositoryObjectsAboutToExpire(appConfig.getRsyncConfig().getOnPremiseUrl(), inHours);
     }
 
 }

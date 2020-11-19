@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.util;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
+import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 
 public class Sha256 {
     public static String asString(byte[] bytes) {
@@ -14,6 +15,10 @@ public class Sha256 {
 
     public static byte[] asBytes(byte[] bytes) {
         return calculateHash(bytes).asBytes();
+    }
+
+    public static byte[] asBytes(RpkiObject rpkiObject) {
+        return asBytes(rpkiObject.getBytes());
     }
 
     private static HashCode calculateHash(byte[] bytes) {

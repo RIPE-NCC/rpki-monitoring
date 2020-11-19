@@ -1,127 +1,139 @@
 package net.ripe.rpki.monitor.publishing;
 
 import com.google.common.collect.Sets;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.*;
-import net.ripe.rpki.monitor.expiration.SummaryService;
-import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import lombok.Setter;
+import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.HasHashAndUri;
+import net.ripe.rpki.monitor.expiration.RepositoryObjects;
+import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.publishing.dto.FileEntry;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Setter
 @Service
 public class PublishedObjectsSummaryService {
-    public final static String PUBLISHED_OBJECT_DIFF_DESCRIPTION = "Number of objects in <lhs> that are not in <rhs>";
-    public final static String PUBLISHED_OBJECT_DIFF = "rpkimonitoring.published.objects.diff";
-    public final static String PUBLISHED_OBJECT_COUNT_DESCRIPTION = "Number of published objects";
-    public final static String PUBLISHED_OBJECT_COUNT = "rpkimonitoring.published.objects.count";
 
-    private final SummaryService repositoryObjects;
+    private final RepositoryObjects repositoryObjects;
     private final CoreClient rpkiCoreClient;
+    private final AppConfig appConfig;
 
-    private final AtomicLong inCoreNotInRRDPCount = new AtomicLong();
-    private final AtomicLong inCoreNotInRsyncCount = new AtomicLong();
-    private final AtomicLong inRRDPNotInCoreCount = new AtomicLong();
-    private final AtomicLong inRRDPNotInRsyncCount = new AtomicLong();
-    private final AtomicLong inRsyncNotInCoreCount = new AtomicLong();
-    private final AtomicLong inRsyncNotInRRDPCount = new AtomicLong();
-
-    private final AtomicLong rsyncObjectCount = new AtomicLong();
-    private final AtomicLong rrdpObjectCount = new AtomicLong();
-    private final AtomicLong publishedObjectsObjectCount = new AtomicLong();
-
+    private final Map<String, AtomicLong> counters = new HashMap<>();
     private final MeterRegistry registry;
 
     @Autowired
     public PublishedObjectsSummaryService(
-            final SummaryService repositoryObjects,
-            final CoreClient rpkiCoreClient,
-            final MeterRegistry registry,
-            final CollectorUpdateMetrics collectorUpdateMetrics
-            ) {
+        final RepositoryObjects repositoryObjects,
+        final CoreClient rpkiCoreClient,
+        final MeterRegistry registry,
+        final AppConfig appConfig) {
+        this.registry = registry;
         this.repositoryObjects = repositoryObjects;
         this.rpkiCoreClient = rpkiCoreClient;
-        this.registry = registry;
-
-        buildObjectDiffGauge(inCoreNotInRRDPCount, "core", "rrdp");
-        buildObjectDiffGauge(inCoreNotInRsyncCount, "core", "rsync");
-        buildObjectDiffGauge(inRRDPNotInCoreCount, "rrdp", "core");
-        buildObjectDiffGauge(inRRDPNotInRsyncCount, "rrdp", "rsync");
-        buildObjectDiffGauge(inRsyncNotInCoreCount, "rsync", "core");
-        buildObjectDiffGauge(inRsyncNotInRRDPCount, "rsync", "rrdp");
-
-        buildObjectCountGauge(rsyncObjectCount, "rsync");
-        buildObjectCountGauge(publishedObjectsObjectCount, "core");
-        buildObjectCountGauge(rrdpObjectCount, "rrdp");
-
-    }
-
-    private void buildObjectCountGauge(AtomicLong gauge, String source) {
-        Gauge.builder(PUBLISHED_OBJECT_COUNT, gauge::get)
-                .description(PUBLISHED_OBJECT_DIFF_DESCRIPTION)
-                .tag("source", source)
-                .register(registry);
-    }
-
-    private void buildObjectDiffGauge(AtomicLong counter, String lhs, String rhs) {
-        Gauge.builder(PUBLISHED_OBJECT_DIFF, counter::get)
-                .description(PUBLISHED_OBJECT_DIFF_DESCRIPTION)
-                .tag("lhs", lhs)
-                .tag("rhs", rhs)
-                .register(registry);
+        this.appConfig = appConfig;
     }
 
     /**
      * Get the diff of the published objects <b>and update the metrics</b>.
+     *
+     * @return
      */
-    public PublicationDiff getPublishedObjectsDiff() {
-        final var rpkiCoreObjects = FileEntry.fromObjects(rpkiCoreClient.publishedObjects());
-        final var rrdpObjects = FileEntry.fromObjects(repositoryObjects.getRrdpObjects());
-        final var rsyncObjects = FileEntry.fromObjects(repositoryObjects.getRsynObjects());
-
-        publishedObjectsObjectCount.set(rpkiCoreObjects.size());
-        rsyncObjectCount.set(rsyncObjects.size());
-        rrdpObjectCount.set(rrdpObjects.size());
-
-
-        final var inCoreNotInRRDP = Sets.difference(rpkiCoreObjects, rrdpObjects);
-        final var inCoreNotInRsync = Sets.difference(rpkiCoreObjects, rsyncObjects);
-        final var inRRDPNotInCore = Sets.difference(rrdpObjects, rpkiCoreObjects);
-        final var inRRDPNotInRsync = Sets.difference(rrdpObjects, rsyncObjects);
-        final var inRsyncNotInCore = Sets.difference(rsyncObjects, rpkiCoreObjects);
-        final var inRsyncNotInRRDP = Sets.difference(rsyncObjects, rrdpObjects);
-
-        inCoreNotInRRDPCount.set(inCoreNotInRRDP.size());
-        inCoreNotInRsyncCount.set(inCoreNotInRsync.size());
-        inRRDPNotInCoreCount.set(inRRDPNotInCore.size());
-        inRRDPNotInRsyncCount.set(inRRDPNotInRsync.size());
-        inRsyncNotInCoreCount.set(inRsyncNotInCore.size());
-        inRsyncNotInRRDPCount.set(inRsyncNotInRRDP.size());
-
-        return PublicationDiff.builder()
-                .inCoreNotInRRDP(inCoreNotInRRDP)
-                .inCoreNotInRsync(inCoreNotInRsync)
-                .inRRDPNotInCore(inRRDPNotInCore)
-                .inRRDPNotInRsync(inRRDPNotInRsync)
-                .inRsyncNotInCore(inRsyncNotInCore)
-                .inRsyncNotInRRDP(inRsyncNotInRRDP)
-                .build();
+    public Map<String, Set<FileEntry>> getPublishedObjectsDiff() {
+        return getPublishedObjectsDiff(
+            rpkiCoreClient.publishedObjects(),
+            repositoryObjects.getObjects(appConfig.getRrdpConfig().getUrl()),
+            repositoryObjects.getObjects(appConfig.getRsyncConfig().getOnPremiseUrl())
+        );
     }
 
-    @Builder
-    @Value
-    public static class PublicationDiff {
-        private Set<FileEntry> inCoreNotInRRDP;
-        private Set<FileEntry> inCoreNotInRsync;
-        private Set<FileEntry> inRsyncNotInRRDP;
-        private Set<FileEntry> inRsyncNotInCore;
-        private Set<FileEntry> inRRDPNotInRsync;
-        private Set<FileEntry> inRRDPNotInCore;
+    Map<String, Set<FileEntry>> getRsyncDiff() {
+        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
+        final String mainRsyncUrl = appConfig.getRsyncConfig().getOnPremiseUrl();
+        final var mainRepository = FileEntry.fromObjects(repositoryObjects.getObjects(mainRsyncUrl));
+        for (var awsUrl : appConfig.getRsyncConfig().getAwsUrl()) {
+            final var diffCount = getOrCreateDiffCounter(mainRsyncUrl, awsUrl);
+            final var diffCountInv = getOrCreateDiffCounter(awsUrl, mainRsyncUrl);
+
+            final var awsRepository = FileEntry.fromObjects(repositoryObjects.getObjects(awsUrl));
+            final var diff = Sets.difference(mainRepository, awsRepository);
+            final var diffInv = Sets.difference(awsRepository, mainRepository);
+
+            diffCount.set(diff.size());
+            diffCountInv.set(diffInv.size());
+
+            var tag = diffTag(mainRsyncUrl, awsUrl);
+            var tagInv = diffTag(awsUrl, mainRsyncUrl);
+            diffs.put(tag, diff);
+            diffs.put(tagInv, diffInv);
+        }
+        return diffs;
+    }
+
+    public <T1 extends HasHashAndUri, T2 extends HasHashAndUri>
+    Map<String, Set<FileEntry>> getPublishedObjectsDiff(Collection<T1> coreObjects, Set<T2> rrdpObject_, Set<T2> rsyncObjects_) {
+
+        final var tags = new String[]{"core", "rrdp", "rsync"};
+        final Map<String, Set<FileEntry>> objects = new HashMap<>();
+        objects.put(tags[0], FileEntry.fromObjects(coreObjects));
+        objects.put(tags[1], FileEntry.fromObjects(rrdpObject_));
+        objects.put(tags[2], FileEntry.fromObjects(rsyncObjects_));
+
+        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
+        for (int i = 0; i < tags.length; i++) {
+            final Set<FileEntry> objectsI = objects.get(tags[i]);
+            var counter = getOrCreateCounter(tags[i]);
+            counter.set(objectsI.size());
+            for (int j = 0; j < i; j++) {
+                final Set<FileEntry> objectsJ = objects.get(tags[j]);
+                final var diff = Sets.difference(objectsI, objectsJ);
+                final var diffInv = Sets.difference(objectsJ, objectsI);
+
+                final var diffCount = getOrCreateDiffCounter(tags[i], tags[j]);
+                final var diffCountInv = getOrCreateDiffCounter(tags[j], tags[i]);
+
+                diffCount.set(diff.size());
+                diffCountInv.set(diffInv.size());
+
+                var tag = diffTag(tags[i], tags[j]);
+                var tagInv = diffTag(tags[j], tags[i]);
+                diffs.put(tag, diff);
+                diffs.put(tagInv, diffInv);
+            }
+        }
+
+        return diffs;
+    }
+
+    private AtomicLong getOrCreateDiffCounter(String lhs, String rhs) {
+        final String tag = diffTag(lhs, rhs);
+        AtomicLong diffCount = counters.get(tag);
+        if (diffCount == null) {
+            diffCount = new AtomicLong(0);
+            counters.put(tag, diffCount);
+            Metrics.buildObjectDiffGauge(registry, diffCount, lhs, rhs);
+        }
+        return diffCount;
+    }
+
+    private String diffTag(String lhs, String rhs) {
+        return lhs + "-diff-" + rhs;
+    }
+
+    private AtomicLong getOrCreateCounter(String tag) {
+        AtomicLong diffCount = counters.get(tag);
+        if (diffCount == null) {
+            diffCount = new AtomicLong(0);
+            counters.put(tag, diffCount);
+            Metrics.buildObjectCountGauge(registry, diffCount, tag);
+        }
+        return diffCount;
     }
 }

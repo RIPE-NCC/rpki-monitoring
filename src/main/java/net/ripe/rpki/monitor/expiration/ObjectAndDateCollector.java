@@ -12,39 +12,40 @@ import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
-import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.util.Sha256;
 
 import java.util.Date;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-public abstract class AbstractObjectsAboutToExpireCollector {
+public class ObjectAndDateCollector {
+
     private final RepoFetcher repoFetcher;
     private final CollectorUpdateMetrics collectorUpdateMetrics;
+    private final RepositoryObjects repositoryObjects;
 
-    public AbstractObjectsAboutToExpireCollector(@NonNull final RepoFetcher repoFetcher, @NonNull CollectorUpdateMetrics metrics) {
+    public ObjectAndDateCollector(
+        @NonNull final RepoFetcher repoFetcher,
+        @NonNull CollectorUpdateMetrics metrics,
+        RepositoryObjects repositoryObjects) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
+        this.repositoryObjects = repositoryObjects;
     }
-
-    protected abstract void setSummary(final ConcurrentSkipListSet<RepoObject> expirationSummary);
-
 
     public void run() throws FetcherException {
 
         final ConcurrentSkipListSet<RepoObject> expirationSummary = new ConcurrentSkipListSet<>();
 
         try {
-            final Map<String, byte[]> stringMap = repoFetcher.fetchObjects();
-
-            stringMap.forEach((objectUri, object) -> {
-                final Optional<Date> date = getDateFor(objectUri, object);
+            repoFetcher.fetchObjects().forEach((objectUri, object) -> {
+                final Optional<Date> date = getDateFor(objectUri, object.getBytes());
                 date.ifPresent(d -> expirationSummary.add(new RepoObject(d, objectUri, Sha256.asBytes(object))));
             });
 
-            setSummary(expirationSummary);
+            repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
+
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName());
         } catch (SnapshotNotModifiedException e) {
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName());

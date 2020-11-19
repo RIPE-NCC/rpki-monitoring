@@ -15,10 +15,12 @@ rrdp:
   interval: 5M
 
 rsync:
-  # *wihout* a trailing slash
-  url: rsync://rpki.prepdev.ripe.net
+  # *without* the trailing slash
+  on-premise-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
+  aws-url:
+    - rsync://pub-server.elasticbeanstalk.com
 
 server:
   port: 9090
@@ -26,7 +28,6 @@ server:
 
 rpkimonitor:
   version: "@gitVersion@"
-
   internal-api-key-header: "ncc-internal-api-key"
 
 core:
@@ -57,10 +58,13 @@ rrdp:
   interval: 5M
 
 rsync:
-  # *wihout* a trailing slash
-  url: rsync://localhost:10873
+  # *without* the trailing slash
+  on-premise-url: rsync://localhost:10873
   timeout: 30
   interval: 5M
+  aws-url:
+    - rsync://pub-server.elasticbeanstalk.com
+    - rsync://pub-server.elasticbeanstalk.com
 
 core:
   url: http://localhost:8080/certification/
@@ -76,9 +80,12 @@ rrdp:
 
 rsync:
   # *wihout* a trailing slash
-  url: rsync://rpki.prepdev.ripe.net
+  on-premise-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
+  # url to the AWS hosted
+  aws-url:
+    - rsync://pub-server.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
@@ -92,10 +99,13 @@ rrdp:
   interval: 5M
 
 rsync:
-  # *wihout* a trailing slash
-  url: rsync://rpki.ripe.net
+  # *without* the trailing slash
+  on-premise-url: rsync://rpki.ripe.net
   timeout: 30
   interval: 10M
+  # url to the AWS hosted
+  aws-url:
+    - rsync://pub-server-prod.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.ripe.net/certification/

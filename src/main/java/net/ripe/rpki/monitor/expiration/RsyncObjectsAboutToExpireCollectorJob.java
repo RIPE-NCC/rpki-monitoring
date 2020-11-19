@@ -1,6 +1,5 @@
 package net.ripe.rpki.monitor.expiration;
 
-import lombok.Setter;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import org.joda.time.DateTime;
 import org.quartz.JobBuilder;
@@ -17,46 +16,49 @@ import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
 @Component
 public class RsyncObjectsAboutToExpireCollectorJob extends QuartzJobBean {
-    private final RsyncObjectsAboutToExpireCollector collector;
+    private final List<ObjectAndDateCollector> collectors;
 
     @Autowired
-    public RsyncObjectsAboutToExpireCollectorJob(final RsyncObjectsAboutToExpireCollector collector) {
-        this.collector = collector;
+    public RsyncObjectsAboutToExpireCollectorJob(final Collectors collectors) {
+        this.collectors = collectors.getRsyncCollectors();
     }
 
     @Bean("Rsync_Expiration_Job_Detail")
     public JobDetail jobDetail() {
         return JobBuilder.newJob().ofType(RsyncObjectsAboutToExpireCollectorJob.class)
-                .storeDurably()
-                .withIdentity("Rsync_Expiration_Job_Detail")
-                .withDescription("Invoke Rsync Expiration Job service...")
-                .build();
+            .storeDurably()
+            .withIdentity("Rsync_Expiration_Job_Detail")
+            .withDescription("Invoke Rsync Expiration Job service...")
+            .build();
     }
 
     @Bean("Rsync_Expiration_Trigger")
     public Trigger trigger(
-            @Qualifier("Rsync_Expiration_Job_Detail") JobDetail job,
-            @Value("${rsync.interval}") Duration interval
-        ) {
+        @Qualifier("Rsync_Expiration_Job_Detail") JobDetail job,
+        @Value("${rsync.interval}") Duration interval
+    ) {
         return TriggerBuilder.newTrigger().forJob(job)
-                .withIdentity("Rsync_Expiration_Trigger")
-                .withDescription("Rsync Expiration trigger")
-                .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
-                .startAt(DateTime.now().plusMinutes(1).toDate())
-                .build();
+            .withIdentity("Rsync_Expiration_Trigger")
+            .withDescription("Rsync Expiration trigger")
+            .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int) interval.toSeconds()))
+            .startAt(DateTime.now().plusMinutes(1).toDate())
+            .build();
     }
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        try {
-            collector.run();
-        } catch (FetcherException e) {
-            throw new JobExecutionException(e);
+        for (var c : collectors) {
+            try {
+                c.run();
+            } catch (FetcherException e) {
+                throw new JobExecutionException(e);
+            }
         }
     }
 }
