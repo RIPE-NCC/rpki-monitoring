@@ -8,27 +8,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class FileEntryTest {
 
     @Test
-    public void testRelativeUrl() {
+    public void testUrlPath() {
         assertEquals(
-            FileEntry.withReativeUrl(getObj("rsync://server.com:5555/path/a/b/c")).getUri(),
+            FileEntry.withPath(getObj("rsync://server.com:5555/path/a/b/c")).getUri(),
             "/path/a/b/c"
         );
 
         assertEquals(
-            FileEntry.withReativeUrl(getObj("https://rrdp.ripe.net/path/a/b/c")).getUri(),
+            FileEntry.withPath(getObj("https://rrdp.ripe.net/path/a/b/c")).getUri(),
             "/path/a/b/c"
         );
 
         assertEquals(
-            FileEntry.withReativeUrl(getObj("/path/a/b/c")).getUri(),
+            FileEntry.withPath(getObj("/path/a/b/c")).getUri(),
             "/path/a/b/c"
         );
     }
 
     @Test
-    public void testRelativeComparison() {
-        final FileEntry fileEntry1 = FileEntry.withReativeUrl(getObj("rsync://server.com:5555/path/a/b/c"));
-        final FileEntry fileEntry2 = FileEntry.withReativeUrl(getObj("rsync://server-2.com/path/a/b/c"));
+    public void testPathComparison() {
+        final FileEntry fileEntry1 = FileEntry.withPath(getObj("rsync://server.com:5555/path/a/b/c"));
+        final FileEntry fileEntry2 = FileEntry.withPath(getObj("rsync://server-2.com/path/a/b/c"));
         assertEquals(fileEntry1, fileEntry2);
     }
 

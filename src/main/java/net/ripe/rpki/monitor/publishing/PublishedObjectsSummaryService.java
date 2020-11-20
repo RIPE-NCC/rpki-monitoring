@@ -61,12 +61,12 @@ public class PublishedObjectsSummaryService {
             Since we are comparing repositories coming from different servers, the URLs will
             be different in the server/port part. So we are going to compare only the path.
          */
-        final var mainRepository = FileEntry.fromObjectsWithRelativeUrl(repositoryObjects.getObjects(mainRsyncUrl));
+        final var mainRepository = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(mainRsyncUrl));
         for (var awsUrl : appConfig.getRsyncConfig().getAwsUrl()) {
             final var diffCount = getOrCreateDiffCounter(mainRsyncUrl, awsUrl);
             final var diffCountInv = getOrCreateDiffCounter(awsUrl, mainRsyncUrl);
 
-            final var awsRepository = FileEntry.fromObjectsWithRelativeUrl(repositoryObjects.getObjects(awsUrl));
+            final var awsRepository = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(awsUrl));
             final var diff = Sets.difference(mainRepository, awsRepository);
             final var diffInv = Sets.difference(awsRepository, mainRepository);
 

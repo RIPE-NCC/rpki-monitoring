@@ -12,16 +12,15 @@ import java.util.stream.Collectors;
 @Value
 public class FileEntry {
     private String uri;
-    /**
-     * hex representation of sha256 hash
-     */
+
+     // hex representation of sha256 hash
     private String sha256;
 
     public static FileEntry from(HasHashAndUri obj) {
         return new FileEntry(obj.getUri(), obj.getSha256());
     }
 
-    public static FileEntry withReativeUrl(HasHashAndUri obj) {
+    public static FileEntry withPath(HasHashAndUri obj) {
         final URI uri = URI.create(obj.getUri());
         return new FileEntry(uri.getPath(), obj.getSha256());
     }
@@ -30,8 +29,8 @@ public class FileEntry {
         return makeEntries(inp, FileEntry::from);
     }
 
-    public static <T extends HasHashAndUri> Set<FileEntry> fromObjectsWithRelativeUrl(Collection<T> inp) {
-        return makeEntries(inp, FileEntry::withReativeUrl);
+    public static <T extends HasHashAndUri> Set<FileEntry> fromObjectsWithUrlPath(Collection<T> inp) {
+        return makeEntries(inp, FileEntry::withPath);
     }
 
     private static <T extends HasHashAndUri> Set<FileEntry> makeEntries(Collection<T> inp, Function<T, FileEntry> f) {
