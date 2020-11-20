@@ -34,7 +34,7 @@ public class FileEntry {
     }
 
     private static <T extends HasHashAndUri> Set<FileEntry> makeEntries(Collection<T> inp, Function<T, FileEntry> f) {
-        return inp.parallelStream()
+        return inp.stream()
             .map(f)
             .collect(Collectors.toUnmodifiableSet());
     }
