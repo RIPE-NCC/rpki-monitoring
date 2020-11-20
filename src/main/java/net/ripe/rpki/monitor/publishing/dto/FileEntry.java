@@ -10,7 +10,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Value
-public class FileEntry {
+public class FileEntry implements HasHashAndUri {
     private String uri;
 
      // hex representation of sha256 hash

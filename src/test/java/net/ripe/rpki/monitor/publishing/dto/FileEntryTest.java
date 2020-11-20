@@ -34,16 +34,6 @@ class FileEntryTest {
 
 
     private HasHashAndUri getObj(String url) {
-        return new HasHashAndUri() {
-            @Override
-            public String getSha256() {
-                return "aaaa";
-            }
-
-            @Override
-            public String getUri() {
-                return url;
-            }
-        };
+        return new FileEntry(url, "aaaa");
     }
 }
