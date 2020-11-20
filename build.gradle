@@ -1,16 +1,16 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
-	id 'org.springframework.boot' version '2.3.0.RELEASE'
+	id 'org.springframework.boot' version '2.4.0'
 	id 'io.spring.dependency-management' version '1.0.9.RELEASE'
 
 	id 'java'
 	id 'jacoco'
 
 	// Enable Lombok project (https://projectlombok.org/features/all)
-	id "io.freefair.lombok" version "5.1.0"
+	id "io.freefair.lombok" version "5.3.0"
 	// jib: Thinner Java docker images
-	id "com.google.cloud.tools.jib" version "2.4.0"
+	id "com.google.cloud.tools.jib" version "2.6.0"
 	// git version
 	id "com.palantir.git-version" version "0.12.3"
 }
@@ -32,7 +32,7 @@ processResources {
 }
 
 group = 'net.ripe.rpki'
-version = '0.0.4-SNAPSHOT'
+version = '0.0.5-SNAPSHOT'
 sourceCompatibility = '11'
 
 
@@ -53,7 +53,7 @@ dependencies {
 	implementation "org.springframework.boot:spring-boot-starter-actuator"
 	implementation "io.micrometer:micrometer-registry-prometheus"
 
-	implementation 'net.ripe.rpki:rpki-commons:1.10.0'
+	implementation 'net.ripe.rpki:rpki-commons:1.16'
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {
 		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
 	}
