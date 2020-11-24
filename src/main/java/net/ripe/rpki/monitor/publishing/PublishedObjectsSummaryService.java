@@ -57,12 +57,16 @@ public class PublishedObjectsSummaryService {
     Map<String, Set<FileEntry>> getRsyncDiff() {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         final String mainRsyncUrl = appConfig.getRsyncConfig().getOnPremiseUrl();
-        final var mainRepository = FileEntry.fromObjects(repositoryObjects.getObjects(mainRsyncUrl));
+        /*
+            Since we are comparing repositories coming from different servers, the URLs will
+            be different in the server/port part. So we are going to compare only the path.
+         */
+        final var mainRepository = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(mainRsyncUrl));
         for (var awsUrl : appConfig.getRsyncConfig().getAwsUrl()) {
             final var diffCount = getOrCreateDiffCounter(mainRsyncUrl, awsUrl);
             final var diffCountInv = getOrCreateDiffCounter(awsUrl, mainRsyncUrl);
 
-            final var awsRepository = FileEntry.fromObjects(repositoryObjects.getObjects(awsUrl));
+            final var awsRepository = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(awsUrl));
             final var diff = Sets.difference(mainRepository, awsRepository);
             final var diffInv = Sets.difference(awsRepository, mainRepository);
 
@@ -123,7 +127,7 @@ public class PublishedObjectsSummaryService {
         return diffCount;
     }
 
-    private String diffTag(String lhs, String rhs) {
+    private static String diffTag(final String lhs, final String rhs) {
         return lhs + "-diff-" + rhs;
     }
 
