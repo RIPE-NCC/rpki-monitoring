@@ -25,10 +25,10 @@ public class CoreClient {
     public List<PublishedObjectEntry> publishedObjects() {
         try {
             final var res = restTemplate.getForObject("/api/published-objects", PublishedObjectEntry[].class);
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), res.length, 0);
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), res.length, 0, 0);
             return Arrays.asList(res);
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), 0, 0);
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), 0, 0, 0);
             throw e;
         }
     }

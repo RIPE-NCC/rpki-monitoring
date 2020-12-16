@@ -22,6 +22,9 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
+
+
 @Slf4j
 public class ObjectAndDateCollector {
 
@@ -40,7 +43,8 @@ public class ObjectAndDateCollector {
 
     public void run() throws FetcherException {
         final var passedObjects = new AtomicInteger();
-        final var failedObjects = new AtomicInteger();
+        final var unknownObjects = new AtomicInteger();
+        final var rejectedObjects = new AtomicInteger();
 
         try {
             final var expirationSummary = repoFetcher.fetchObjects().entrySet().parallelStream().map(e -> {
@@ -48,10 +52,14 @@ public class ObjectAndDateCollector {
                 var object = e.getValue();
 
                 var statusAndObject = getDateFor(objectUri, object.getBytes());
-                if (statusAndObject.getLeft()) {
+                if (ACCEPTED.equals(statusAndObject.getLeft())) {
                     passedObjects.incrementAndGet();
-                } else {
-                    failedObjects.incrementAndGet();
+                }
+                if (UNKNOWN.equals(statusAndObject.getLeft())) {
+                    unknownObjects.incrementAndGet();
+                }
+                if (REJECTED.equals(statusAndObject.getLeft())){
+                    rejectedObjects.incrementAndGet();
                 }
 
                 return statusAndObject.getRight().map(expiration -> new RepoObject(expiration, objectUri, Sha256.asBytes(object.getBytes())));
@@ -59,11 +67,11 @@ public class ObjectAndDateCollector {
 
             repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
 
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), passedObjects.get(), failedObjects.get());
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
         } catch (SnapshotNotModifiedException e) {
             collectorUpdateMetrics.trackSuccessWithoutUpdatedCounts(getClass().getSimpleName());
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), passedObjects.get(), failedObjects.get());
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
             throw e;
         }
     }
@@ -75,8 +83,7 @@ public class ObjectAndDateCollector {
      * @param decoded content of the object
      * @return (was parseable, option[expiration data of object, if applicable])
      */
-    Pair<Boolean, Optional<Date>> getDateFor(final String objectUri, final byte[] decoded) {
-
+    Pair<ObjectStatus, Optional<Date>> getDateFor(final String objectUri, final byte[] decoded) {
         final RepositoryObjectType objectType = RepositoryObjectType.parse(objectUri);
 
         try {
@@ -84,32 +91,34 @@ public class ObjectAndDateCollector {
                 case Manifest:
                     ManifestCmsParser manifestCmsParser = new ManifestCmsParser();
                     manifestCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
-                    return Pair.of(true, Optional.of(manifestCmsParser.getManifestCms().getNextUpdateTime().toDate()));
+                    return Pair.of(ACCEPTED, Optional.of(manifestCmsParser.getManifestCms().getNextUpdateTime().toDate()));
                 case Roa:
                     RoaCmsParser roaCmsParser = new RoaCmsParser();
                     roaCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
-                    return Pair.of(true, Optional.of(roaCmsParser.getRoaCms().getNotValidAfter().toDate()));
+                    return Pair.of(ACCEPTED, Optional.of(roaCmsParser.getRoaCms().getNotValidAfter().toDate()));
                 case Certificate:
                     X509CertificateParser x509CertificateParser = new X509ResourceCertificateParser();
                     x509CertificateParser.parse(ValidationResult.withLocation(objectUri), decoded);
                     final Date notAfter = x509CertificateParser.getCertificate().getCertificate().getNotAfter();
-                    return Pair.of(true, Optional.of(notAfter));
+                    return Pair.of(ACCEPTED, Optional.of(notAfter));
                 case Crl:
                     final X509Crl x509Crl = X509Crl.parseDerEncoded(decoded, ValidationResult.withLocation(objectUri));
                     final Date nextUpdate = x509Crl.getCrl().getNextUpdate();
-                    return Pair.of(true, Optional.of(nextUpdate));
+                    return Pair.of(ACCEPTED, Optional.of(nextUpdate));
                 case Gbr:
                     GhostbustersCmsParser ghostbustersCmsParser = new GhostbustersCmsParser();
                     ghostbustersCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
-                    return Pair.of(true, Optional.of(ghostbustersCmsParser.getGhostbustersCms().getNotValidAfter().toDate()));
+                    return Pair.of(ACCEPTED, Optional.of(ghostbustersCmsParser.getGhostbustersCms().getNotValidAfter().toDate()));
                 default:
-                    return Pair.of(true, Optional.empty());
+                    return Pair.of(UNKNOWN, Optional.empty());
             }
         } catch (Exception e) {
             log.info("Object at %s was rejected with %s", e.getMessage());
-            return Pair.of(false, Optional.empty());
+            return Pair.of(REJECTED, Optional.empty());
         }
     }
 
-
+    public enum ObjectStatus {
+        ACCEPTED, UNKNOWN, REJECTED
+    }
 }

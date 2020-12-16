@@ -33,24 +33,30 @@ public class CollectorUpdateMetrics {
         status.successCount.increment();
         status.lastUpdated.set(System.currentTimeMillis()/1000);
     }
-    public void trackSuccess(final String collectorName, int passed, int rejected) {
+
+    public void trackSuccess(final String collectorName, int passed, int rejected, int unknown) {
         final var status = getExecutionStatus(collectorName);
 
         status.successCount.increment();
+
         status.passedObjectCount.set(passed);
         status.rejectedObjectCount.set(rejected);
+        status.unknownObjectCount.set(unknown);
+
         status.lastUpdated.set(System.currentTimeMillis()/1000);
     }
 
     public void trackFailure(final String collectorName) {
-        trackFailure(collectorName, 0, 0);
+        trackFailure(collectorName, 0, 0, 0);
     }
 
-    public void trackFailure(final String collectorName, int passed, int rejected) {
+    public void trackFailure(final String collectorName, int passed, int rejected, int unknown) {
         final var status = getExecutionStatus(collectorName);
 
         status.passedObjectCount.set(passed);
         status.rejectedObjectCount.set(rejected);
+        status.unknownObjectCount.set(unknown);
+
         status.failureCount.increment();
     }
 
@@ -65,9 +71,8 @@ public class CollectorUpdateMetrics {
         private final Counter failureCount;
 
         private final AtomicLong passedObjectCount = new AtomicLong();
+        private final AtomicLong unknownObjectCount = new AtomicLong();
         private final AtomicLong rejectedObjectCount = new AtomicLong();
-
-        private boolean initialisedCounts = false;
 
         public ExecutionStatus(String collectorName) {
             Gauge.builder("rpkimonitoring.collector.lastupdated", lastUpdated::get)
@@ -87,6 +92,12 @@ public class CollectorUpdateMetrics {
                     .tag("status", "rejected")
                     .register(registry);
 
+            Gauge.builder(COLLECTOR_COUNT_METRIC, unknownObjectCount::get)
+                    .description(COLLECTOR_COUNT_DESCRIPTION)
+                    .tag(COLLECTOR, collectorName)
+                    .tag("status", "unknown")
+                    .register(registry);
+
             successCount = Counter.builder(COLLECTOR_UPDATE_METRIC)
                     .description(COLLECTOR_UPDATE_DESCRIPTION)
                     .tag(COLLECTOR, collectorName)
@@ -98,10 +109,6 @@ public class CollectorUpdateMetrics {
                     .tag(COLLECTOR, collectorName)
                     .tag("status", "failure")
                     .register(registry);
-        }
-
-        public void trackSuccess() {
-
         }
     }
 }

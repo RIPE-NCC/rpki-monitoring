@@ -58,7 +58,7 @@ public class PublishedObjectsSummaryJob extends QuartzJobBean {
         try {
             final var diff = publishedObjectsSummaryService.getPublishedObjectsDiff();
             final var total = diff.values().stream().mapToInt(Set::size).sum();
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), total, 0);
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), total, 0, 0);
         } catch (Exception e) {
             collectorUpdateMetrics.trackFailure(getClass().getSimpleName());
             throw e;
