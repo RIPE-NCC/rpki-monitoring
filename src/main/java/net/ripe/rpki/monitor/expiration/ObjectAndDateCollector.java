@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableSortedSet;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
@@ -21,6 +22,7 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 public class ObjectAndDateCollector {
 
     private final RepoFetcher repoFetcher;
@@ -104,6 +106,7 @@ public class ObjectAndDateCollector {
                     return Pair.of(true, Optional.empty());
             }
         } catch (Exception e) {
+            log.info("Object at %s was rejected with %s", e.getMessage());
             return Pair.of(false, Optional.empty());
         }
     }
