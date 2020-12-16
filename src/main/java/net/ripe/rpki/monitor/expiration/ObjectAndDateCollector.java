@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.hash.BloomFilter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
@@ -18,6 +19,7 @@ import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,6 +33,11 @@ public class ObjectAndDateCollector {
     private final RepoFetcher repoFetcher;
     private final CollectorUpdateMetrics collectorUpdateMetrics;
     private final RepositoryObjects repositoryObjects;
+
+    private final String NAME = ObjectAndDateCollector.class.getSimpleName();
+
+    /** Bloom filter with 3% false positives (and no false negatives) at 10K objects to reduce logging */
+    private final BloomFilter<String> loggedRejectedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 10_000);
 
     public ObjectAndDateCollector(
         @NonNull final RepoFetcher repoFetcher,
@@ -63,15 +70,15 @@ public class ObjectAndDateCollector {
                 }
 
                 return statusAndObject.getRight().map(expiration -> new RepoObject(expiration, objectUri, Sha256.asBytes(object.getBytes())));
-            }).filter(Optional::isPresent).map(Optional::get).collect(ImmutableSortedSet.toImmutableSortedSet(RepoObject::compareTo));
+            }).flatMap(Optional::stream).collect(ImmutableSortedSet.toImmutableSortedSet(RepoObject::compareTo));
 
             repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
 
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
+            collectorUpdateMetrics.trackSuccess(NAME, repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
         } catch (SnapshotNotModifiedException e) {
-            collectorUpdateMetrics.trackSuccessWithoutUpdatedCounts(getClass().getSimpleName());
+            collectorUpdateMetrics.trackSuccess(NAME, repoFetcher.repositoryUrl());
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
+            collectorUpdateMetrics.trackFailure(NAME, repoFetcher.repositoryUrl()).objectCount(passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
             throw e;
         }
     }
@@ -113,7 +120,12 @@ public class ObjectAndDateCollector {
                     return Pair.of(UNKNOWN, Optional.empty());
             }
         } catch (Exception e) {
-            log.info("Object at %s was rejected with %s", e.getMessage());
+            final var key = String.format("%s-%s", repoFetcher.repositoryUrl(), objectUri);
+            if (!loggedRejectedObjects.mightContain(key)) {
+                log.info("[{}] Object at {} rejected: {}.", repoFetcher.repositoryUrl(), objectUri, e.getMessage());
+            } else {
+                loggedRejectedObjects.put(key);
+            }
             return Pair.of(REJECTED, Optional.empty());
         }
     }
