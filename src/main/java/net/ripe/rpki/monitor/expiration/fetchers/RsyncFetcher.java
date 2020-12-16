@@ -4,6 +4,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.rsync.Rsync;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.util.FileSystemUtils;
 
 import java.io.IOException;
@@ -11,7 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Setter
@@ -60,19 +62,19 @@ public class RsyncFetcher implements RepoFetcher {
             rsyncPathFromRepository(rsyncUrl + "/ta", tempPath.resolve("ta"));
             rsyncPathFromRepository(rsyncUrl + "/repository", tempPath.resolve("repository"));
 
-            final Map<String, RpkiObject> objects = new ConcurrentHashMap<>();
-            Files.walk(tempPath)
-                    .filter(Files::isRegularFile)
+            // Gather all objects in path
+            try (Stream<Path> paths = Files.walk(tempPath)) {
+                return paths.filter(Files::isRegularFile)
                     .parallel()
-                    .forEach(f -> {
+                    .map(f -> {
                         final String objectUri = f.toString().replace(tempDirectory, rsyncUrl);
                         try {
-                            objects.put(objectUri, new RpkiObject(Files.readAllBytes(f)));
+                            return Pair.of(objectUri, new RpkiObject(Files.readAllBytes(f)));
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
-                    });
-            return objects;
+                    }).collect(Collectors.toConcurrentMap(Pair::getKey, Pair::getValue));
+            }
         } catch (IOException | RuntimeException e) {
             log.error("Rsync fetch failed", e);
             throw new FetcherException(e);
