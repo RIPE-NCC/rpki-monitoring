@@ -28,7 +28,7 @@ public class CoreClient {
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), "published-objects").objectCount(res.length, 0, 0);
             return Arrays.asList(res);
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), "published-objects").objectCount(0, 0, 0);
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), "published-objects").zeroCounters();
             throw e;
         }
     }

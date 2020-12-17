@@ -9,7 +9,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
@@ -26,7 +28,11 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     public void beforeEach() {
         final RsyncFetcher rsyncFetcher = new RsyncFetcher(uri.getPath());
 
-        rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, mock(CollectorUpdateMetrics.class), repositoryObjects);
+        final var mockMetrics = mock(CollectorUpdateMetrics.class);
+        when(mockMetrics.trackSuccess(any(), any())).thenReturn(mock(CollectorUpdateMetrics.ExecutionStatus.class));
+        when(mockMetrics.trackFailure(any(), any())).thenReturn(mock(CollectorUpdateMetrics.ExecutionStatus.class));
+
+        rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, mockMetrics, repositoryObjects);
     }
 
     @Test

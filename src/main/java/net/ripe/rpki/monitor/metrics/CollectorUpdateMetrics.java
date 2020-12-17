@@ -89,6 +89,7 @@ public class CollectorUpdateMetrics {
         }
 
         public ExecutionStatus objectCount(int passed, int rejected, int unknown) {
+            // Lazy init metrics so as to never have metrics that always stay at 0.
             if (!initialisedCounters) {
                 Gauge.builder(COLLECTOR_COUNT_METRIC, passedObjectCount::get)
                         .description(COLLECTOR_COUNT_DESCRIPTION)
@@ -122,16 +123,6 @@ public class CollectorUpdateMetrics {
 
         public void zeroCounters() {
             objectCount(0, 0, 0);
-        }
-
-        public ExecutionStatus success() {
-            this.successCount.increment();
-            return this;
-        }
-
-        public ExecutionStatus failure() {
-            this.failureCount.increment();
-            return this;
         }
     }
 }

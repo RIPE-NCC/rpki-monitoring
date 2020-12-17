@@ -34,8 +34,6 @@ public class ObjectAndDateCollector {
     private final CollectorUpdateMetrics collectorUpdateMetrics;
     private final RepositoryObjects repositoryObjects;
 
-    private final String NAME = ObjectAndDateCollector.class.getSimpleName();
-
     /** Bloom filter with 3% false positives (and no false negatives) at 10K objects to reduce logging */
     private final BloomFilter<String> loggedRejectedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 10_000);
 
@@ -74,11 +72,11 @@ public class ObjectAndDateCollector {
 
             repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
 
-            collectorUpdateMetrics.trackSuccess(NAME, repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
         } catch (SnapshotNotModifiedException e) {
-            collectorUpdateMetrics.trackSuccess(NAME, repoFetcher.repositoryUrl());
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl());
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(NAME, repoFetcher.repositoryUrl()).objectCount(passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
             throw e;
         }
     }
