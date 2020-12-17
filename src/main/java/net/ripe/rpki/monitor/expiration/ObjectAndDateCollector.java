@@ -121,7 +121,6 @@ public class ObjectAndDateCollector {
             final var key = String.format("%s-%s", repoFetcher.repositoryUrl(), objectUri);
             if (!loggedRejectedObjects.mightContain(key)) {
                 log.info("[{}] Object at {} rejected: {}.", repoFetcher.repositoryUrl(), objectUri, e.getMessage());
-            } else {
                 loggedRejectedObjects.put(key);
             }
             return Pair.of(REJECTED, Optional.empty());
