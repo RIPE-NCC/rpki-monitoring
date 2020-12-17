@@ -17,6 +17,7 @@ import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Set;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
@@ -55,10 +56,11 @@ public class PublishedObjectsSummaryJob extends QuartzJobBean {
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
         try {
-            publishedObjectsSummaryService.getPublishedObjectsDiff();
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName());
+            final var diff = publishedObjectsSummaryService.getPublishedObjectsDiff();
+            final var total = diff.values().stream().mapToInt(Set::size).sum();
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), "total").objectCount(total, 0, 0);
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName());
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), "total").zeroCounters();
             throw e;
         }
     }

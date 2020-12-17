@@ -7,14 +7,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 @Service
 public class RepositoryObjects {
     private final Map<String, RepositoryContent> overallContent = new ConcurrentHashMap<>();
 
-    public void setRepositoryObject(String repositoryUrl, final ConcurrentSkipListSet<RepoObject> repoObjects) {
+    public void setRepositoryObject(String repositoryUrl, final SortedSet<RepoObject> repoObjects) {
         overallContent.put(repositoryUrl, new RepositoryContent(repoObjects));
     }
 
@@ -37,6 +37,6 @@ public class RepositoryObjects {
 
     @Value
     public static class RepositoryContent {
-        ConcurrentSkipListSet<RepoObject> objects;
+        SortedSet<RepoObject> objects;
     }
 }

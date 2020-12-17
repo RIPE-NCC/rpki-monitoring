@@ -19,8 +19,8 @@ rsync:
   on-premise-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
-  aws-url:
-    - rsync://pub-server.elasticbeanstalk.com
+  # disable second rsync url
+  aws-url: []
 
 server:
   port: 9090
