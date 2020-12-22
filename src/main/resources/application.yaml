@@ -75,7 +75,7 @@ spring:
   profiles: prepdev
 
 rrdp:
-  url: http://pub-server.elasticbeanstalk.com
+  url: https://rrdp.prepdev.ripe.net
   interval: 5M
 
 rsync:
@@ -85,7 +85,7 @@ rsync:
   interval: 10M
   # url to the AWS hosted
   aws-url:
-    - rsync://pub-server.elasticbeanstalk.com
+    - rsync://prepdevpubserver-env.eba-wy9m3cgq.eu-west-2.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
