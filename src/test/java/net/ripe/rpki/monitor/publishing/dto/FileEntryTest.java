@@ -10,18 +10,18 @@ class FileEntryTest {
     @Test
     public void testUrlPath() {
         assertEquals(
-            FileEntry.withPath(getObj("rsync://server.com:5555/path/a/b/c")).getUri(),
-            "/path/a/b/c"
+            "/path/a/b/c",
+            FileEntry.withPath(getObj("rsync://server.com:5555/path/a/b/c")).getUri()
         );
 
         assertEquals(
-            FileEntry.withPath(getObj("https://rrdp.ripe.net/path/a/b/c")).getUri(),
-            "/path/a/b/c"
+            "/path/a/b/c",
+            FileEntry.withPath(getObj("https://rrdp.ripe.net/path/a/b/c")).getUri()
         );
 
         assertEquals(
-            FileEntry.withPath(getObj("/path/a/b/c")).getUri(),
-            "/path/a/b/c"
+            "/path/a/b/c",
+            FileEntry.withPath(getObj("/path/a/b/c")).getUri()
         );
     }
 
