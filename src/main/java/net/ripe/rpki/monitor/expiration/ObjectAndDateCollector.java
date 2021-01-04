@@ -34,8 +34,13 @@ public class ObjectAndDateCollector {
     private final CollectorUpdateMetrics collectorUpdateMetrics;
     private final RepositoryObjects repositoryObjects;
 
-    /** Bloom filter with 3% false positives (and no false negatives) at 10K objects to reduce logging */
-    private final BloomFilter<String> loggedRejectedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 10_000);
+    /**
+     * Bloom filter with 0.5% false positives (and no false negatives) at 100K objects to reduce logging.
+     *
+     * Using 3% at 10K would log 0,03*40000=1200 lines per time the repo is checked if a repo containing 40K files is
+     * completely rejected (and the behaviour does not degrade due to being over capacity).
+     */
+    private final BloomFilter<String> loggedRejectedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 100_000, 0.5);
 
     public ObjectAndDateCollector(
         @NonNull final RepoFetcher repoFetcher,
