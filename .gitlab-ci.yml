@@ -99,13 +99,12 @@ sonarqube:
 # progress in parallel since this takes up to ten minutes.
 build:dev:
   stage: package
-  needs:
-    - test
-  rules:
-    - when: manual
+  needs: ["test"]
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - gradle jib --image=$CI_REGISTRY_IMAGE:dev
+  rules:
+    - when: manual
 
 build:prepdev:
   stage: package
