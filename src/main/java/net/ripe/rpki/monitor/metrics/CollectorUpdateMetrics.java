@@ -15,13 +15,14 @@ import java.util.concurrent.atomic.AtomicLong;
 @AllArgsConstructor
 @Component
 public class CollectorUpdateMetrics {
-    public final static String COLLECTOR_UPDATE_DESCRIPTION = "Number of updates by collector by status";
+    public static final String COLLECTOR_UPDATE_DESCRIPTION = "Number of updates by collector by status";
     public static final String COLLECTOR_UPDATE_METRIC = "rpkimonitoring.collector.update";
     public static final String COLLECTOR = "collector";
     public static final String URL = "url";
 
-    public final static String COLLECTOR_COUNT_DESCRIPTION = "Number of objects by collector by status";
+    public static final String COLLECTOR_COUNT_DESCRIPTION = "Number of objects by collector by status";
     public static final String COLLECTOR_COUNT_METRIC = "rpkimonitoring.collector.objects";
+    public static final String STATUS = "status";
 
     @Autowired
     private final MeterRegistry registry;
@@ -45,7 +46,7 @@ public class CollectorUpdateMetrics {
     }
 
     private ExecutionStatus getExecutionStatus(final String collectorName, final String repoUrl) {
-        return executionStatus.computeIfAbsent(Pair.of(collectorName, repoUrl), (key) -> new ExecutionStatus(collectorName, repoUrl));
+        return executionStatus.computeIfAbsent(Pair.of(collectorName, repoUrl), key -> new ExecutionStatus(collectorName, repoUrl));
     }
 
     public class ExecutionStatus {
@@ -77,14 +78,14 @@ public class CollectorUpdateMetrics {
                     .description(COLLECTOR_UPDATE_DESCRIPTION)
                     .tag(COLLECTOR, collectorName)
                     .tag(URL, repoUrl)
-                    .tag("status", "success")
+                    .tag(STATUS, "success")
                     .register(registry);
 
             failureCount = Counter.builder(COLLECTOR_UPDATE_METRIC)
                     .description(COLLECTOR_UPDATE_DESCRIPTION)
                     .tag(COLLECTOR, collectorName)
                     .tag(URL, repoUrl)
-                    .tag("status", "failure")
+                    .tag(STATUS, "failure")
                     .register(registry);
         }
 
@@ -95,21 +96,21 @@ public class CollectorUpdateMetrics {
                         .description(COLLECTOR_COUNT_DESCRIPTION)
                         .tag(COLLECTOR, collectorName)
                         .tag(URL, repoUrl)
-                        .tag("status", "passed")
+                        .tag(STATUS, "passed")
                         .register(registry);
 
                 Gauge.builder(COLLECTOR_COUNT_METRIC, rejectedObjectCount::get)
                         .description(COLLECTOR_COUNT_DESCRIPTION)
                         .tag(COLLECTOR, collectorName)
                         .tag(URL, repoUrl)
-                        .tag("status", "rejected")
+                        .tag(STATUS, "rejected")
                         .register(registry);
 
                 Gauge.builder(COLLECTOR_COUNT_METRIC, unknownObjectCount::get)
                         .description(COLLECTOR_COUNT_DESCRIPTION)
                         .tag(COLLECTOR, collectorName)
                         .tag(URL, repoUrl)
-                        .tag("status", "unknown")
+                        .tag(STATUS, "unknown")
                         .register(registry);
                 initialisedCounters = true;
             }
