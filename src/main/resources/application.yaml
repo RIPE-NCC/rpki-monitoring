@@ -64,7 +64,6 @@ rsync:
   interval: 5M
   aws-url:
     - rsync://pub-server.elasticbeanstalk.com
-    - rsync://pub-server.elasticbeanstalk.com
 
 core:
   url: http://localhost:8080/certification/
@@ -83,9 +82,9 @@ rsync:
   on-premise-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
-  # url to the AWS hosted
-  aws-url:
-    - rsync://prepdevpubserver-env.eba-wy9m3cgq.eu-west-2.elasticbeanstalk.com
+  # url to the AWS rsync instances - if they exist.
+  aws-url: []
+  #    - rsync://prepdevpubserver-env.eba-wy9m3cgq.eu-west-2.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
