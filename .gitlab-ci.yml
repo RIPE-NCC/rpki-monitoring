@@ -4,13 +4,21 @@
 # https://github.com/gradle/gradle
 image: docker-registry.ripe.net/swe/gitlab-ci/gradle-buildenv:jdk-11
 
+
 stages:
   - build
   - test
+  - qa
   - package
   - deploy
 
 include:
+  # Run pipeline on main branch, merge requests, tags.
+  # this is equivalent to `workflow.rules:` that set this up.
+  - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
+  # Use gitlab security scanning
+  - template: Dependency-Scanning.gitlab-ci.yml
+  # Whitesource
   - project: 'swe/gitlab-ci'
     file: '/templates/whitesource-scanning.yml'
 
@@ -52,11 +60,13 @@ build:
   # Cache the build artifacts in specific paths
   artifacts:
     paths:
-      - "**/build"
+      - "build"
     expire_in: 4 weeks
 
 test:
   stage: test
+  dependencies:
+    - build
   script:
     - gradle check
     - cat build/reports/jacoco/test/html/index.html
@@ -64,32 +74,49 @@ test:
     when: on_failure
     paths:
       - build/reports/
+    expire_in: 4 days
     reports:
       junit:
         - build/test-results/test/*.xml
-    expire_in: 1 day
+
+sonarqube:
+  stage: qa
+  # Use artifacts of test step, which creates coverage reports
+  dependencies:
+    - test
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - gradle -Dsonar.host.url="${SONAR_HOST_URL}" -Dsonar.login="${SONAR_TOKEN}" -Dsonar.projectKey=rpki-monitoring check sonarqube
+  allow_failure: true
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
 
 # All the package stages only require the test job, so whitesource scanning can
 # progress in parallel since this takes up to ten minutes.
-manual_build:
+build:dev:
   stage: package
   needs: ["test"]
-  when: manual
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - gradle jib --image=$CI_REGISTRY_IMAGE:dev
+  rules:
+    - when: manual
 
-development_build:
+build:prepdev:
   stage: package
   needs: ["test"]
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - gradle jib --image=$CI_REGISTRY_IMAGE
     - gradle jib --image=$CI_REGISTRY_IMAGE:master
-  only:
-    - master@rpki/rpki-monitoring
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-tagged_build:
+build:production:
   stage: package
   needs: ["test"]
   script:
@@ -97,8 +124,8 @@ tagged_build:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - gradle jib --image=$CI_REGISTRY_IMAGE:$(echo $CI_COMMIT_TAG | sed -e's/rpki-monitoring-//')
     - gradle jib --image=$CI_REGISTRY_IMAGE:production
-  only:
-    - tags@rpki/rpki-monitoring
+  rules:
+    - if: $CI_COMMIT_TAG
 
 .deploy_template: &deploy_template
   stage: deploy
@@ -146,25 +173,29 @@ tagged_build:
 
 deploy:dev:
   <<: *deploy_template
-  when: manual
+  needs: ["build:dev"]
   environment:
     name: dev
     url: http://uncore-1.rpki.dev.ripe.net:9090
+  rules:
+    - when: manual
 
 deploy:prepdev:
   <<: *deploy_template
   stage: deploy
+  needs: ["build:prepdev"]
   environment:
     name: prepdev
     url: https://uncore.rpki.prepdev.ripe.net
-  only:
-    - master@rpki/rpki-monitoring
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 deploy:production:
   <<: *deploy_template
   stage: deploy
+  needs: ["build:production"]
   environment:
     name: production
     url: https://uncore.rpki.ripe.net
-  only:
-    - tags@rpki/rpki-monitoring
+  rules:
+    - if: $CI_COMMIT_TAG

@@ -7,6 +7,8 @@ plugins {
 	id 'java'
 	id 'jacoco'
 
+	id "org.sonarqube" version "3.0"
+
 	// Enable Lombok project (https://projectlombok.org/features/all)
 	id "io.freefair.lombok" version "5.3.0"
 	// jib: Thinner Java docker images
@@ -62,4 +64,12 @@ dependencies {
 test {
 	useJUnitPlatform()
 	finalizedBy jacocoTestReport
+}
+
+tasks['sonarqube'].dependsOn test
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+    }
 }

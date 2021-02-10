@@ -118,13 +118,11 @@ public class PublishedObjectsSummaryService {
 
     private AtomicLong getOrCreateDiffCounter(String lhs, String rhs) {
         final String tag = diffTag(lhs, rhs);
-        AtomicLong diffCount = counters.get(tag);
-        if (diffCount == null) {
-            diffCount = new AtomicLong(0);
-            counters.put(tag, diffCount);
+        return counters.computeIfAbsent(tag, newTag -> {
+            final var diffCount = new AtomicLong(0);
             Metrics.buildObjectDiffGauge(registry, diffCount, lhs, rhs);
-        }
-        return diffCount;
+            return diffCount;
+        });
     }
 
     private static String diffTag(final String lhs, final String rhs) {
@@ -132,12 +130,10 @@ public class PublishedObjectsSummaryService {
     }
 
     private AtomicLong getOrCreateCounter(String tag) {
-        AtomicLong diffCount = counters.get(tag);
-        if (diffCount == null) {
-            diffCount = new AtomicLong(0);
-            counters.put(tag, diffCount);
+        return counters.computeIfAbsent(tag, newTag -> {
+            final var diffCount = new AtomicLong(0);
             Metrics.buildObjectCountGauge(registry, diffCount, tag);
-        }
-        return diffCount;
+            return diffCount;
+        });
     }
 }

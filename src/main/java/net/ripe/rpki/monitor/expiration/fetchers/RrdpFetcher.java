@@ -6,10 +6,6 @@ import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -20,11 +16,13 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static com.google.common.base.Verify.verify;
+import static com.google.common.base.Verify.verifyNotNull;
 
 @Slf4j
 public class RrdpFetcher implements RepoFetcher {
@@ -45,18 +43,19 @@ public class RrdpFetcher implements RepoFetcher {
         return rrdpUrl;
     }
 
-    public Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
+    public Map<String, RpkiObject> fetchObjects() throws SnapshotNotModifiedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
             final String notificationXml = restTemplate.getForObject(notificationXmlUrl, String.class);
+            verifyNotNull(notificationXml);
             final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
 
             final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
             final String snapshotUrl = snapshotTag.getAttributes().getNamedItem("uri").getNodeValue();
             final String desiredSnapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
 
-            assert snapshotUrl != null;
+            verifyNotNull(snapshotUrl);
             if (snapshotUrl.equals(lastSnapshotUrl)) {
                 log.debug("not updating: snapshot url {} is the same as during the last check.", snapshotUrl);
                 throw new SnapshotNotModifiedException(snapshotUrl);
@@ -70,7 +69,7 @@ public class RrdpFetcher implements RepoFetcher {
             final byte[] bytes = snapshotXml.getBytes();
 
             final String realSnapshotHash = Sha256.asString(bytes);
-            if (!realSnapshotHash.toLowerCase().equals(desiredSnapshotHash.toLowerCase())) {
+            if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
                 throw new SnapshotWrongHashException(desiredSnapshotHash, realSnapshotHash);
             }
 
