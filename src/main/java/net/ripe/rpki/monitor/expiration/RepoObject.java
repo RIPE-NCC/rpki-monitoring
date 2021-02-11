@@ -21,6 +21,10 @@ public class RepoObject implements Comparable<RepoObject>, HasHashAndUri {
         return expiration.toString();
     }
 
+    public Date getExpirationDate() {
+        return expiration;
+    }
+
     @Override
     public int compareTo(RepoObject o) {
         return ComparisonChain.start()

@@ -1,8 +1,12 @@
 package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableSet;
+import lombok.AllArgsConstructor;
+import lombok.Setter;
 import lombok.Value;
+import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import org.joda.time.DateTime;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -12,10 +16,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class RepositoryObjects {
+    @Autowired
+    @Setter
+    private ObjectExpirationMetrics objectExpirationMetrics;
+
     private final Map<String, RepositoryContent> overallContent = new ConcurrentHashMap<>();
 
     public void setRepositoryObject(String repositoryUrl, final SortedSet<RepoObject> repoObjects) {
-        overallContent.put(repositoryUrl, new RepositoryContent(repoObjects));
+        final var content = new RepositoryContent(repoObjects);
+        overallContent.put(repositoryUrl, content);
+
+        objectExpirationMetrics.trackExpiration(repositoryUrl, content);
     }
 
     public Set<RepoObject> geRepositoryObjectsAboutToExpire(String repositoryUrl, final int inHours) {
