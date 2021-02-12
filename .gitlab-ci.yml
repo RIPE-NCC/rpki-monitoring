@@ -115,6 +115,7 @@ build:prepdev:
     - gradle jib --image=$CI_REGISTRY_IMAGE:master
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: manual
 
 build:production:
   stage: package
