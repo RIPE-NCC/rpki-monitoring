@@ -7,6 +7,7 @@ import net.ripe.rpki.monitor.expiration.RepositoryObjects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 @AllArgsConstructor
 @Component
 public class ObjectExpirationMetrics {
-    public static final String COLLECTOR_EXPIRATION_DESCRIPTION = "Number of objects by collector by time to expiration";
+    private static final String COLLECTOR_EXPIRATION_DESCRIPTION = "Number of objects by collector by time to expiration";
     public static final String COLLECTOR_EXPIRATION_METRIC = "rpkimonitoring.collector.expiration";
 
     @Autowired
@@ -39,12 +40,13 @@ public class ObjectExpirationMetrics {
                     .tag("url", repoUrl)
                     .baseUnit("seconds")
                     .publishPercentileHistogram()
-                    .minimumExpectedValue((double)TimeUnit.MINUTES.toSeconds(5))
-                    .maximumExpectedValue((double)TimeUnit.HOURS.toSeconds(25))
+                    .minimumExpectedValue((double)Duration.ofMinutes(5).toSeconds())
+                    .maximumExpectedValue((double)Duration.ofHours(25).toSeconds())
                     .serviceLevelObjectives(
-                            TimeUnit.HOURS.toSeconds(1),
-                            TimeUnit.HOURS.toSeconds(4),
-                            TimeUnit.HOURS.toSeconds(8)
+                            Duration.ofHours(1).toSeconds(),
+                            Duration.ofHours(4).toSeconds(),
+                            Duration.ofHours(7).toSeconds(),
+                            Duration.ofHours(8).toSeconds()
                     )
                     .register(registry)
         );

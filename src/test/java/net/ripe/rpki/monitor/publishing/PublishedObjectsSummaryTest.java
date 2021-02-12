@@ -6,6 +6,7 @@ import net.ripe.rpki.monitor.AppConfig;
 import net.ripe.rpki.monitor.expiration.RepoObject;
 import net.ripe.rpki.monitor.expiration.RepositoryObjects;
 import net.ripe.rpki.monitor.metrics.Metrics;
+import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +34,7 @@ public class PublishedObjectsSummaryTest {
     public void init() {
         meterRegistry = new SimpleMeterRegistry();
 
-        RepositoryObjects repositoryObjects = new RepositoryObjects();
+        RepositoryObjects repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
         AppConfig appConfig = new AppConfig();
         publishedObjectsSummaryService = new PublishedObjectsSummaryService(repositoryObjects, rpkiCoreClient, meterRegistry, appConfig);
     }

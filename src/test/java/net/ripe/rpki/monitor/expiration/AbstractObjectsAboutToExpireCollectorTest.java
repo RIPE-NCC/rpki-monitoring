@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import org.junit.jupiter.api.Test;
 
 import java.text.DateFormat;
@@ -16,7 +17,7 @@ import static org.mockito.Mockito.mock;
 class AbstractObjectsAboutToExpireCollectorTest {
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 
-    private final RepositoryObjects repositoryObjects = new RepositoryObjects();
+    private final RepositoryObjects repositoryObjects = new RepositoryObjects(mock(ObjectExpirationMetrics.class));
 
     ObjectAndDateCollector collector = new ObjectAndDateCollector(
             mock(RepoFetcher.class),

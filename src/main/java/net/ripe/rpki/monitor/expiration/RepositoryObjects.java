@@ -14,10 +14,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+@AllArgsConstructor
 @Service
 public class RepositoryObjects {
     @Autowired
-    @Setter
     private ObjectExpirationMetrics objectExpirationMetrics;
 
     private final Map<String, RepositoryContent> overallContent = new ConcurrentHashMap<>();
