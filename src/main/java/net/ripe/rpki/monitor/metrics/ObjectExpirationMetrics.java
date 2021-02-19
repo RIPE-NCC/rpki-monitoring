@@ -3,10 +3,8 @@ package net.ripe.rpki.monitor.metrics;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
-import net.ripe.rpki.monitor.expiration.ObjectAndDateCollector;
 import net.ripe.rpki.monitor.expiration.RepoObject;
 import net.ripe.rpki.monitor.expiration.RepositoryObjects;
-import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +12,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 @AllArgsConstructor
 @Component
@@ -88,7 +85,7 @@ public class ObjectExpirationMetrics {
         }
 
         public void update(Instant now, RepoObject object) {
-            expirationHistogram.record(now.until(object.getExpirationDate().toInstant(), ChronoUnit.SECONDS));
+            expirationHistogram.record(now.until(object.getExpiration().toInstant(), ChronoUnit.SECONDS));
             creationHistogram.record(object.getCreation().toInstant().until(now, ChronoUnit.SECONDS));
         }
     }
