@@ -3,7 +3,10 @@ package net.ripe.rpki.monitor.metrics;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
+import net.ripe.rpki.monitor.expiration.ObjectAndDateCollector;
+import net.ripe.rpki.monitor.expiration.RepoObject;
 import net.ripe.rpki.monitor.expiration.RepositoryObjects;
+import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -16,26 +19,54 @@ import java.util.concurrent.TimeUnit;
 @AllArgsConstructor
 @Component
 public class ObjectExpirationMetrics {
+    private static final String COLLECTOR_CREATION_DESCRIPTION = "Number of objects by collector by time since creation";
+    public static final String COLLECTOR_CREATION_METRIC = "rpkimonitoring.collector.creation";
+
     private static final String COLLECTOR_EXPIRATION_DESCRIPTION = "Number of objects by collector by time to expiration";
     public static final String COLLECTOR_EXPIRATION_METRIC = "rpkimonitoring.collector.expiration";
 
     @Autowired
     private final MeterRegistry registry;
 
-    private final ConcurrentHashMap<String, DistributionSummary> executionStatus = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, RepositoryExpirationSummary> expirationSummaries = new ConcurrentHashMap<>();
 
     public void trackExpiration(final String url, RepositoryObjects.RepositoryContent content) {
         final var now = Instant.now();
-        final var histogram = getDistributionSummary(url);
+        final var updateHistogram = getExpirationSummary(url);
 
-        content.getObjects().parallelStream().forEach(obj -> {
-            histogram.record(now.until(obj.getExpirationDate().toInstant(), ChronoUnit.SECONDS));
-        });
+        content.getObjects().parallelStream().forEach(obj -> updateHistogram.update(now, obj));
     }
 
-    private DistributionSummary getDistributionSummary(final String repoUrl) {
-        return executionStatus.computeIfAbsent(repoUrl, key ->
-                DistributionSummary.builder(COLLECTOR_EXPIRATION_METRIC)
+    private RepositoryExpirationSummary getExpirationSummary(final String repoUrl) {
+        return expirationSummaries.computeIfAbsent(repoUrl, key -> new RepositoryExpirationSummary(repoUrl));
+    }
+
+    private class RepositoryExpirationSummary {
+        private final DistributionSummary expirationHistogram;
+        private final DistributionSummary creationHistogram;
+
+        public RepositoryExpirationSummary(String repoUrl) {
+            creationHistogram = DistributionSummary.builder(COLLECTOR_CREATION_METRIC)
+                    .description(COLLECTOR_CREATION_DESCRIPTION)
+                    .tag("url", repoUrl)
+                    .baseUnit("seconds")
+                    .publishPercentileHistogram()
+                    .minimumExpectedValue((double)Duration.ofMinutes(5).toSeconds())
+                    .maximumExpectedValue((double)Duration.ofHours(25).toSeconds())
+                    .serviceLevelObjectives(
+                            Duration.ofHours(1).toSeconds(),
+                            Duration.ofHours(4).toSeconds(),
+                            Duration.ofHours(7).toSeconds(),
+                            Duration.ofHours(8).toSeconds(),
+                            Duration.ofHours(24).toSeconds(), // CRLs, manifest eContent
+                            Duration.ofDays(7).toSeconds(), // Manifest EE certs
+                            Duration.ofDays(6*30).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
+                            Duration.ofDays(12*30).toSeconds(),
+                            Duration.ofDays(18*30).toSeconds()
+                    )
+                    .register(registry);
+
+            expirationHistogram = DistributionSummary.builder(COLLECTOR_EXPIRATION_METRIC)
                     .description(COLLECTOR_EXPIRATION_DESCRIPTION)
                     .tag("url", repoUrl)
                     .baseUnit("seconds")
@@ -46,9 +77,19 @@ public class ObjectExpirationMetrics {
                             Duration.ofHours(1).toSeconds(),
                             Duration.ofHours(4).toSeconds(),
                             Duration.ofHours(7).toSeconds(),
-                            Duration.ofHours(8).toSeconds()
+                            Duration.ofHours(8).toSeconds(),
+                            Duration.ofHours(24).toSeconds(), // CRLs, manifest eContent
+                            Duration.ofDays(7).toSeconds(), // Manifest EE certs
+                            Duration.ofDays(6*30).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
+                            Duration.ofDays(12*30).toSeconds(),
+                            Duration.ofDays(18*30).toSeconds()
                     )
-                    .register(registry)
-        );
+                    .register(registry);
+        }
+
+        public void update(Instant now, RepoObject object) {
+            expirationHistogram.record(now.until(object.getExpirationDate().toInstant(), ChronoUnit.SECONDS));
+            creationHistogram.record(object.getCreation().toInstant().until(now, ChronoUnit.SECONDS));
+        }
     }
 }
