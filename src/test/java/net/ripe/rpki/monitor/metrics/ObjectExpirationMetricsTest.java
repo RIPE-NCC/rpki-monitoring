@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.TemporalAmount;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -34,14 +34,13 @@ public class ObjectExpirationMetricsTest {
 
     @Test
     public void itShouldHaveTimeToExpiryMetricsWhichCountedAllObjects() throws Exception {
-        // Move forward 30 seconds, to make sure that "now" is before the timestamp
-        final var now = Instant.now().plusSeconds(30);
+        final var now = Instant.now();
         // Store the objects
         repositoryObjects.setRepositoryObject(REPO_URL, ImmutableSortedSet.of(
-                RepoObject.fictionalObjectExpiringOn(Date.from(now.plus(Duration.ofMinutes(50)))),
-                RepoObject.fictionalObjectExpiringOn(Date.from(now.plus(Duration.ofHours(1)))),
-                RepoObject.fictionalObjectExpiringOn(Date.from(now.plus(Duration.ofHours(7)))),
-                RepoObject.fictionalObjectExpiringOn(Date.from(now.plus(Duration.ofHours(14))))
+                RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofMinutes(50)))),
+                RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofMinutes(61)))),
+                RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofHours(7).plusMinutes(10)))),
+                RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofHours(14))))
         ));
         final var buckets = Arrays.asList(meterRegistry.get(ObjectExpirationMetrics.COLLECTOR_EXPIRATION_METRIC)
                 .tag("url", REPO_URL)
@@ -65,5 +64,37 @@ public class ObjectExpirationMetricsTest {
         then(buckets.stream().filter(bucket -> bucket.bucket() == TimeUnit.HOURS.toSeconds(8)))
                 .first()
                 .matches(bucket -> bucket.count() == 3); // three objects < 8 hours
+    }
+
+    @Test
+    public void itShouldHaveTimeSinceCreationMetricsWhichCountedAllObjects() throws Exception {
+        final var now = Instant.now();
+        // Store the objects
+        repositoryObjects.setRepositoryObject(REPO_URL, ImmutableSortedSet.of(
+                RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(90, ChronoUnit.MINUTES))),
+                RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(18L * 31, ChronoUnit.DAYS))), // java.time.temporal.UnsupportedTemporalTypeException: Unsupported unit: Months
+                RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(18, ChronoUnit.HOURS)))
+        ));
+
+        final var snapshot = meterRegistry.get(ObjectExpirationMetrics.COLLECTOR_CREATION_METRIC)
+                .tag("url", REPO_URL)
+                .summary()
+                .takeSnapshot();
+
+        then(snapshot.count()).isEqualTo(3);
+
+        // Bucket durations are constants for the SLO
+        then(Arrays.stream(snapshot.histogramCounts())
+                .filter(bucket -> (int)bucket.bucket() == Duration.ofHours(1).toSeconds()))
+                .first()
+                .matches(bucket -> bucket.count() == 0); // one object < 1 hr
+        then(Arrays.stream(snapshot.histogramCounts())
+                .filter(bucket -> (int)bucket.bucket() == Duration.ofHours(4).toSeconds()))
+                .first()
+                .matches(bucket -> bucket.count() == 1); // one object within 4 hrs.
+        then(Arrays.stream(snapshot.histogramCounts())
+                .filter(bucket -> (int)bucket.bucket() == Duration.ofHours(24).toSeconds()))
+                .first()
+                .matches(bucket -> bucket.count() == 2); // two objects within 24hr
     }
 }

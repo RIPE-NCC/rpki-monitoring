@@ -24,7 +24,7 @@ public class RepoObject implements Comparable<RepoObject>, HasHashAndUri {
                 .result();
     }
 
-    public static final RepoObject fictionalObjectExpiringOn(final Date date) {
+    public static final RepoObject fictionalObjectValidAtInstant(final Date date) {
         return new RepoObject(date, date,"NA", new byte[]{0});
     }
 

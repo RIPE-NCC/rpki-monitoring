@@ -48,8 +48,8 @@ public class ObjectExpirationMetrics {
                     .tag("url", repoUrl)
                     .baseUnit("seconds")
                     .publishPercentileHistogram()
+                    .distributionStatisticExpiry(Duration.ofMinutes(15))
                     .minimumExpectedValue((double)Duration.ofMinutes(5).toSeconds())
-                    .maximumExpectedValue((double)Duration.ofHours(25).toSeconds())
                     .serviceLevelObjectives(
                             Duration.ofHours(1).toSeconds(),
                             Duration.ofHours(4).toSeconds(),
@@ -68,8 +68,8 @@ public class ObjectExpirationMetrics {
                     .tag("url", repoUrl)
                     .baseUnit("seconds")
                     .publishPercentileHistogram()
+                    .distributionStatisticExpiry(Duration.ofMinutes(15))
                     .minimumExpectedValue((double)Duration.ofMinutes(5).toSeconds())
-                    .maximumExpectedValue((double)Duration.ofHours(25).toSeconds())
                     .serviceLevelObjectives(
                             Duration.ofHours(1).toSeconds(),
                             Duration.ofHours(4).toSeconds(),

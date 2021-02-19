@@ -2,7 +2,6 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableSet;
 import lombok.AllArgsConstructor;
-import lombok.Setter;
 import lombok.Value;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import org.joda.time.DateTime;
@@ -34,7 +33,7 @@ public class RepositoryObjects {
         if (repositoryContent == null) {
             return ImmutableSet.of();
         }
-        final RepoObject upTo = RepoObject.fictionalObjectExpiringOn(DateTime.now().plusHours(inHours).toDate());
+        final RepoObject upTo = RepoObject.fictionalObjectValidAtInstant(DateTime.now().plusHours(inHours).toDate());
         return repositoryContent.objects.headSet(upTo);
     }
 

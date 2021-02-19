@@ -95,7 +95,7 @@ public class PublishedObjectsSummaryTest {
     @Test
     public void itShouldReportADifference_caused_by_rrdp_objects() {
         final var res = publishedObjectsSummaryService
-            .getPublishedObjectsDiff(Set.of(), Set.of(RepoObject.fictionalObjectExpiringOn(new Date())), Set.of());
+            .getPublishedObjectsDiff(Set.of(), Set.of(RepoObject.fictionalObjectValidAtInstant(new Date())), Set.of());
 
         then(res.get("core-diff-rrdp")).isEmpty();
         then(res.get("core-diff-rsync")).isEmpty();
@@ -125,7 +125,7 @@ public class PublishedObjectsSummaryTest {
     @Test
     public void itShouldReportADifference_caused_by_rsync_objects() {
         final var res = publishedObjectsSummaryService
-            .getPublishedObjectsDiff(List.of(), Set.of(), Set.of(RepoObject.fictionalObjectExpiringOn(new Date())));
+            .getPublishedObjectsDiff(List.of(), Set.of(), Set.of(RepoObject.fictionalObjectValidAtInstant(new Date())));
 
         then(res.get("core-diff-rrdp")).isEmpty();
         then(res.get("core-diff-rsync")).isEmpty();
