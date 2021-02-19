@@ -57,9 +57,9 @@ public class ObjectExpirationMetrics {
                             Duration.ofHours(8).toSeconds(),
                             Duration.ofHours(24).toSeconds(), // CRLs, manifest eContent
                             Duration.ofDays(7).toSeconds(), // Manifest EE certs
-                            Duration.ofDays(6*30).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
-                            Duration.ofDays(12*30).toSeconds(),
-                            Duration.ofDays(18*30).toSeconds()
+                            Duration.ofDays(182).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
+                            Duration.ofDays(365).toSeconds(),
+                            Duration.ofDays(548).toSeconds()
                     )
                     .register(registry);
 
@@ -77,9 +77,9 @@ public class ObjectExpirationMetrics {
                             Duration.ofHours(8).toSeconds(),
                             Duration.ofHours(24).toSeconds(), // CRLs, manifest eContent
                             Duration.ofDays(7).toSeconds(), // Manifest EE certs
-                            Duration.ofDays(6*30).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
-                            Duration.ofDays(12*30).toSeconds(),
-                            Duration.ofDays(18*30).toSeconds()
+                            Duration.ofDays(182).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
+                            Duration.ofDays(365).toSeconds(),
+                            Duration.ofDays(548).toSeconds()
                     )
                     .register(registry);
         }
