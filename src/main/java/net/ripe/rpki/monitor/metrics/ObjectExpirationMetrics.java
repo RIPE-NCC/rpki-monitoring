@@ -5,7 +5,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
 import net.ripe.rpki.monitor.expiration.RepoObject;
 import net.ripe.rpki.monitor.expiration.RepositoryObjects;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -22,7 +21,18 @@ public class ObjectExpirationMetrics {
     private static final String COLLECTOR_EXPIRATION_DESCRIPTION = "Number of objects by collector by time to expiration";
     public static final String COLLECTOR_EXPIRATION_METRIC = "rpkimonitoring.collector.expiration";
 
-    @Autowired
+    public final static double[] SERVICE_LEVEL_INDICATORS = new double[]{
+        Duration.ofHours(1).toSeconds(),
+        Duration.ofHours(4).toSeconds(),
+        Duration.ofHours(7).toSeconds(),
+        Duration.ofHours(8).toSeconds(),
+        Duration.ofHours(24).toSeconds(), // CRLs, manifest eContent
+        Duration.ofDays(7).toSeconds(), // Manifest EE certs
+        Duration.ofDays(182).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
+        Duration.ofDays(365).toSeconds(),
+        Duration.ofDays(548).toSeconds()
+    };
+
     private final MeterRegistry registry;
 
     private final ConcurrentHashMap<String, RepositoryExpirationSummary> expirationSummaries = new ConcurrentHashMap<>();
@@ -50,17 +60,7 @@ public class ObjectExpirationMetrics {
                     .publishPercentileHistogram()
                     .distributionStatisticExpiry(Duration.ofMinutes(15))
                     .minimumExpectedValue((double)Duration.ofMinutes(5).toSeconds())
-                    .serviceLevelObjectives(
-                            Duration.ofHours(1).toSeconds(),
-                            Duration.ofHours(4).toSeconds(),
-                            Duration.ofHours(7).toSeconds(),
-                            Duration.ofHours(8).toSeconds(),
-                            Duration.ofHours(24).toSeconds(), // CRLs, manifest eContent
-                            Duration.ofDays(7).toSeconds(), // Manifest EE certs
-                            Duration.ofDays(182).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
-                            Duration.ofDays(365).toSeconds(),
-                            Duration.ofDays(548).toSeconds()
-                    )
+                    .serviceLevelObjectives(SERVICE_LEVEL_INDICATORS)
                     .register(registry);
 
             expirationHistogram = DistributionSummary.builder(COLLECTOR_EXPIRATION_METRIC)
@@ -70,17 +70,7 @@ public class ObjectExpirationMetrics {
                     .publishPercentileHistogram()
                     .distributionStatisticExpiry(Duration.ofMinutes(15))
                     .minimumExpectedValue((double)Duration.ofMinutes(5).toSeconds())
-                    .serviceLevelObjectives(
-                            Duration.ofHours(1).toSeconds(),
-                            Duration.ofHours(4).toSeconds(),
-                            Duration.ofHours(7).toSeconds(),
-                            Duration.ofHours(8).toSeconds(),
-                            Duration.ofHours(24).toSeconds(), // CRLs, manifest eContent
-                            Duration.ofDays(7).toSeconds(), // Manifest EE certs
-                            Duration.ofDays(182).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
-                            Duration.ofDays(365).toSeconds(),
-                            Duration.ofDays(548).toSeconds()
-                    )
+                    .serviceLevelObjectives(SERVICE_LEVEL_INDICATORS)
                     .register(registry);
         }
 
