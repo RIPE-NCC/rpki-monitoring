@@ -45,6 +45,6 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     @Test
     public void itShouldPopulateRsyncObjectsSummaryList() throws Exception {
         rsyncObjectsAboutToExpireCollector.run();
-        assertEquals(4, repositoryObjects.geRepositoryObjectsAboutToExpire(uri.getPath(), Integer.MAX_VALUE).size());
+        assertEquals(5, repositoryObjects.geRepositoryObjectsAboutToExpire(uri.getPath(), Integer.MAX_VALUE).size());
     }
 }
