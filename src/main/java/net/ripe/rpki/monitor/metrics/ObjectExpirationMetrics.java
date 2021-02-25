@@ -21,7 +21,7 @@ public class ObjectExpirationMetrics {
     private static final String COLLECTOR_EXPIRATION_DESCRIPTION = "Number of objects by collector by time to expiration";
     public static final String COLLECTOR_EXPIRATION_METRIC = "rpkimonitoring.collector.expiration";
 
-    private final static double[] SERVICE_LEVEL_INDICATORS = new double[]{
+    private static final double[] SERVICE_LEVEL_INDICATORS = new double[]{
         Duration.ofHours(1).toSeconds(),
         Duration.ofHours(4).toSeconds(),
         Duration.ofHours(7).toSeconds(),

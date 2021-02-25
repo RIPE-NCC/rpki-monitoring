@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import org.joda.time.DateTime;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
