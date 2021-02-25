@@ -2,7 +2,9 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.hash.BloomFilter;
+import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
@@ -72,7 +74,7 @@ public class ObjectAndDateCollector {
                     rejectedObjects.incrementAndGet();
                 }
 
-                return statusAndObject.getRight().map(expiration -> new RepoObject(expiration, objectUri, Sha256.asBytes(object.getBytes())));
+                return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
             }).flatMap(Optional::stream).collect(ImmutableSortedSet.toImmutableSortedSet(RepoObject::compareTo));
 
             repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
@@ -93,7 +95,7 @@ public class ObjectAndDateCollector {
      * @param decoded content of the object
      * @return (was parseable, option[expiration data of object, if applicable])
      */
-    Pair<ObjectStatus, Optional<Date>> getDateFor(final String objectUri, final byte[] decoded) {
+    Pair<ObjectStatus, Optional<ObjectValidityPeriod>> getDateFor(final String objectUri, final byte[] decoded) {
         final RepositoryObjectType objectType = RepositoryObjectType.parse(objectUri);
 
         try {
@@ -101,24 +103,42 @@ public class ObjectAndDateCollector {
                 case Manifest:
                     ManifestCmsParser manifestCmsParser = new ManifestCmsParser();
                     manifestCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
-                    return Pair.of(ACCEPTED, Optional.of(manifestCmsParser.getManifestCms().getNextUpdateTime().toDate()));
+                    final var manifestCms = manifestCmsParser.getManifestCms();
+                    return acceptedObjectValidBetween(
+                            manifestCms.getThisUpdateTime().toDate(),
+                            manifestCms.getNextUpdateTime().toDate()
+                    );
                 case Roa:
                     RoaCmsParser roaCmsParser = new RoaCmsParser();
                     roaCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
-                    return Pair.of(ACCEPTED, Optional.of(roaCmsParser.getRoaCms().getNotValidAfter().toDate()));
+                    final var roaCms = roaCmsParser.getRoaCms();
+                    return acceptedObjectValidBetween(
+                            roaCms.getNotValidBefore().toDate(),
+                            roaCms.getNotValidAfter().toDate()
+                    );
                 case Certificate:
                     X509CertificateParser x509CertificateParser = new X509ResourceCertificateParser();
                     x509CertificateParser.parse(ValidationResult.withLocation(objectUri), decoded);
-                    final Date notAfter = x509CertificateParser.getCertificate().getCertificate().getNotAfter();
-                    return Pair.of(ACCEPTED, Optional.of(notAfter));
+                    final var cert = x509CertificateParser.getCertificate().getCertificate();
+                    return acceptedObjectValidBetween(
+                            cert.getNotBefore(),
+                            cert.getNotAfter()
+                    );
                 case Crl:
                     final X509Crl x509Crl = X509Crl.parseDerEncoded(decoded, ValidationResult.withLocation(objectUri));
-                    final Date nextUpdate = x509Crl.getCrl().getNextUpdate();
-                    return Pair.of(ACCEPTED, Optional.of(nextUpdate));
+                    final var crl = x509Crl.getCrl();
+                    return acceptedObjectValidBetween(
+                            crl.getThisUpdate(),
+                            crl.getNextUpdate()
+                    );
                 case Gbr:
                     GhostbustersCmsParser ghostbustersCmsParser = new GhostbustersCmsParser();
                     ghostbustersCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
-                    return Pair.of(ACCEPTED, Optional.of(ghostbustersCmsParser.getGhostbustersCms().getNotValidAfter().toDate()));
+                    final var ghostbusterCms = ghostbustersCmsParser.getGhostbustersCms();
+                    return acceptedObjectValidBetween(
+                            ghostbusterCms.getNotValidBefore().toDate(),
+                            ghostbusterCms.getNotValidAfter().toDate()
+                    );
                 default:
                     return Pair.of(UNKNOWN, Optional.empty());
             }
@@ -134,5 +154,15 @@ public class ObjectAndDateCollector {
 
     public enum ObjectStatus {
         ACCEPTED, UNKNOWN, REJECTED
+    }
+
+    @Value(staticConstructor = "of")
+    public static class ObjectValidityPeriod {
+        private final Date creation;
+        private final Date expiration;
+    }
+
+    private Pair<ObjectStatus, Optional<ObjectValidityPeriod>> acceptedObjectValidBetween(Date creation, Date expiration) {
+        return Pair.of(ACCEPTED, Optional.of(ObjectValidityPeriod.of(creation, expiration)));
     }
 }

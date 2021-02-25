@@ -115,6 +115,7 @@ build:prepdev:
     - gradle jib --image=$CI_REGISTRY_IMAGE:master
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: manual
 
 build:production:
   stage: package
@@ -188,7 +189,10 @@ deploy:prepdev:
     name: prepdev
     url: https://uncore.rpki.prepdev.ripe.net
   rules:
+    # Automatically on default branch
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # Or manual
+    - when: manual
 
 deploy:production:
   <<: *deploy_template
@@ -198,4 +202,5 @@ deploy:production:
     name: production
     url: https://uncore.rpki.ripe.net
   rules:
+    # Automatically on tags
     - if: $CI_COMMIT_TAG

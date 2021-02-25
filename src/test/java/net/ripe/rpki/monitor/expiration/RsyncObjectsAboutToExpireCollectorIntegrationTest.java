@@ -1,13 +1,19 @@
 package net.ripe.rpki.monitor.expiration;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
+import static org.assertj.core.api.BDDAssertions.then;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -17,7 +23,8 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
     private ObjectAndDateCollector rsyncObjectsAboutToExpireCollector;
 
-    private RepositoryObjects repositoryObjects = new RepositoryObjects();
+    private MeterRegistry meterRegistry;
+    private RepositoryObjects repositoryObjects;
 
     private final URI uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
 
@@ -26,19 +33,18 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
     @BeforeEach
     public void beforeEach() {
+        meterRegistry = new SimpleMeterRegistry();
+        repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
+
         final RsyncFetcher rsyncFetcher = new RsyncFetcher(uri.getPath());
+        final CollectorUpdateMetrics collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
-        final var mockMetrics = mock(CollectorUpdateMetrics.class);
-        when(mockMetrics.trackSuccess(any(), any())).thenReturn(mock(CollectorUpdateMetrics.ExecutionStatus.class));
-        when(mockMetrics.trackFailure(any(), any())).thenReturn(mock(CollectorUpdateMetrics.ExecutionStatus.class));
-
-        rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, mockMetrics, repositoryObjects);
+        rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositoryObjects);
     }
 
     @Test
     public void itShouldPopulateRsyncObjectsSummaryList() throws Exception {
         rsyncObjectsAboutToExpireCollector.run();
-        assertEquals(4, repositoryObjects.geRepositoryObjectsAboutToExpire(uri.getPath(), Integer.MAX_VALUE).size());
+        assertEquals(5, repositoryObjects.geRepositoryObjectsAboutToExpire(uri.getPath(), Integer.MAX_VALUE).size());
     }
-
 }
