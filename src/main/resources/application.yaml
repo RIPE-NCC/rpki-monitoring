@@ -102,8 +102,8 @@ rsync:
   timeout: 30
   interval: 10M
   # url to the AWS hosted
-  aws-url:
-    - rsync://pub-server-prod.elasticbeanstalk.com
+  aws-url: []
+    # - rsync://pub-server-prod.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.ripe.net/certification/
