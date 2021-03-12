@@ -12,5 +12,6 @@ import java.util.List;
 @Data
 public class RrdpConfig {
     private String url;
+    private List<String> otherUrls;
     private Duration interval;
 }

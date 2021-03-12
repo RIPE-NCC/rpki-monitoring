@@ -11,7 +11,9 @@ spring:
 
 
 rrdp:
-  url: https://rrdp.prepdev.ripe.net
+  main-url: https://rrdp.prepdev.ripe.net
+  other-urls:
+    - http://publish-1.rpki.prepdev.ripe.net:7788
   interval: 5M
 
 rsync:
@@ -74,6 +76,7 @@ spring:
 
 rrdp:
   url: https://rrdp.prepdev.ripe.net
+  on-premise-url: http://publish-1.rpki.prepdev.ripe.net:7788
   interval: 5M
 
 rsync:
