@@ -10,14 +10,21 @@ import org.springframework.util.FileSystemUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
 @Setter
 public class RsyncFetcher implements RepoFetcher {
+    /**
+     * Exit codes from <pre>man rsync</pre> that indicate that the rsync run was successful.
+     */
+    private static final Set<Integer> VALID_RSYNC_EXIT_CODES = Set.of(
+            0, // Success
+            24 // Partial transfer due to vanished source files - repo was updated during run.
+    );
 
     private static final int DEFAULT_TIMEOUT = 30;
 
@@ -46,10 +53,10 @@ public class RsyncFetcher implements RepoFetcher {
         log.info("Running rsync {} to {}", url, localPath.toString());
         final var t0 = System.currentTimeMillis();
         final var exitCode = rsync.execute();
-        if (exitCode != 0) {
+        if (!VALID_RSYNC_EXIT_CODES.contains(exitCode)) {
             throw new FetcherException(String.format("rsync from %s to %s exited with %d", url, localPath, exitCode));
         }
-        log.info("rsync  {} to {} finished in {} seconds.", url, localPath.toString(), (System.currentTimeMillis() - t0) / 1000);
+        log.info("rsync  {} to {} finished in {} seconds.", url, localPath.toString(), rsync.elapsedTime() / 1000.0);
     }
 
 
