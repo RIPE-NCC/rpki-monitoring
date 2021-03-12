@@ -56,7 +56,7 @@ public class RsyncFetcher implements RepoFetcher {
         if (!VALID_RSYNC_EXIT_CODES.contains(exitCode)) {
             throw new FetcherException(String.format("rsync from %s to %s exited with %d", url, localPath, exitCode));
         }
-        log.info("rsync  {} to {} finished in {} seconds.", url, localPath.toString(), rsync.elapsedTime() / 1000);
+        log.info("rsync  {} to {} finished in {} seconds.", url, localPath.toString(), rsync.elapsedTime() / 1000.0);
     }
 
 
