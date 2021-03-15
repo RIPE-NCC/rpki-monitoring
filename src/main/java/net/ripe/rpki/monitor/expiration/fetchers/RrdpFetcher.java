@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.util.Sha256;
@@ -24,14 +25,17 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Verify.verifyNotNull;
 
 @Slf4j
+@Getter
 public class RrdpFetcher implements RepoFetcher {
 
     private final RestTemplate restTemplate;
     private final String notificationXmlUrl;
+    private final String name;
     private final String rrdpUrl;
     private String lastSnapshotUrl;
 
-    public RrdpFetcher(String rrdpUrl, RestTemplate restTemplate) {
+    public RrdpFetcher(String name, String rrdpUrl, RestTemplate restTemplate) {
+        this.name = name;
         this.rrdpUrl = rrdpUrl;
         this.notificationXmlUrl = String.format("%s/notification.xml", rrdpUrl);
         this.restTemplate = restTemplate;

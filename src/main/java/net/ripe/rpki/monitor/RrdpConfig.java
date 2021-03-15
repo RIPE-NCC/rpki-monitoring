@@ -6,12 +6,13 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @ConfigurationProperties("rrdp")
 @Data
 public class RrdpConfig {
-    private String url;
-    private List<String> otherUrls;
     private Duration interval;
+    private String mainUrl;
+    private Map<String, String> otherUrls;
 }

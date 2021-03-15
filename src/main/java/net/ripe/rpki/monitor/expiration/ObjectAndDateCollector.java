@@ -158,8 +158,8 @@ public class ObjectAndDateCollector {
 
     @Value(staticConstructor = "of")
     public static class ObjectValidityPeriod {
-        private final Date creation;
-        private final Date expiration;
+        Date creation;
+        Date expiration;
     }
 
     private Pair<ObjectStatus, Optional<ObjectValidityPeriod>> acceptedObjectValidBetween(Date creation, Date expiration) {

@@ -26,7 +26,7 @@ public class RrdpObjectsAboutToExpireCollectorJob extends QuartzJobBean {
 
     @Autowired
     public RrdpObjectsAboutToExpireCollectorJob(final Collectors collectors) {
-        this.collector = collectors.getRrdpCollector();
+        this.collector = collectors.createDefaultRrdpCollector();
     }
 
     @Bean("Rrdp_Expiration_Job_Detail")

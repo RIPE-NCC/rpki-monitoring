@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @AllArgsConstructor
 @Service
 public class RepositoryObjects {
-    private ObjectExpirationMetrics objectExpirationMetrics;
+    private final ObjectExpirationMetrics objectExpirationMetrics;
 
     private final Map<String, RepositoryContent> overallContent = new ConcurrentHashMap<>();
 

@@ -65,7 +65,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     public void init() {
         mockServer = MockRestServiceServer.createServer(restTemplate);
         appConfig.setRestTemplate(restTemplate);
-        rrdpObjectsAboutToExpireCollector = collectors.getRrdpCollector();
+        rrdpObjectsAboutToExpireCollector = collectors.createDefaultRrdpCollector();
     }
 
     @Test

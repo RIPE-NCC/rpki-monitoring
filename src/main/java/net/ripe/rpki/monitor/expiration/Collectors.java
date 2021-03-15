@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toList;
+
 @Component
 public class Collectors {
 
@@ -31,31 +33,56 @@ public class Collectors {
     // The "main" one is the the on-premise repository. On top of it, we
     // can have potentially arbitrary number of cloud-hosted repositories.
     public List<ObjectAndDateCollector> getRsyncCollectors() {
-        ObjectAndDateCollector mainRsyncCollector = new ObjectAndDateCollector(
-            getRsyncFetcher(config.getRsyncConfig().getOnPremiseUrl()),
-            metrics,
-            repositoryObjects);
-
         return Stream.concat(
-            Stream.of(mainRsyncCollector),
-            config.getRsyncConfig().getAwsUrl()
+            Stream.of(createDefaultRsyncCollector()),
+            config.getRsyncConfig().getOtherUrls().entrySet()
                 .stream()
-                .map(url ->
+                .map(e ->
                     new ObjectAndDateCollector(
-                        getRsyncFetcher(url),
+                        createRsyncFetcher(e.getKey(), e.getValue()),
                         metrics,
                         repositoryObjects)
                 ))
-            .collect(java.util.stream.Collectors.toList());
+            .collect(toList());
     }
 
-    private RepoFetcher getRsyncFetcher(String rsyncUrl) {
-        return new RsyncFetcher(rsyncUrl, config.getRsyncConfig().getTimeout());
+    // Create fetcher for all rsync repositories that are in the config.
+    // The "main" one is the the on-premise repository. On top of it, we
+    // can have potentially arbitrary number of cloud-hosted repositories.
+    public List<ObjectAndDateCollector> getRrdpCollectors() {
+        return Stream.concat(
+            Stream.of(createDefaultRrdpCollector()),
+            config.getRrdpConfig().getOtherUrls().entrySet()
+                .stream()
+                .map(e ->
+                    new ObjectAndDateCollector(
+                        createRrdpCollector(e.getKey(), e.getValue()),
+                        metrics,
+                        repositoryObjects)
+                ))
+            .collect(toList());
     }
 
-    public ObjectAndDateCollector getRrdpCollector() {
-        final RrdpFetcher rrdpFetcher = new RrdpFetcher(config.getRrdpConfig().getUrl(), config.getRestTemplate());
-        return new ObjectAndDateCollector(rrdpFetcher, metrics, repositoryObjects);
+    private RepoFetcher createRsyncFetcher(String name, String rsyncUrl) {
+        return new RsyncFetcher(name, rsyncUrl, config.getRsyncConfig().getTimeout());
+    }
+
+    private RrdpFetcher createRrdpCollector(String name, String url) {
+        return new RrdpFetcher(name, url, config.getRestTemplate());
+    }
+
+    ObjectAndDateCollector createDefaultRrdpCollector() {
+        return new ObjectAndDateCollector(
+            createRrdpCollector("main", config.getRrdpConfig().getMainUrl()),
+            metrics,
+            repositoryObjects);
+    }
+
+    ObjectAndDateCollector createDefaultRsyncCollector() {
+        return new ObjectAndDateCollector(
+            createRsyncFetcher("main", config.getRsyncConfig().getMainUrl()),
+            metrics,
+            repositoryObjects);
     }
 
 }
