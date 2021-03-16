@@ -45,10 +45,7 @@ public class Collectors {
                 ))
             .collect(toList());
     }
-
-    // Create fetcher for all rsync repositories that are in the config.
-    // The "main" one is the the on-premise repository. On top of it, we
-    // can have potentially arbitrary number of cloud-hosted repositories.
+    
     public List<ObjectAndDateCollector> getRrdpCollectors() {
         return Stream.concat(
             Stream.of(createDefaultRrdpCollector()),
