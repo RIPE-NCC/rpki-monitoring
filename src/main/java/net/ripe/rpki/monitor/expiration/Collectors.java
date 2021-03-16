@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -35,29 +36,26 @@ public class Collectors {
     public List<ObjectAndDateCollector> getRsyncCollectors() {
         return Stream.concat(
             Stream.of(createDefaultRsyncCollector()),
-            config.getRsyncConfig().getOtherUrls().entrySet()
-                .stream()
-                .map(e ->
-                    new ObjectAndDateCollector(
-                        createRsyncFetcher(e.getKey(), e.getValue()),
-                        metrics,
-                        repositoryObjects)
-                ))
-            .collect(toList());
+            createOtherUrlsCollectors(config.getRsyncConfig().getOtherUrls())
+        ).collect(toList());
     }
-    
+
     public List<ObjectAndDateCollector> getRrdpCollectors() {
         return Stream.concat(
             Stream.of(createDefaultRrdpCollector()),
-            config.getRrdpConfig().getOtherUrls().entrySet()
-                .stream()
-                .map(e ->
-                    new ObjectAndDateCollector(
-                        createRrdpCollector(e.getKey(), e.getValue()),
-                        metrics,
-                        repositoryObjects)
-                ))
-            .collect(toList());
+            createOtherUrlsCollectors(config.getRrdpConfig().getOtherUrls())
+        ).collect(toList());
+    }
+
+    private Stream<ObjectAndDateCollector> createOtherUrlsCollectors(final Map<String, String> otherUrls) {
+        return otherUrls.entrySet()
+            .stream()
+            .map(e ->
+                new ObjectAndDateCollector(
+                    createRrdpCollector(e.getKey(), e.getValue()),
+                    metrics,
+                    repositoryObjects)
+            );
     }
 
     private RepoFetcher createRsyncFetcher(String name, String rsyncUrl) {
