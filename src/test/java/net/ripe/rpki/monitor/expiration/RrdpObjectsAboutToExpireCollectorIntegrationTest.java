@@ -45,9 +45,9 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
     private MockRestServiceServer mockServer;
 
-    private String getNotificationXml(String serial, String snapshotHash)
-    {
-        return "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"" + serial + "\">" +
+    private String getNotificationXml(String serial, String snapshotHash) {
+        return
+            "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"" + serial + "\">" +
             "<snapshot uri=\"http://localhost.example/" + serial + "/snapshot.xml\" hash=\"" + snapshotHash + "\"/>" +
             "</notification>";
     }
