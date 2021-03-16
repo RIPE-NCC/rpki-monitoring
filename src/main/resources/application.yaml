@@ -75,12 +75,13 @@ spring:
   profiles: prepdev
 
 rrdp:
-  url: https://rrdp.prepdev.ripe.net
   main-url: http://publish-1.rpki.prepdev.ripe.net:7788
+  other-urls:
+    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
   interval: 5M
 
 rsync:
-  # *wihout* a trailing slash
+  # *without* a trailing slash
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
@@ -96,8 +97,9 @@ spring:
   profiles: production
 
 rrdp:
-  url: https://rrdp.ripe.net
+  main-url: https://rrdp.ripe.net
   interval: 5M
+  other-urls: {}
 
 rsync:
   # *without* the trailing slash
@@ -105,7 +107,7 @@ rsync:
   timeout: 30
   interval: 10M
   # url to the AWS hosted
-  other-urls:
+  other-urls: {}
     # - rsync://pub-server-prod.elasticbeanstalk.com
 
 core:
