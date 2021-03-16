@@ -24,7 +24,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
-@SpringBootTest(properties = { "rrdp.url=http://localhost.example" })
+@SpringBootTest(properties = { "rrdp.main-url=http://localhost.example" })
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
