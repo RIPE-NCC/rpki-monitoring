@@ -61,22 +61,10 @@ public class PublishedObjectsSummaryService {
             Since we are comparing repositories coming from different servers, the URLs will
             be different in the server/port part. So we are going to compare only the path.
          */
-        final var mainRepository = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(mainRsyncUrl));
-        for (var otherUrl : appConfig.getRsyncConfig().getOtherUrls().values()) {
-            final var diffCount = getOrCreateDiffCounter(mainRsyncUrl, otherUrl);
-            final var diffCountInv = getOrCreateDiffCounter(otherUrl, mainRsyncUrl);
-
-            final var awsRepository = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(otherUrl));
-            final var diff = Sets.difference(mainRepository, awsRepository);
-            final var diffInv = Sets.difference(awsRepository, mainRepository);
-
-            diffCount.set(diff.size());
-            diffCountInv.set(diffInv.size());
-
-            var tag = diffTag(mainRsyncUrl, otherUrl);
-            var tagInv = diffTag(otherUrl, mainRsyncUrl);
-            diffs.put(tag, diff);
-            diffs.put(tagInv, diffInv);
+        final var mainRepo = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(mainRsyncUrl));
+        for (var secondaryRsyncUrl : appConfig.getRsyncConfig().getOtherUrls().values()) {
+            final var repositorySet2 = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(secondaryRsyncUrl));
+            compareTwoPublicationPoints(mainRsyncUrl, secondaryRsyncUrl, mainRepo, repositorySet2, diffs);
         }
         return diffs;
     }
@@ -84,28 +72,31 @@ public class PublishedObjectsSummaryService {
     Map<String, Set<FileEntry>> getRrdpDiff() {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         final String mainRrdpUrl = appConfig.getRrdpConfig().getMainUrl();
-        /*
-            Since we are comparing repositories coming from different servers, the URLs will
-            be different in the server/port part. So we are going to compare only the path.
-         */
-        final var mainRepository = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(mainRrdpUrl));
-        for (var secondaryUrl : appConfig.getRrdpConfig().getOtherUrls().values()) {
-            final var diffCount = getOrCreateDiffCounter(mainRrdpUrl, secondaryUrl);
-            final var diffCountInv = getOrCreateDiffCounter(secondaryUrl, mainRrdpUrl);
-
-            final var awsRepository = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(secondaryUrl));
-            final var diff = Sets.difference(mainRepository, awsRepository);
-            final var diffInv = Sets.difference(awsRepository, mainRepository);
-
-            diffCount.set(diff.size());
-            diffCountInv.set(diffInv.size());
-
-            var tag = diffTag(mainRrdpUrl, secondaryUrl);
-            var tagInv = diffTag(secondaryUrl, mainRrdpUrl);
-            diffs.put(tag, diff);
-            diffs.put(tagInv, diffInv);
+        final var mainRepo = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(mainRrdpUrl));
+        for (var secondaryRrdpUrl : appConfig.getRrdpConfig().getOtherUrls().values()) {
+            final var secondaryRepo = FileEntry.fromObjectsWithUrlPath(repositoryObjects.getObjects(secondaryRrdpUrl));
+            compareTwoPublicationPoints(mainRrdpUrl, secondaryRrdpUrl, mainRepo, secondaryRepo, diffs);
         }
         return diffs;
+    }
+
+    private void compareTwoPublicationPoints(String url1, String url2,
+                                             Set<FileEntry> repositorySet1,
+                                             Set<FileEntry> repositorySet2,
+                                             Map<String, Set<FileEntry>> diffs) {
+        final var diffCount = getOrCreateDiffCounter(url1, url2);
+        final var diffCountInv = getOrCreateDiffCounter(url2, url1);
+
+        final var diff = Sets.difference(repositorySet1, repositorySet2);
+        final var diffInv = Sets.difference(repositorySet2, repositorySet1);
+
+        diffCount.set(diff.size());
+        diffCountInv.set(diffInv.size());
+
+        var tag = diffTag(url1, url2);
+        var tagInv = diffTag(url2, url1);
+        diffs.put(tag, diff);
+        diffs.put(tagInv, diffInv);
     }
 
     public <T1 extends HasHashAndUri, T2 extends HasHashAndUri>
