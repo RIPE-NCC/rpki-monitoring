@@ -3,6 +3,7 @@ package net.ripe.rpki.monitor.publishing;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.RrdpConfig;
 import net.ripe.rpki.monitor.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.RepoObject;
 import net.ripe.rpki.monitor.expiration.RepositoryObjects;
@@ -166,9 +167,9 @@ public class PublishedObjectsSummaryTest {
     public void itShouldDoRsyncDiff() {
         final AppConfig appConfig = new AppConfig();
         final RsyncConfig rsyncConfig = new RsyncConfig();
-        final String mainUrl = "https://rrdp.ripe.net";
+        final String mainUrl = "https://rsync.ripe.net";
         rsyncConfig.setMainUrl(mainUrl);
-        final String secondaryUrl = "https://rrdp-secondary.ripe.net";
+        final String secondaryUrl = "https://rsync-secondary.ripe.net";
         rsyncConfig.setOtherUrls(Maps.newHashMap("secondary", secondaryUrl));
         appConfig.setRsyncConfig(rsyncConfig);
 
@@ -184,6 +185,38 @@ public class PublishedObjectsSummaryTest {
         PublishedObjectsSummaryService publishedObjectsSummaryService = createSummaryService(appConfig, repositoryObjects);
 
         final var res = publishedObjectsSummaryService.getRsyncDiff();
+        assertNotNull(res);
+        assertEquals(2, res.size());
+        final Set<FileEntry> fileEntries1 = res.get(mainUrl + "-diff-" + secondaryUrl);
+        final FileEntry fileEntry = fileEntries1.iterator().next();
+        assertEquals("url2", fileEntry.getUri());
+
+        final Set<FileEntry> fileEntries2 = res.get(secondaryUrl + "-diff-" + mainUrl);
+        assertTrue(fileEntries2.isEmpty());
+    }
+
+    @Test
+    public void itShouldDoRrdpDiff() {
+        final AppConfig appConfig = new AppConfig();
+        final RrdpConfig rrdpConfig = new RrdpConfig();
+        final String mainUrl = "https://rrdp.ripe.net";
+        rrdpConfig.setMainUrl(mainUrl);
+        final String secondaryUrl = "https://rrdp-secondary.ripe.net";
+        rrdpConfig.setOtherUrls(Maps.newHashMap("secondary", secondaryUrl));
+        appConfig.setRrdpConfig(rrdpConfig);
+
+        final RepositoryObjects repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
+
+        final Date date = new Date();
+        final RepoObject obj1 = new RepoObject(date, date, "url1", new byte[]{1, 2, 3, 3});
+        final RepoObject obj2 = new RepoObject(date, date, "url2", new byte[]{1, 4, 5, 6});
+
+        repositoryObjects.setRepositoryObject(mainUrl, new TreeSet<>(Set.of(obj1, obj2)));
+        repositoryObjects.setRepositoryObject(secondaryUrl, new TreeSet<>(Set.of(obj1)));
+
+        PublishedObjectsSummaryService publishedObjectsSummaryService = createSummaryService(appConfig, repositoryObjects);
+
+        final var res = publishedObjectsSummaryService.getRrdpDiff();
         assertNotNull(res);
         assertEquals(2, res.size());
         final Set<FileEntry> fileEntries1 = res.get(mainUrl + "-diff-" + secondaryUrl);
