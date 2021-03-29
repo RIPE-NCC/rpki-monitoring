@@ -66,7 +66,10 @@ class AbstractObjectsAboutToExpireCollectorTest {
 
         final var res = collector.getDateFor("A.mft", Base64.getDecoder().decode(mft));
         assertThat(res.getLeft()).isEqualTo(ACCEPTED);
-//        assertThat(res.getRight()).hasValue(DATE_FORMAT.parse("Tue Sep 17 07:44:45 CEST 2019"));
+        assertThat(res.getRight()).hasValue(ObjectAndDateCollector.ObjectValidityPeriod.of(
+                DATE_FORMAT.parse("Mon Sep 16 07:44:45 CEST 2019"),
+                DATE_FORMAT.parse("Mon Sep 17 07:44:45 CEST 2019")
+        ));
     }
 
     @Test

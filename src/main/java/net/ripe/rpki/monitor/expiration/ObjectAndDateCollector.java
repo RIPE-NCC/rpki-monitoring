@@ -2,7 +2,6 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.hash.BloomFilter;
-import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +18,7 @@ import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.util.Sha256;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.nio.charset.Charset;
@@ -104,10 +104,10 @@ public class ObjectAndDateCollector {
                     ManifestCmsParser manifestCmsParser = new ManifestCmsParser();
                     manifestCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
                     final var manifestCms = manifestCmsParser.getManifestCms();
-                    return acceptedObjectValidBetween(
-                            manifestCms.getThisUpdateTime().toDate(),
-                            manifestCms.getNextUpdateTime().toDate()
-                    );
+                    final var certificate = manifestCms.getCertificate().getCertificate();
+                    final var notValidBefore = ObjectUtils.max(certificate.getNotBefore(), manifestCms.getThisUpdateTime().toDate());
+                    final var notValidAfter = ObjectUtils.min(certificate.getNotAfter(), manifestCms.getNextUpdateTime().toDate());
+                    return acceptedObjectValidBetween(notValidBefore, notValidAfter);
                 case Roa:
                     RoaCmsParser roaCmsParser = new RoaCmsParser();
                     roaCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
