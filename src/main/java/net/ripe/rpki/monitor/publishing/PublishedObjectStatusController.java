@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,11 +25,11 @@ public class PublishedObjectStatusController {
 
     @GetMapping("/rsync-diffs")
     public Map<String, Set<FileEntry>> rsyncDiff() {
-        return publishedObjectsSummaryService.getRsyncDiff();
+        return publishedObjectsSummaryService.getRsyncDiff(Instant.now(), Duration.ofSeconds(300));
     }
 
     @GetMapping("/rrdp-diffs")
     public Map<String, Set<FileEntry>> rrdpDiff() {
-        return publishedObjectsSummaryService.getRrdpDiff();
+        return publishedObjectsSummaryService.getRrdpDiff(Instant.now(), Duration.ofSeconds(300));
     }
 }
