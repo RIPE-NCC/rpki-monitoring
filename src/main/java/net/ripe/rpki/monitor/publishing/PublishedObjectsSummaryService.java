@@ -98,8 +98,8 @@ public class PublishedObjectsSummaryService {
     }
 
     private Map<String, Set<FileEntry>> comparePublicationPoints(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
-        var diffCounter = getOrCreateDiffCounter(lhs.getTag(), rhs.getTag(), threshold);
-        var diffCounterInv = getOrCreateDiffCounter(rhs.getTag(), lhs.getTag(), threshold);
+        var diffCounter = getOrCreateDiffCounter(lhs, rhs, threshold);
+        var diffCounterInv = getOrCreateDiffCounter(rhs, lhs, threshold);
 
         var diff = lhs.difference(rhs, now, threshold);
         var diffInv = rhs.difference(lhs, now, threshold);
@@ -134,11 +134,11 @@ public class PublishedObjectsSummaryService {
         return diffs;
     }
 
-    private AtomicLong getOrCreateDiffCounter(String lhs, String rhs, Duration threshold) {
-        final String tag = diffTag(lhs, rhs, threshold);
+    private AtomicLong getOrCreateDiffCounter(RepositoryTracker lhs, RepositoryTracker rhs, Duration threshold) {
+        final String tag = diffTag(lhs.getTag(), rhs.getTag(), threshold);
         return counters.computeIfAbsent(tag, newTag -> {
             final var diffCount = new AtomicLong(0);
-            Metrics.buildObjectDiffGauge(registry, diffCount, lhs, rhs, threshold);
+            Metrics.buildObjectDiffGauge(registry, diffCount, lhs.getTag(), lhs.getUrl(), rhs.getTag(), rhs.getUrl(), threshold);
             return diffCount;
         });
     }
