@@ -117,6 +117,9 @@ public class PublishedObjectsSummaryService {
         final var thresholds = new Duration[]{Duration.of(5, MINUTES), Duration.of(15, MINUTES), Duration.of(30, MINUTES)};
 
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
+        // n-choose-2
+        // It is safe to only generate subsets of size 2 in one order because
+        // we calculate the difference in two directions.
         for (int i = 0; i < repositories.length; i++) {
             var lhs = repositories[i];
 
