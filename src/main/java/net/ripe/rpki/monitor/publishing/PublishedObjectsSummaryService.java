@@ -220,17 +220,23 @@ class RepositoryTracker {
      * at time <i>t</i>, not exceeding threshold.
      */
     public Set<FileEntry> difference(RepositoryTracker other, Instant t, Duration threshold) {
-        return Sets.difference(entries(t.minus(threshold)), other.entries(t));
+        return Sets.difference(entriesAt(t.minus(threshold)), other.entriesAt(t));
     }
 
     /**
      * Get the number of objects in this repository, at time <i>t</i>.
      */
     public int size(Instant t) {
-        return entries(t).size();
+        return entriesAt(t).size();
     }
 
-    private Set<FileEntry> entries(Instant t) {
+    /**
+     * Get all entries in the repository present at time <i>t</i>.
+     *
+     * Presence is defined as objects first seen before (or at) a given time.
+     * I.e. any objects first seen after <i>t</i> are considered not present.
+     */
+    private Set<FileEntry> entriesAt(Instant t) {
         return objects.get().values().stream()
                 .filter(x -> x.getRight().compareTo(t) <= 0)
                 .map(Pair::getLeft).collect(Collectors.toSet());
