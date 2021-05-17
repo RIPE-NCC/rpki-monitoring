@@ -25,4 +25,9 @@ public class PublishedObjectStatusController {
     public Map<String, Set<FileEntry>> rsyncDiff() {
         return publishedObjectsSummaryService.getRsyncDiff();
     }
+
+    @GetMapping("/rrdp-diffs")
+    public Map<String, Set<FileEntry>> rrdpDiff() {
+        return publishedObjectsSummaryService.getRrdpDiff();
+    }
 }

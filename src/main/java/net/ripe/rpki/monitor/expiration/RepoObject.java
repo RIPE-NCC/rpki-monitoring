@@ -9,23 +9,23 @@ import java.util.Date;
 
 @Value
 public class RepoObject implements Comparable<RepoObject>, HasHashAndUri {
-    private final Date creation;
-    private final Date expiration;
-    private final String uri;
-    private final byte[] sha256;
+    Date creation;
+    Date expiration;
+    String uri;
+    byte[] sha256;
 
     @Override
     public int compareTo(RepoObject o) {
         return ComparisonChain.start()
-                .compare(this.expiration, o.expiration)
-                .compare(this.creation, o.creation)
-                .compare(this.getUri(), o.getUri())
-                .compare(this.getSha256(), o.getSha256())
-                .result();
+            .compare(this.expiration, o.expiration)
+            .compare(this.creation, o.creation)
+            .compare(this.getUri(), o.getUri())
+            .compare(this.getSha256(), o.getSha256())
+            .result();
     }
 
-    public static final RepoObject fictionalObjectValidAtInstant(final Date date) {
-        return new RepoObject(date, date,"NA", new byte[]{0});
+    public static RepoObject fictionalObjectValidAtInstant(final Date date) {
+        return new RepoObject(date, date, "NA", new byte[]{0});
     }
 
     public String getSha256() {

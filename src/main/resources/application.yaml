@@ -11,16 +11,18 @@ spring:
 
 
 rrdp:
-  url: https://rrdp.prepdev.ripe.net
+  main-url: https://rrdp.prepdev.ripe.net
+  other-urls:
+    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
   interval: 5M
 
 rsync:
   # *without* the trailing slash
-  on-premise-url: rsync://rpki.prepdev.ripe.net
+  main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
   # disable second rsync url
-  aws-url: []
+  other-urls: {}
 
 server:
   port: 9090
@@ -59,10 +61,10 @@ rrdp:
 
 rsync:
   # *without* the trailing slash
-  on-premise-url: rsync://localhost:10873
+  main-url: rsync://localhost:10873
   timeout: 30
   interval: 5M
-  aws-url: []
+  other-urls: {}
 
 core:
   url: http://localhost:8080/certification/
@@ -73,17 +75,19 @@ spring:
   profiles: prepdev
 
 rrdp:
-  url: https://rrdp.prepdev.ripe.net
+  main-url: http://publish-1.rpki.prepdev.ripe.net:7788
+  other-urls:
+    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
   interval: 5M
 
 rsync:
-  # *wihout* a trailing slash
-  on-premise-url: rsync://rpki.prepdev.ripe.net
+  # *without* a trailing slash
+  main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
   # url to the AWS rsync instances - if they exist.
-  aws-url: 
-    - rsync://prepdevpubserver-env.eba-wy9m3cgq.eu-west-2.elasticbeanstalk.com
+  other-urls: 
+    prepdev-aws: rsync://prepdevpubserver-env.eba-wy9m3cgq.eu-west-2.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
@@ -93,16 +97,17 @@ spring:
   profiles: production
 
 rrdp:
-  url: https://rrdp.ripe.net
+  main-url: https://rrdp.ripe.net
   interval: 5M
+  other-urls: {}
 
 rsync:
   # *without* the trailing slash
-  on-premise-url: rsync://rpki.ripe.net
+  main-url: rsync://rpki.ripe.net
   timeout: 30
   interval: 10M
   # url to the AWS hosted
-  aws-url: []
+  other-urls: {}
     # - rsync://pub-server-prod.elasticbeanstalk.com
 
 core:

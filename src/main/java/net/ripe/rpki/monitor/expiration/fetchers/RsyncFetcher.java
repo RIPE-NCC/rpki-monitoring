@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.rsync.Rsync;
@@ -28,14 +29,18 @@ public class RsyncFetcher implements RepoFetcher {
 
     private static final int DEFAULT_TIMEOUT = 30;
 
-    private int rsyncTimeout;
-    private String rsyncUrl;
+    private final int rsyncTimeout;
+
+    @Getter
+    private final String name;
+    private final String rsyncUrl;
 
     public RsyncFetcher(String rsyncUrl) {
-        this(rsyncUrl, DEFAULT_TIMEOUT);
+        this(rsyncUrl, rsyncUrl, DEFAULT_TIMEOUT);
     }
 
-    public RsyncFetcher(String rsyncUrl, int rsyncTimeout) {
+    public RsyncFetcher(String name, String rsyncUrl, int rsyncTimeout) {
+        this.name = name;
         this.rsyncUrl = rsyncUrl;
         this.rsyncTimeout = rsyncTimeout;
     }

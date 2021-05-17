@@ -24,7 +24,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
-@SpringBootTest(properties = { "rrdp.url=http://localhost.example" })
+@SpringBootTest(properties = { "rrdp.main-url=http://localhost.example" })
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
@@ -45,9 +45,9 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
     private MockRestServiceServer mockServer;
 
-    private String getNotificationXml(String serial, String snapshotHash)
-    {
-        return "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"" + serial + "\">" +
+    private String getNotificationXml(String serial, String snapshotHash) {
+        return
+            "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"" + serial + "\">" +
             "<snapshot uri=\"http://localhost.example/" + serial + "/snapshot.xml\" hash=\"" + snapshotHash + "\"/>" +
             "</notification>";
     }
@@ -65,7 +65,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     public void init() {
         mockServer = MockRestServiceServer.createServer(restTemplate);
         appConfig.setRestTemplate(restTemplate);
-        rrdpObjectsAboutToExpireCollector = collectors.getRrdpCollector();
+        rrdpObjectsAboutToExpireCollector = collectors.createDefaultRrdpCollector();
     }
 
     @Test
