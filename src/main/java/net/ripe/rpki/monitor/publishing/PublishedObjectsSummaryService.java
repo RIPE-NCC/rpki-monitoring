@@ -202,7 +202,11 @@ class RepositoryTracker {
     }
 
     /**
-     * Update the repository <b>in-place</b> with the given entries at time <i>t</i>.
+     * Update this repository with the given entries at time <i>t</i>.
+     *
+     * The repository's objects are <b>replaced</b> by the entries. Any objects
+     * no longer present in the <code>entries</code> set are discarded from the
+     * repository.
      */
     public <T extends HasHashAndUri> void update(Instant t, Collection<T> entries) {
         var newObjects = entries.stream()
