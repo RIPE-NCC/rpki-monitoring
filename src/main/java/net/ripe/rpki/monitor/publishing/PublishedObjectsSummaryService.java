@@ -206,7 +206,7 @@ class RepositoryTracker {
      */
     public <T extends HasHashAndUri> void update(Instant t, Collection<T> entries) {
         var newObjects = entries.stream()
-                .map(x -> Pair.of(FileEntry.from(x), firstSeen(x.getSha256(), t)))
+                .map(x -> Pair.of(FileEntry.from(x), firstSeenAt(x.getSha256(), t)))
                 .collect(Collectors.toUnmodifiableMap(x -> x.getLeft().getSha256(), Function.identity()));
         objects.set(newObjects);
     }
@@ -232,7 +232,7 @@ class RepositoryTracker {
                 .map(Pair::getLeft).collect(Collectors.toSet());
     }
 
-    private Instant firstSeen(String sha256, Instant now) {
+    private Instant firstSeenAt(String sha256, Instant now) {
         var previous = objects.get().get(sha256);
         return previous != null ? previous.getRight() : now;
     }
