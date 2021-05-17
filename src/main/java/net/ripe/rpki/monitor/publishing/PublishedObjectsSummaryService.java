@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.publishing;
 
 import com.google.common.collect.Sets;
 import io.micrometer.core.instrument.MeterRegistry;
+import lombok.Getter;
 import lombok.Setter;
 import net.ripe.rpki.monitor.AppConfig;
 import net.ripe.rpki.monitor.HasHashAndUri;
@@ -171,8 +172,11 @@ public class PublishedObjectsSummaryService {
  * An instance of this class can be safely shared across threads.
  */
 class RepositoryTracker {
+    @Getter
     private final String tag;
+    @Getter
     private final String url;
+
     private final AtomicReference<Map<String, Pair<FileEntry, Instant>>> objects;
 
     /**
@@ -231,13 +235,5 @@ class RepositoryTracker {
     private Instant firstSeen(String sha256, Instant now) {
         var previous = objects.get().get(sha256);
         return previous != null ? previous.getRight() : now;
-    }
-
-    public String getTag() {
-        return tag;
-    }
-
-    public String getUrl() {
-        return url;
     }
 }
