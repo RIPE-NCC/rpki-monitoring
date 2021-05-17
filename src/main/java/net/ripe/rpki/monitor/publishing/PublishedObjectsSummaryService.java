@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -172,7 +173,7 @@ public class PublishedObjectsSummaryService {
 class RepositoryTracker {
     private final String tag;
     private final String url;
-    private Map<String, Pair<FileEntry, Instant>> objects;
+    private final AtomicReference<Map<String, Pair<FileEntry, Instant>>> objects;
 
     /**
      * Get an empty repository.
@@ -193,7 +194,7 @@ class RepositoryTracker {
     private RepositoryTracker(String tag, String url, Map<String, Pair<FileEntry, Instant>> objects) {
         this.tag = tag;
         this.url = url;
-        this.objects = objects;
+        this.objects = new AtomicReference<>(objects);
     }
 
     /**
@@ -203,9 +204,7 @@ class RepositoryTracker {
         var newObjects = entries.stream()
                 .map(x -> Pair.of(FileEntry.from(x), firstSeen(x.getSha256(), t)))
                 .collect(Collectors.toUnmodifiableMap(x -> x.getLeft().getSha256(), Function.identity()));
-        synchronized (this) {
-            objects = newObjects;
-        }
+        objects.set(newObjects);
     }
 
     /**
@@ -224,20 +223,13 @@ class RepositoryTracker {
     }
 
     private Set<FileEntry> entries(Instant t) {
-        Collection<Pair<FileEntry, Instant>> allEntries;
-        synchronized (this) {
-            allEntries = objects.values();
-        }
-        return allEntries.stream()
+        return objects.get().values().stream()
                 .filter(x -> x.getRight().compareTo(t) <= 0)
                 .map(Pair::getLeft).collect(Collectors.toSet());
     }
 
     private Instant firstSeen(String sha256, Instant now) {
-        Pair<?, Instant> previous;
-        synchronized (this) {
-            previous = objects.get(sha256);
-        }
+        var previous = objects.get().get(sha256);
         return previous != null ? previous.getRight() : now;
     }
 
