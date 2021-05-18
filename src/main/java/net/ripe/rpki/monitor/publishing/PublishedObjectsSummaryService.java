@@ -128,7 +128,7 @@ public class PublishedObjectsSummaryService {
             var counter = getOrCreateCounter(lhs.getTag());
             counter.set(lhs.size(now));
 
-            for (int j = 0; j < i; j++) {
+            for (int j = i+1; j < repositories.length; j++) {
                 var rhs = repositories[j];
 
                 for (var threshold : thresholds) {
