@@ -75,9 +75,7 @@ spring:
   profiles: prepdev
 
 rrdp:
-  main-url: http://publish-1.rpki.prepdev.ripe.net:7788
-  other-urls:
-    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
+  main-url: https://rrdp.prepdev.ripe.net
   interval: 5M
 
 rsync:
@@ -85,9 +83,6 @@ rsync:
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 10M
-  # url to the AWS rsync instances - if they exist.
-  other-urls: 
-    prepdev-aws: rsync://prepdevpubserver-env.eba-wy9m3cgq.eu-west-2.elasticbeanstalk.com
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
