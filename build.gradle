@@ -34,7 +34,7 @@ processResources {
 }
 
 group = 'net.ripe.rpki'
-version = '0.3.2-SNAPSHOT'
+version = '0.3.4'
 sourceCompatibility = '11'
 
 
