@@ -19,30 +19,33 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 import static org.assertj.core.api.BDDAssertions.then;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @ExtendWith(MockitoExtension.class)
 public class PublishedObjectsSummaryTest {
-    @Mock
-    private CoreClient rpkiCoreClient;
+    private final Instant now = Instant.now();
+    private final AppConfig testConfig = mkTestConfig();
 
     private PublishedObjectsSummaryService publishedObjectsSummaryService;
+
+    @Mock
+    private CoreClient rpkiCoreClient;
 
     private MeterRegistry meterRegistry;
 
     @BeforeEach
     public void init() {
         meterRegistry = new SimpleMeterRegistry();
-        publishedObjectsSummaryService = createSummaryService(
-            new AppConfig(), new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry)));
+        var repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
+        publishedObjectsSummaryService = createSummaryService(testConfig, repositoryObjects);
     }
 
     private PublishedObjectsSummaryService createSummaryService(AppConfig appConfig, RepositoryObjects repositoryObjects) {
@@ -51,14 +54,14 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldNotReportADifferencesBetweenEmptySources() {
-        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(Set.of(), Set.of(), Set.of());
+        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(
+                now,
+                RepositoryTracker.empty("core", testConfig.getCoreUrl()),
+                RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
+                RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+        );
 
-        then(res.get("core-diff-rrdp")).isEmpty();
-        then(res.get("core-diff-rsync")).isEmpty();
-        then(res.get("rsync-diff-core")).isEmpty();
-        then(res.get("rsync-diff-rrdp")).isEmpty();
-        then(res.get("rrdp-diff-core")).isEmpty();
-        then(res.get("rrdp-diff-rsync")).isEmpty();
+        then(res.values().stream()).allMatch(Collection::isEmpty);
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT).gauges())
             .allMatch(gauge -> gauge.value() == 0.0);
@@ -75,14 +78,12 @@ public class PublishedObjectsSummaryTest {
                 .uri("rsync://example.org/index.txt")
                 .build());
 
-        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(object, Set.of(), Set.of());
-
-        then(res.get("core-diff-rrdp")).hasSize(1);
-        then(res.get("core-diff-rsync")).hasSize(1);
-        then(res.get("rsync-diff-core")).isEmpty();
-        then(res.get("rsync-diff-rrdp")).isEmpty();
-        then(res.get("rrdp-diff-core")).isEmpty();
-        then(res.get("rrdp-diff-rsync")).isEmpty();
+        publishedObjectsSummaryService.getPublishedObjectsDiff(
+                now,
+                RepositoryTracker.with("core", testConfig.getCoreUrl(), now.minusSeconds(301), object),
+                RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
+                RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+        );
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isEqualTo(1);
@@ -92,8 +93,14 @@ public class PublishedObjectsSummaryTest {
                 .tags("source", "rrdp").gauge().value()).isZero();
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "core").gauges())
+                .tags("lhs", "core", "threshold", "300").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+                .tags("lhs", "core", "threshold", "900").gauges())
+                .allMatch(gauge -> gauge.value() == 0.0);
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+                .tags("lhs", "core", "threshold", "1800").gauges())
+                .allMatch(gauge -> gauge.value() == 0.0);
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rsync").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
@@ -104,15 +111,15 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldReportADifference_caused_by_rrdp_objects() {
-        final var res = publishedObjectsSummaryService
-            .getPublishedObjectsDiff(Set.of(), Set.of(RepoObject.fictionalObjectValidAtInstant(new Date())), Set.of());
+        Set<RepoObject> object = Set.of(RepoObject.fictionalObjectValidAtInstant(new Date()));
 
-        then(res.get("core-diff-rrdp")).isEmpty();
-        then(res.get("core-diff-rsync")).isEmpty();
-        then(res.get("rsync-diff-core")).isEmpty();
-        then(res.get("rsync-diff-rrdp")).isEmpty();
-        then(res.get("rrdp-diff-core")).hasSize(1);
-        then(res.get("rrdp-diff-rsync")).hasSize(1);
+        publishedObjectsSummaryService
+            .getPublishedObjectsDiff(
+                    now,
+                    RepositoryTracker.empty("core", testConfig.getCoreUrl()),
+                    RepositoryTracker.with("rrdp", testConfig.getRrdpConfig().getMainUrl(), now.minusSeconds(1801), object),
+                    RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+            );
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isZero();
@@ -134,15 +141,14 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldReportADifference_caused_by_rsync_objects() {
-        final var res = publishedObjectsSummaryService
-            .getPublishedObjectsDiff(List.of(), Set.of(), Set.of(RepoObject.fictionalObjectValidAtInstant(new Date())));
+        Set<RepoObject> object = Set.of(RepoObject.fictionalObjectValidAtInstant(new Date()));
 
-        then(res.get("core-diff-rrdp")).isEmpty();
-        then(res.get("core-diff-rsync")).isEmpty();
-        then(res.get("rsync-diff-core")).hasSize(1);
-        then(res.get("rsync-diff-rrdp")).hasSize(1);
-        then(res.get("rrdp-diff-core")).isEmpty();
-        then(res.get("rrdp-diff-rsync")).isEmpty();
+        publishedObjectsSummaryService.getPublishedObjectsDiff(
+                now,
+                RepositoryTracker.empty("core", testConfig.getCoreUrl()),
+                RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
+                RepositoryTracker.with("rsync", testConfig.getRsyncConfig().getMainUrl(), now.minusSeconds(901), object)
+        );
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "core").gauge().value()).isZero();
@@ -155,23 +161,25 @@ public class PublishedObjectsSummaryTest {
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "rsync").gauges())
+                .tags("lhs", "rsync", "threshold", "300").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+                .tags("lhs", "rsync", "threshold", "900").gauges())
+                .allMatch(gauge -> gauge.value() == 1.0);
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+                .tags("lhs", "rsync", "threshold", "1800").gauges())
+                .allMatch(gauge -> gauge.value() == 0.0);
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rrdp").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
     }
 
-
     @Test
     public void itShouldDoRsyncDiff() {
-        final AppConfig appConfig = new AppConfig();
-        final RsyncConfig rsyncConfig = new RsyncConfig();
         final String mainUrl = "https://rsync.ripe.net";
-        rsyncConfig.setMainUrl(mainUrl);
+        testConfig.getRsyncConfig().setMainUrl(mainUrl);
         final String secondaryUrl = "https://rsync-secondary.ripe.net";
-        rsyncConfig.setOtherUrls(Maps.newHashMap("secondary", secondaryUrl));
-        appConfig.setRsyncConfig(rsyncConfig);
+        testConfig.getRsyncConfig().setOtherUrls(Maps.newHashMap("secondary", secondaryUrl));
 
         final RepositoryObjects repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
 
@@ -182,28 +190,26 @@ public class PublishedObjectsSummaryTest {
         repositoryObjects.setRepositoryObject(mainUrl, new TreeSet<>(Set.of(obj1, obj2)));
         repositoryObjects.setRepositoryObject(secondaryUrl, new TreeSet<>(Set.of(obj1)));
 
-        PublishedObjectsSummaryService publishedObjectsSummaryService = createSummaryService(appConfig, repositoryObjects);
+        PublishedObjectsSummaryService publishedObjectsSummaryService = createSummaryService(testConfig, repositoryObjects);
 
-        final var res = publishedObjectsSummaryService.getRsyncDiff();
+        final var res = publishedObjectsSummaryService.getRsyncDiff(Instant.now(), Duration.ofSeconds(0));
         assertNotNull(res);
         assertEquals(2, res.size());
-        final Set<FileEntry> fileEntries1 = res.get(mainUrl + "-diff-" + secondaryUrl);
+        final Set<FileEntry> fileEntries1 = res.get(mainUrl + "-diff-" + secondaryUrl + "-0");
         final FileEntry fileEntry = fileEntries1.iterator().next();
+        assertFalse(fileEntries1.isEmpty());
         assertEquals("url2", fileEntry.getUri());
 
-        final Set<FileEntry> fileEntries2 = res.get(secondaryUrl + "-diff-" + mainUrl);
+        final Set<FileEntry> fileEntries2 = res.get(secondaryUrl + "-diff-" + mainUrl + "-0");
         assertTrue(fileEntries2.isEmpty());
     }
 
     @Test
     public void itShouldDoRrdpDiff() {
-        final AppConfig appConfig = new AppConfig();
-        final RrdpConfig rrdpConfig = new RrdpConfig();
         final String mainUrl = "https://rrdp.ripe.net";
-        rrdpConfig.setMainUrl(mainUrl);
+        testConfig.getRrdpConfig().setMainUrl(mainUrl);
         final String secondaryUrl = "https://rrdp-secondary.ripe.net";
-        rrdpConfig.setOtherUrls(Maps.newHashMap("secondary", secondaryUrl));
-        appConfig.setRrdpConfig(rrdpConfig);
+        testConfig.getRrdpConfig().setOtherUrls(Maps.newHashMap("secondary", secondaryUrl));
 
         final RepositoryObjects repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
 
@@ -214,16 +220,30 @@ public class PublishedObjectsSummaryTest {
         repositoryObjects.setRepositoryObject(mainUrl, new TreeSet<>(Set.of(obj1, obj2)));
         repositoryObjects.setRepositoryObject(secondaryUrl, new TreeSet<>(Set.of(obj1)));
 
-        PublishedObjectsSummaryService publishedObjectsSummaryService = createSummaryService(appConfig, repositoryObjects);
+        PublishedObjectsSummaryService publishedObjectsSummaryService = createSummaryService(testConfig, repositoryObjects);
 
-        final var res = publishedObjectsSummaryService.getRrdpDiff();
+        final var res = publishedObjectsSummaryService.getRrdpDiff(Instant.now(), Duration.ofSeconds(0));
         assertNotNull(res);
         assertEquals(2, res.size());
-        final Set<FileEntry> fileEntries1 = res.get(mainUrl + "-diff-" + secondaryUrl);
+        final Set<FileEntry> fileEntries1 = res.get(mainUrl + "-diff-" + secondaryUrl + "-0");
+        assertFalse(fileEntries1.isEmpty());
         final FileEntry fileEntry = fileEntries1.iterator().next();
         assertEquals("url2", fileEntry.getUri());
 
-        final Set<FileEntry> fileEntries2 = res.get(secondaryUrl + "-diff-" + mainUrl);
+        final Set<FileEntry> fileEntries2 = res.get(secondaryUrl + "-diff-" + mainUrl + "-0");
         assertTrue(fileEntries2.isEmpty());
     }
+
+    private static AppConfig mkTestConfig() {
+        var rrdp = new RrdpConfig();
+        rrdp.setMainUrl("https://rrdp.rpki.ripe.net");
+        var rsync = new RsyncConfig();
+        rsync.setMainUrl("rsync://rpki.ripe.net");
+        var config = new AppConfig();
+        config.setRrdpConfig(rrdp);
+        config.setRsyncConfig(rsync);
+        config.setCoreUrl("https://ba-apps.ripe.net/certification/");
+        return config;
+    }
+
 }

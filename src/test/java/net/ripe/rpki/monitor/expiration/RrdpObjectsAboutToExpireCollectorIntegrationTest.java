@@ -5,7 +5,6 @@ import net.ripe.rpki.monitor.util.Sha256;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -13,13 +12,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -27,10 +23,6 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 @SpringBootTest(properties = { "rrdp.main-url=http://localhost.example" })
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
-
-    @Autowired
-    @Qualifier("rrdp-resttemplate")
-    private RestTemplate restTemplate;
 
     @Autowired
     private RepositoryObjects repositoryObjects;
@@ -63,8 +55,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
     @BeforeEach
     public void init() {
-        mockServer = MockRestServiceServer.createServer(restTemplate);
-        appConfig.setRestTemplate(restTemplate);
+        mockServer = MockRestServiceServer.createServer(appConfig.getRestTemplate());
         rrdpObjectsAboutToExpireCollector = collectors.createDefaultRrdpCollector();
     }
 
