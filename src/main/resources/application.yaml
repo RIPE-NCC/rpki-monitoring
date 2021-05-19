@@ -20,9 +20,10 @@ rsync:
   # *without* the trailing slash
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
-  interval: 10M
-  # disable second rsync url
-  other-urls: {}
+  interval: 5M
+  # to disable: set it to {}
+  other-urls:
+    new_rysnc: rsync://rpki2.ripe.net
 
 server:
   port: 9090
@@ -64,7 +65,6 @@ rsync:
   main-url: rsync://localhost:10873
   timeout: 30
   interval: 5M
-  other-urls: {}
 
 core:
   url: http://localhost:8080/certification/
@@ -82,7 +82,7 @@ rsync:
   # *without* a trailing slash
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
-  interval: 10M
+  interval: 5M
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
@@ -100,10 +100,9 @@ rsync:
   # *without* the trailing slash
   main-url: rsync://rpki.ripe.net
   timeout: 30
-  interval: 10M
-  # url to the AWS hosted
-  other-urls: {}
-    # - rsync://pub-server-prod.elasticbeanstalk.com
+  interval: 5M
+  other-urls:
+    new_rsync: rsync://rpki2.ripe.net
 
 core:
   url: https://ba-apps.ripe.net/certification/
