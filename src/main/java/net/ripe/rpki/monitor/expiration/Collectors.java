@@ -8,8 +8,10 @@ import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -36,39 +38,39 @@ public class Collectors {
     public List<ObjectAndDateCollector> getRsyncCollectors() {
         return Stream.concat(
             Stream.of(createDefaultRsyncCollector()),
-            createOtherUrlsCollectors(config.getRsyncConfig().getOtherUrls())
+            createOtherUrlsCollectors(config.getRsyncConfig().getOtherUrls(), this::createRsyncFetcher)
         ).collect(toList());
     }
 
     public List<ObjectAndDateCollector> getRrdpCollectors() {
         return Stream.concat(
             Stream.of(createDefaultRrdpCollector()),
-            createOtherUrlsCollectors(config.getRrdpConfig().getOtherUrls())
+            createOtherUrlsCollectors(config.getRrdpConfig().getOtherUrls(), this::createRrdpFetcher)
         ).collect(toList());
     }
 
-    private Stream<ObjectAndDateCollector> createOtherUrlsCollectors(final Map<String, String> otherUrls) {
+    private Stream<ObjectAndDateCollector> createOtherUrlsCollectors(final Map<String, String> otherUrls, BiFunction<String, String, RepoFetcher> creator) {
         return otherUrls.entrySet()
             .stream()
             .map(e ->
                 new ObjectAndDateCollector(
-                    createRrdpCollector(e.getKey(), e.getValue()),
+                    creator.apply(e.getKey(), e.getValue()),
                     metrics,
                     repositoryObjects)
             );
     }
 
-    private RepoFetcher createRsyncFetcher(String name, String rsyncUrl) {
-        return new RsyncFetcher(name, rsyncUrl, config.getRsyncConfig().getTimeout());
+    private RepoFetcher createRsyncFetcher(String name, String url) {
+        return new RsyncFetcher(name, url, config.getRsyncConfig().getTimeout());
     }
 
-    private RrdpFetcher createRrdpCollector(String name, String url) {
+    private RrdpFetcher createRrdpFetcher(String name, String url) {
         return new RrdpFetcher(name, url, config.getRestTemplate());
     }
 
     ObjectAndDateCollector createDefaultRrdpCollector() {
         return new ObjectAndDateCollector(
-            createRrdpCollector("main", config.getRrdpConfig().getMainUrl()),
+            createRrdpFetcher("main", config.getRrdpConfig().getMainUrl()),
             metrics,
             repositoryObjects);
     }

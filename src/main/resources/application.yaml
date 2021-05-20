@@ -12,16 +12,14 @@ spring:
 
 rrdp:
   main-url: https://rrdp.prepdev.ripe.net
-  other-urls:
-    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
   interval: 5M
+  other-urls: {}
 
 rsync:
   # *without* the trailing slash
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
-  interval: 10M
-  # disable second rsync url
+  interval: 5M
   other-urls: {}
 
 server:
@@ -64,7 +62,6 @@ rsync:
   main-url: rsync://localhost:10873
   timeout: 30
   interval: 5M
-  other-urls: {}
 
 core:
   url: http://localhost:8080/certification/
@@ -77,12 +74,14 @@ spring:
 rrdp:
   main-url: https://rrdp.prepdev.ripe.net
   interval: 5M
+  other-urls:
+    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
 
 rsync:
   # *without* a trailing slash
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
-  interval: 10M
+  interval: 5M
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
@@ -100,10 +99,9 @@ rsync:
   # *without* the trailing slash
   main-url: rsync://rpki.ripe.net
   timeout: 30
-  interval: 10M
-  # url to the AWS hosted
-  other-urls: {}
-    # - rsync://pub-server-prod.elasticbeanstalk.com
+  interval: 5M
+  other-urls:
+    new_rsync: rsync://rpki2.ripe.net
 
 core:
   url: https://ba-apps.ripe.net/certification/
