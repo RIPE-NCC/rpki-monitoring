@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -49,35 +49,35 @@ public class Collectors {
         ).collect(toList());
     }
 
-    private Stream<ObjectAndDateCollector> createOtherUrlsCollectors(final Map<String, String> otherUrls, Function<Map.Entry<String, String>, RepoFetcher> creator) {
+    private Stream<ObjectAndDateCollector> createOtherUrlsCollectors(final Map<String, String> otherUrls, BiFunction<String, String, RepoFetcher> creator) {
         return otherUrls.entrySet()
             .stream()
             .map(e ->
                 new ObjectAndDateCollector(
-                    creator.apply(e),
+                    creator.apply(e.getKey(), e.getValue()),
                     metrics,
                     repositoryObjects)
             );
     }
 
-    private RepoFetcher createRsyncFetcher(Map.Entry<String, String> entry) {
-        return new RsyncFetcher(entry.getKey(), entry.getValue(), config.getRsyncConfig().getTimeout());
+    private RepoFetcher createRsyncFetcher(String name, String url) {
+        return new RsyncFetcher(name, url, config.getRsyncConfig().getTimeout());
     }
 
-    private RrdpFetcher createRrdpFetcher(Map.Entry<String, String> entry) {
-        return new RrdpFetcher(entry.getKey(), entry.getValue(), config.getRestTemplate());
+    private RrdpFetcher createRrdpFetcher(String name, String url) {
+        return new RrdpFetcher(name, url, config.getRestTemplate());
     }
 
     ObjectAndDateCollector createDefaultRrdpCollector() {
         return new ObjectAndDateCollector(
-            createRrdpFetcher(Map.entry("main", config.getRrdpConfig().getMainUrl())),
+            createRrdpFetcher("main", config.getRrdpConfig().getMainUrl()),
             metrics,
             repositoryObjects);
     }
 
     ObjectAndDateCollector createDefaultRsyncCollector() {
         return new ObjectAndDateCollector(
-            createRsyncFetcher(Map.entry("main", config.getRsyncConfig().getMainUrl())),
+            createRsyncFetcher("main", config.getRsyncConfig().getMainUrl()),
             metrics,
             repositoryObjects);
     }
