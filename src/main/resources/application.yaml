@@ -12,18 +12,15 @@ spring:
 
 rrdp:
   main-url: https://rrdp.prepdev.ripe.net
-  other-urls:
-    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
   interval: 5M
+  other-urls: {}
 
 rsync:
   # *without* the trailing slash
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 5M
-  # to disable: set it to {}
-  other-urls:
-    new_rysnc: rsync://rpki2.ripe.net
+  other-urls: {}
 
 server:
   port: 9090
@@ -77,6 +74,8 @@ spring:
 rrdp:
   main-url: https://rrdp.prepdev.ripe.net
   interval: 5M
+  other-urls:
+    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
 
 rsync:
   # *without* a trailing slash
