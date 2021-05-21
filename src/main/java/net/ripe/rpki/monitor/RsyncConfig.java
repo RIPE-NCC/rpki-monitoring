@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 
 @Component
@@ -14,5 +15,5 @@ public class RsyncConfig {
     private Duration interval;
     private int timeout;
     private String mainUrl;
-    private Map<String, String> otherUrls;
+    private Map<String, String> otherUrls = Collections.emptyMap();
 }

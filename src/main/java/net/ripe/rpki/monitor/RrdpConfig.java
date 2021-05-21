@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 
 @Component
@@ -14,5 +14,5 @@ import java.util.Map;
 public class RrdpConfig {
     private Duration interval;
     private String mainUrl;
-    private Map<String, String> otherUrls;
+    private Map<String, String> otherUrls = Collections.emptyMap();
 }
