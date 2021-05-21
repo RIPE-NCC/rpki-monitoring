@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.AppConfig;
 import net.ripe.rpki.monitor.HasHashAndUri;
 import net.ripe.rpki.monitor.expiration.RepositoryObjects;
@@ -32,6 +33,7 @@ import static java.time.temporal.ChronoUnit.MINUTES;
 
 @Setter
 @Service
+@Slf4j
 public class PublishedObjectsSummaryService {
 
     private final RepositoryObjects repositoryObjects;
@@ -65,12 +67,20 @@ public class PublishedObjectsSummaryService {
         var now = Instant.now();
 
         // Update the repository trackers with the latest object information
-        repositories.get("core").update(now, rpkiCoreClient.publishedObjects());
+        updateCoreRepository(now);
         updateRsyncRepositories(now);
         updateRrdpRepositories(now);
 
         return getPublishedObjectsDiff(now,
                 List.copyOf(repositories.values()));
+    }
+
+    private void updateCoreRepository(Instant now) {
+        try {
+            repositories.get("core").update(now, rpkiCoreClient.publishedObjects());
+        } catch (Exception e) {
+            log.error("Cannot fetch published objects from rpki-core", e);
+        }
     }
 
     private void updateRsyncRepositories(Instant now) {
