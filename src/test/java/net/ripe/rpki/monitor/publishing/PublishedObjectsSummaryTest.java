@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -56,9 +57,11 @@ public class PublishedObjectsSummaryTest {
     public void itShouldNotReportADifferencesBetweenEmptySources() {
         final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(
                 now,
-                RepositoryTracker.empty("core", testConfig.getCoreUrl()),
-                RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
-                RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+                List.of(
+                    RepositoryTracker.empty("core", testConfig.getCoreUrl()),
+                    RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
+                    RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+                )
         );
 
         then(res.values().stream()).allMatch(Collection::isEmpty);
@@ -80,9 +83,11 @@ public class PublishedObjectsSummaryTest {
 
         publishedObjectsSummaryService.getPublishedObjectsDiff(
                 now,
-                RepositoryTracker.with("core", testConfig.getCoreUrl(), now.minusSeconds(301), object),
-                RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
-                RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+                List.of(
+                    RepositoryTracker.with("core", testConfig.getCoreUrl(), now.minusSeconds(301), object),
+                    RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
+                    RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+                )
         );
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
@@ -116,9 +121,11 @@ public class PublishedObjectsSummaryTest {
         publishedObjectsSummaryService
             .getPublishedObjectsDiff(
                     now,
-                    RepositoryTracker.empty("core", testConfig.getCoreUrl()),
-                    RepositoryTracker.with("rrdp", testConfig.getRrdpConfig().getMainUrl(), now.minusSeconds(1801), object),
-                    RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+                    List.of(
+                        RepositoryTracker.empty("core", testConfig.getCoreUrl()),
+                        RepositoryTracker.with("rrdp", testConfig.getRrdpConfig().getMainUrl(), now.minusSeconds(1801), object),
+                        RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
+                    )
             );
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
@@ -145,9 +152,11 @@ public class PublishedObjectsSummaryTest {
 
         publishedObjectsSummaryService.getPublishedObjectsDiff(
                 now,
-                RepositoryTracker.empty("core", testConfig.getCoreUrl()),
-                RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
-                RepositoryTracker.with("rsync", testConfig.getRsyncConfig().getMainUrl(), now.minusSeconds(901), object)
+                List.of(
+                    RepositoryTracker.empty("core", testConfig.getCoreUrl()),
+                    RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
+                    RepositoryTracker.with("rsync", testConfig.getRsyncConfig().getMainUrl(), now.minusSeconds(901), object)
+                )
         );
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)

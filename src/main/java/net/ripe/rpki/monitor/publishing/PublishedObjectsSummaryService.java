@@ -19,12 +19,14 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.time.temporal.ChronoUnit.MINUTES;
 
@@ -39,9 +41,7 @@ public class PublishedObjectsSummaryService {
     private final Map<String, AtomicLong> counters = new HashMap<>();
     private final MeterRegistry registry;
 
-    private final RepositoryTracker core;
-    private final RepositoryTracker rrdp;
-    private final RepositoryTracker rsync;
+    private final Map<String, RepositoryTracker> repositories;
 
     @Autowired
     public PublishedObjectsSummaryService(
@@ -54,9 +54,8 @@ public class PublishedObjectsSummaryService {
         this.repositoryObjects = repositoryObjects;
         this.rpkiCoreClient = rpkiCoreClient;
         this.appConfig = appConfig;
-        this.core = RepositoryTracker.empty("core", appConfig.getCoreUrl());
-        this.rrdp = RepositoryTracker.empty("rrdp", appConfig.getRrdpConfig().getMainUrl());
-        this.rsync = RepositoryTracker.empty("rsync", appConfig.getRsyncConfig().getMainUrl());
+
+        this.repositories = initRepositories(appConfig);
     }
 
     /**
@@ -64,37 +63,50 @@ public class PublishedObjectsSummaryService {
      */
     public Map<String, Set<FileEntry>> getPublishedObjectsDiff() {
         var now = Instant.now();
-        core.update(now, rpkiCoreClient.publishedObjects());
-        rrdp.update(now, repositoryObjects.getObjects(rrdp.getUrl()));
-        rsync.update(now, repositoryObjects.getObjects(rsync.getUrl()));
 
-        return getPublishedObjectsDiff(now, core, rrdp, rsync);
+        // Update the repository trackers with the latest object information
+        repositories.get("core").update(now, rpkiCoreClient.publishedObjects());
+        updateRsyncRepositories(now);
+        updateRrdpRepositories(now);
+
+        return getPublishedObjectsDiff(now,
+                List.copyOf(repositories.values()));
+    }
+
+    private void updateRsyncRepositories(Instant now) {
+        repositories.get("rsync").update(now, repositoryObjects.getObjects(appConfig.getRsyncConfig().getMainUrl()));
+        appConfig.getRsyncConfig().getOtherUrls().forEach(
+                (tag, url) -> repositories.get("rsync-" + tag).update(now, repositoryObjects.getObjects(url))
+        );
+    }
+
+    private void updateRrdpRepositories(Instant now) {
+        repositories.get("rrdp").update(now, repositoryObjects.getObjects(appConfig.getRrdpConfig().getMainUrl()));
+        appConfig.getRrdpConfig().getOtherUrls().forEach(
+                (tag, url) -> repositories.get("rrdp-" + tag).update(now, repositoryObjects.getObjects(url))
+        );
     }
 
     public Map<String, Set<FileEntry>> getRsyncDiff(Instant now, Duration threshold) {
-        // Update the main rsync repository once
-        rsync.update(now, repositoryObjects.getObjects(rsync.getUrl()));
+        updateRsyncRepositories(now);
+        var mainRepo = repositories.get("rsync");
 
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
-        for (var secondary : appConfig.getRsyncConfig().getOtherUrls().entrySet()) {
-            var tag = secondary.getKey();
-            var url = secondary.getValue();
-            var repo = RepositoryTracker.with(tag, url, now, repositoryObjects.getObjects(url));
-            diffs.putAll(comparePublicationPoints(rsync, repo, now, threshold));
+        for (var tag : appConfig.getRsyncConfig().getOtherUrls().keySet()) {
+            var repo = repositories.get("rsync-" + tag);
+            diffs.putAll(comparePublicationPoints(mainRepo, repo, now, threshold));
         }
         return diffs;
     }
 
     public Map<String, Set<FileEntry>> getRrdpDiff(Instant now, Duration threshold) {
-        // Update the main RRDP repository once
-        rrdp.update(now, repositoryObjects.getObjects(rrdp.getUrl()));
+        updateRrdpRepositories(now);
+        var mainRepo = repositories.get("rrdp");
 
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
-        for (var secondary : appConfig.getRrdpConfig().getOtherUrls().entrySet()) {
-            var tag = secondary.getKey();
-            var url = secondary.getValue();
-            var repo = RepositoryTracker.with(tag, url, now, repositoryObjects.getObjects(url));
-            diffs.putAll(comparePublicationPoints(rrdp, repo, now, threshold));
+        for (var tag : appConfig.getRrdpConfig().getOtherUrls().keySet()) {
+            var repo = repositories.get("rrdp-" + tag);
+            diffs.putAll(comparePublicationPoints(mainRepo, repo, now, threshold));
         }
         return diffs;
     }
@@ -115,21 +127,21 @@ public class PublishedObjectsSummaryService {
         );
     }
 
-    public Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, RepositoryTracker... repositories) {
+    public Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
         final var thresholds = new Duration[]{Duration.of(5, MINUTES), Duration.of(15, MINUTES), Duration.of(30, MINUTES)};
 
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         // n-choose-2
         // It is safe to only generate subsets of size 2 in one order because
         // we calculate the difference in two directions.
-        for (int i = 0; i < repositories.length; i++) {
-            var lhs = repositories[i];
+        for (int i = 0; i < repositories.size(); i++) {
+            var lhs = repositories.get(i);
 
             var counter = getOrCreateCounter(lhs.getTag());
             counter.set(lhs.size(now));
 
-            for (int j = i+1; j < repositories.length; j++) {
-                var rhs = repositories[j];
+            for (int j = i+1; j < repositories.size(); j++) {
+                var rhs = repositories.get(j);
 
                 for (var threshold : thresholds) {
                     diffs.putAll(comparePublicationPoints(lhs, rhs, now, threshold));
@@ -137,6 +149,25 @@ public class PublishedObjectsSummaryService {
             }
         }
         return diffs;
+    }
+
+    private static Map<String, RepositoryTracker> initRepositories(AppConfig config) {
+        var main = Stream.of(
+                RepositoryTracker.empty("core", config.getCoreUrl()),
+                RepositoryTracker.empty("rrdp", config.getRrdpConfig().getMainUrl()),
+                RepositoryTracker.empty("rsync", config.getRsyncConfig().getMainUrl())
+        );
+        var extras = Stream.concat(
+                config.getRsyncConfig().getOtherUrls()
+                        .entrySet().stream()
+                        .map(e -> RepositoryTracker.empty("rsync-" + e.getKey(), e.getValue())),
+                config.getRrdpConfig().getOtherUrls()
+                        .entrySet().stream()
+                        .map(e -> RepositoryTracker.empty("rrdp-" + e.getKey(), e.getValue()))
+        );
+
+        return Stream.concat(main, extras)
+                .collect(Collectors.toUnmodifiableMap(RepositoryTracker::getTag, Function.identity()));
     }
 
     private AtomicLong getOrCreateDiffCounter(RepositoryTracker lhs, RepositoryTracker rhs, Duration threshold) {
