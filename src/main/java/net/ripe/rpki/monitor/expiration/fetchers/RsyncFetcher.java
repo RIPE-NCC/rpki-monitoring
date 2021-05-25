@@ -52,7 +52,8 @@ public class RsyncFetcher implements RepoFetcher {
 
     private void rsyncPathFromRepository(String url, Path localPath) throws FetcherException {
         final var rsync = new Rsync(url, localPath.toString());
-        rsync.addOptions("-a");
+        // rsync flags from routinator except contimeout (not available on osx and in CI/CD)
+        rsync.addOptions("-rltz", "--delete");
         rsync.setTimeoutInSeconds(rsyncTimeout);
 
         log.info("Running rsync {} to {}", url, localPath.toString());
