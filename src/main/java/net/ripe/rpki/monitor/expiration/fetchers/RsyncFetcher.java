@@ -2,14 +2,15 @@ package net.ripe.rpki.monitor.expiration.fetchers;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.rsync.Rsync;
 import net.ripe.rpki.monitor.RsyncConfig;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.util.FileSystemUtils;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -32,6 +33,8 @@ public class RsyncFetcher implements RepoFetcher {
 
     private final int rsyncTimeout;
 
+    private final Path targetPath;
+
     @Getter
     private final String name;
     private final String rsyncUrl;
@@ -43,12 +46,28 @@ public class RsyncFetcher implements RepoFetcher {
         this(rsyncConfig, rsyncUrl, rsyncUrl);
     }
 
+    @SneakyThrows
     public RsyncFetcher(RsyncConfig rsyncConfig, String name, String rsyncUrl) {
         this.name = name;
         this.rsyncUrl = rsyncUrl;
 
         this.rsyncTimeout = rsyncConfig.getTimeout();
         this.mainUrl = rsyncConfig.getMainUrl();
+
+        URI uri = URI.create(rsyncUrl);
+
+        var basePath = rsyncConfig.getBaseDirectory();
+        // Transform the rsync hostname:
+        //  * Some (i.e. "file") rsync URLs do not have a host - make sure they are formatted as null.
+        //  * Replace dots with underscores
+        var transformedHost = String.format("%s", uri.getHost()).replace(".", "_");
+        targetPath = basePath.resolve(transformedHost);
+        if (!targetPath.normalize().startsWith(basePath)) {
+            throw new IllegalArgumentException(String.format("Directory traversal detected - %s is not below %s", targetPath, basePath));
+        }
+
+        Files.createDirectories(targetPath);
+        log.info("RsyncFetcher({}, {}) -> {}", name, rsyncUrl, targetPath.toString());
     }
 
     @Override
@@ -73,22 +92,18 @@ public class RsyncFetcher implements RepoFetcher {
 
 
     public Map<String, RpkiObject> fetchObjects() throws FetcherException {
-        Path tempPath = null;
         try {
-            tempPath = Files.createTempDirectory("rsync-monitor");
-            final String tempDirectory = tempPath.toString();
-
-            rsyncPathFromRepository(rsyncUrl + "/ta", tempPath.resolve("ta"));
-            rsyncPathFromRepository(rsyncUrl + "/repository", tempPath.resolve("repository"));
+            rsyncPathFromRepository(rsyncUrl + "/ta", targetPath.resolve("ta"));
+            rsyncPathFromRepository(rsyncUrl + "/repository", targetPath.resolve("repository"));
 
             // Gather all objects in path
-            try (Stream<Path> paths = Files.walk(tempPath)) {
+            try (Stream<Path> paths = Files.walk(targetPath)) {
                 return paths.filter(Files::isRegularFile)
                     .parallel()
                     .map(f -> {
                         // Object "appear" to be in the main repository, otherwise they will always
                         // mismatch because of their URL.
-                        final String objectUri = f.toString().replace(tempDirectory, mainUrl);
+                        final String objectUri = f.toString().replace(targetPath.toString(), mainUrl);
                         try {
                             return Pair.of(objectUri, new RpkiObject(Files.readAllBytes(f)));
                         } catch (IOException e) {
@@ -99,13 +114,6 @@ public class RsyncFetcher implements RepoFetcher {
         } catch (IOException | RuntimeException e) {
             log.error("Rsync fetch failed", e);
             throw new FetcherException(e);
-        } finally {
-            try {
-                FileSystemUtils.deleteRecursively(tempPath);
-            } catch (IOException e) {
-                log.error("Exception while cleaning up after rsync", e);
-            }
         }
     }
-
 }

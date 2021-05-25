@@ -20,6 +20,7 @@ rsync:
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 5M
+  base-directory: /tmp/rsync/
   other-urls:
     new_rsync: rsync://rpki2.prepdev.ripe.net
 
@@ -83,6 +84,7 @@ rsync:
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 5M
+  base-directory: /tmp/rsync/
   other-urls:
     new_rsync: rsync://rpki2.prepdev.ripe.net
 
@@ -101,6 +103,7 @@ rrdp:
 rsync:
   # *without* the trailing slash
   main-url: rsync://rpki.ripe.net
+  base-directory: /tmp/rsync/
   timeout: 30
   interval: 5M
   other-urls:

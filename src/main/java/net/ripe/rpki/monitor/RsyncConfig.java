@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
@@ -21,4 +22,6 @@ public class RsyncConfig {
      */
     private String mainUrl;
     private Map<String, String> otherUrls = Collections.emptyMap();
+
+    private Path baseDirectory;
 }
