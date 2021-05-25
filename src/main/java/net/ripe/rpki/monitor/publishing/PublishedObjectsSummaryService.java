@@ -141,6 +141,7 @@ public class PublishedObjectsSummaryService {
         final var thresholds = new Duration[]{
             Duration.of(5, MINUTES),
             Duration.of(10, MINUTES),
+            Duration.of(15, MINUTES),
             Duration.of(20, MINUTES),
             Duration.of(30, MINUTES)
         };
