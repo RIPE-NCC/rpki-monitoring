@@ -138,7 +138,12 @@ public class PublishedObjectsSummaryService {
     }
 
     public Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
-        final var thresholds = new Duration[]{Duration.of(5, MINUTES), Duration.of(15, MINUTES), Duration.of(30, MINUTES)};
+        final var thresholds = new Duration[]{
+            Duration.of(5, MINUTES),
+            Duration.of(10, MINUTES),
+            Duration.of(20, MINUTES),
+            Duration.of(30, MINUTES)
+        };
 
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         // n-choose-2
