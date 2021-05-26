@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.rsync.Rsync;
+import net.ripe.rpki.monitor.RsyncConfig;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.util.FileSystemUtils;
@@ -35,14 +36,19 @@ public class RsyncFetcher implements RepoFetcher {
     private final String name;
     private final String rsyncUrl;
 
-    public RsyncFetcher(String rsyncUrl) {
-        this(rsyncUrl, rsyncUrl, DEFAULT_TIMEOUT);
+    /** The URI that objects "appear" to be from. */
+    private final String mainUrl;
+
+    public RsyncFetcher(RsyncConfig rsyncConfig, String rsyncUrl) {
+        this(rsyncConfig, rsyncUrl, rsyncUrl);
     }
 
-    public RsyncFetcher(String name, String rsyncUrl, int rsyncTimeout) {
+    public RsyncFetcher(RsyncConfig rsyncConfig, String name, String rsyncUrl) {
         this.name = name;
         this.rsyncUrl = rsyncUrl;
-        this.rsyncTimeout = rsyncTimeout;
+
+        this.rsyncTimeout = rsyncConfig.getTimeout();
+        this.mainUrl = rsyncConfig.getMainUrl();
     }
 
     @Override
@@ -80,7 +86,9 @@ public class RsyncFetcher implements RepoFetcher {
                 return paths.filter(Files::isRegularFile)
                     .parallel()
                     .map(f -> {
-                        final String objectUri = f.toString().replace(tempDirectory, rsyncUrl);
+                        // Object "appear" to be in the main repository, otherwise they will always
+                        // mismatch because of their URL.
+                        final String objectUri = f.toString().replace(tempDirectory, mainUrl);
                         try {
                             return Pair.of(objectUri, new RpkiObject(Files.readAllBytes(f)));
                         } catch (IOException e) {

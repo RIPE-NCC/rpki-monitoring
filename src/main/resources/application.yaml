@@ -20,7 +20,8 @@ rsync:
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 5M
-  other-urls: {}
+  other-urls:
+    new_rsync: rsync://rpki2.prepdev.ripe.net
 
 server:
   port: 9090
@@ -82,6 +83,8 @@ rsync:
   main-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 5M
+  other-urls:
+    new_rsync: rsync://rpki2.prepdev.ripe.net
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/

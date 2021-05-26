@@ -14,6 +14,11 @@ import java.util.Map;
 public class RsyncConfig {
     private Duration interval;
     private int timeout;
+    /**
+     * URI of the main rsync repository.
+     *
+     * Will be used to override the URIs of objects from other repositories.
+     */
     private String mainUrl;
     private Map<String, String> otherUrls = Collections.emptyMap();
 }

@@ -61,7 +61,7 @@ public class Collectors {
     }
 
     private RepoFetcher createRsyncFetcher(String name, String url) {
-        return new RsyncFetcher(name, url, config.getRsyncConfig().getTimeout());
+        return new RsyncFetcher(config.getRsyncConfig(), name, url);
     }
 
     private RrdpFetcher createRrdpFetcher(String name, String url) {
