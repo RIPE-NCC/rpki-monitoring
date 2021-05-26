@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import net.ripe.rpki.monitor.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
@@ -28,7 +29,11 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
     private final URI uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
 
+    private final RsyncConfig config;
+
     RsyncObjectsAboutToExpireCollectorIntegrationTest() throws URISyntaxException {
+        config = new RsyncConfig();
+        config.setMainUrl("rsync://example.org");
     }
 
     @BeforeEach
@@ -36,7 +41,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         meterRegistry = new SimpleMeterRegistry();
         repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
 
-        final RsyncFetcher rsyncFetcher = new RsyncFetcher(uri.getPath());
+        final RsyncFetcher rsyncFetcher = new RsyncFetcher(config, uri.getPath());
         final CollectorUpdateMetrics collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
         rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositoryObjects);
@@ -46,5 +51,13 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     public void itShouldPopulateRsyncObjectsSummaryList() throws Exception {
         rsyncObjectsAboutToExpireCollector.run();
         assertEquals(5, repositoryObjects.geRepositoryObjectsAboutToExpire(uri.getPath(), Integer.MAX_VALUE).size());
+    }
+
+    @Test
+    public void itShouldSetTheObjectUrlMatchingThemainUrl() throws Exception {
+        rsyncObjectsAboutToExpireCollector.run();
+
+        final var objects = repositoryObjects.getObjects(uri.getPath());
+        then(objects).allSatisfy(o -> o.getUri().startsWith(config.getMainUrl()));
     }
 }
