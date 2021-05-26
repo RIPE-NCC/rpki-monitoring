@@ -54,7 +54,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     }
 
     @Test
-    public void itShouldSetTheObjectUrlMatchingThemainUrl() throws Exception {
+    public void itShouldSetTheObjectUrlMatchingTheMainUrl() throws Exception {
         rsyncObjectsAboutToExpireCollector.run();
 
         final var objects = repositoryObjects.getObjects(uri.getPath());
