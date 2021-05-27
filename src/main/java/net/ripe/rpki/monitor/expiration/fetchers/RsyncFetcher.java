@@ -1,5 +1,7 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import com.google.common.base.Verify;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -33,6 +35,7 @@ public class RsyncFetcher implements RepoFetcher {
 
     private final int rsyncTimeout;
 
+    @Getter(AccessLevel.PACKAGE)
     private final Path targetPath;
 
     @Getter
@@ -62,9 +65,8 @@ public class RsyncFetcher implements RepoFetcher {
         //  * Replace dots with underscores
         var transformedHost = String.format("%s", uri.getHost()).replace(".", "_");
         targetPath = basePath.resolve(transformedHost);
-        if (!targetPath.normalize().startsWith(basePath)) {
-            throw new IllegalArgumentException(String.format("Directory traversal detected - %s is not below %s", targetPath, basePath));
-        }
+        // Host should not be able to contain dots, but let's double check
+        Verify.verify(targetPath.normalize().startsWith(basePath), String.format("Directory traversal detected - %s is not below %s", targetPath, basePath));
 
         Files.createDirectories(targetPath);
         log.info("RsyncFetcher({}, {}) -> {}", name, rsyncUrl, targetPath.toString());
@@ -76,6 +78,9 @@ public class RsyncFetcher implements RepoFetcher {
     }
 
     private void rsyncPathFromRepository(String url, Path localPath) throws FetcherException {
+        // Detect path traversal here - should be trusted value
+        Verify.verify(localPath.normalize().startsWith(targetPath));
+
         final var rsync = new Rsync(url, localPath.toString());
         // rsync flags from routinator except contimeout (not available on osx and in CI/CD)
         rsync.addOptions("-rltz", "--delete");
