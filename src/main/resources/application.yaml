@@ -35,6 +35,11 @@ core:
   url: https://ba-apps.prepdev.ripe.net/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
+published-objects:
+  # The interval at which a full diff on all repositories is collected. Incidentally
+  # this _also_ is the interval at which the core repository is tracked.
+  full-diff-interval: 10M
+
 logging:
   level:
     web: INFO

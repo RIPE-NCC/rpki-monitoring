@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 import org.joda.time.DateTime;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
@@ -19,8 +20,10 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 public class RrdpObjectsAboutToExpireCollectorJob extends ObjectsAboutToExpireCollectorJob {
 
     @Autowired
-    public RrdpObjectsAboutToExpireCollectorJob(final Collectors collectors) {
-        super(collectors.getRrdpCollectors());
+    public RrdpObjectsAboutToExpireCollectorJob(
+            Collectors collectors,
+            PublishedObjectsSummaryService publishedObjectsSummaryService) {
+        super(collectors.getRrdpCollectors(), publishedObjectsSummaryService);
     }
 
     @Bean("Rrdp_Expiration_Job_Detail")
