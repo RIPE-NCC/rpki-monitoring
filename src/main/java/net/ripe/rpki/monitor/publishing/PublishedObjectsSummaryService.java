@@ -121,6 +121,60 @@ public class PublishedObjectsSummaryService {
         return diffs;
     }
 
+    public Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
+        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
+        // n-choose-2
+        // It is safe to only generate subsets of size 2 in one order because
+        // we calculate the difference in two directions.
+        for (var lhs : repositories) {
+            var rhss = repositories.stream().takeWhile(x -> x != lhs).collect(Collectors.toList());
+            diffs.putAll(getPublishedObjectsDiff(now, lhs, rhss));
+        }
+        return diffs;
+    }
+
+    /**
+     * Process an update of repository at <code>url</code>.
+     *
+     * This updates its corresponding tracker and the difference counters
+     * against the other repositories.
+     */
+    public void processRepositoryUpdate(String url) {
+        var now = Instant.now();
+        var tracker = repositories.values().stream()
+                .filter(x -> url.equals(x.getUrl()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No repository tracker for URL: " + url));
+
+        tracker.update(now, repositoryObjects.getObjects(tracker.getUrl()));
+        getPublishedObjectsDiff(
+                now,
+                tracker,
+                repositories.values().stream().filter(x -> x != tracker).collect(Collectors.toList())
+        );
+    }
+
+    private Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
+        final var thresholds = new Duration[]{
+                Duration.of(5, MINUTES),
+                Duration.of(10, MINUTES),
+                Duration.of(15, MINUTES),
+                Duration.of(20, MINUTES),
+                Duration.of(30, MINUTES)
+        };
+
+        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
+        var counter = getOrCreateCounter(lhs.getTag());
+        counter.set(lhs.size(now));
+
+        for (var rhs : rhss) {
+            for (var threshold : thresholds) {
+                diffs.putAll(comparePublicationPoints(lhs, rhs, now, threshold));
+            }
+        }
+        return diffs;
+    }
+
     private Map<String, Set<FileEntry>> comparePublicationPoints(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
         var diffCounter = getOrCreateDiffCounter(lhs, rhs, threshold);
         var diffCounterInv = getOrCreateDiffCounter(rhs, lhs, threshold);
@@ -135,36 +189,6 @@ public class PublishedObjectsSummaryService {
                 diffTag(lhs.getUrl(), rhs.getUrl(), threshold), diff,
                 diffTag(rhs.getUrl(), lhs.getUrl(), threshold), diffInv
         );
-    }
-
-    public Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
-        final var thresholds = new Duration[]{
-            Duration.of(5, MINUTES),
-            Duration.of(10, MINUTES),
-            Duration.of(15, MINUTES),
-            Duration.of(20, MINUTES),
-            Duration.of(30, MINUTES)
-        };
-
-        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
-        // n-choose-2
-        // It is safe to only generate subsets of size 2 in one order because
-        // we calculate the difference in two directions.
-        for (int i = 0; i < repositories.size(); i++) {
-            var lhs = repositories.get(i);
-
-            var counter = getOrCreateCounter(lhs.getTag());
-            counter.set(lhs.size(now));
-
-            for (int j = i+1; j < repositories.size(); j++) {
-                var rhs = repositories.get(j);
-
-                for (var threshold : thresholds) {
-                    diffs.putAll(comparePublicationPoints(lhs, rhs, now, threshold));
-                }
-            }
-        }
-        return diffs;
     }
 
     private static Map<String, RepositoryTracker> initRepositories(AppConfig config) {

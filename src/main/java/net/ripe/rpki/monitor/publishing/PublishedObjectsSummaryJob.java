@@ -43,7 +43,7 @@ public class PublishedObjectsSummaryJob extends QuartzJobBean {
 
     @Bean("Published_Objects_Summary_Trigger")
     public Trigger trigger(@Qualifier(PUBLISHED_OBJECTS_JOB) JobDetail jobDetail,
-                           @Value("${rsync.interval}") Duration interval
+                           @Value("${published-objects.full-diff-interval}") Duration interval
                            ) {
         return TriggerBuilder.newTrigger().forJob(jobDetail)
                 .withIdentity(this.getClass().getName())

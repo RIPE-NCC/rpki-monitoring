@@ -152,6 +152,10 @@ public class ObjectAndDateCollector {
         }
     }
 
+    public String repositoryUrl() {
+        return repoFetcher.repositoryUrl();
+    }
+
     public enum ObjectStatus {
         ACCEPTED, UNKNOWN, REJECTED
     }
