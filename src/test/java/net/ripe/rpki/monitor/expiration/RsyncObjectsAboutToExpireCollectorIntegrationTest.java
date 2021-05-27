@@ -2,24 +2,24 @@ package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.nio.file.Path;
 
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+@Slf4j
 class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
     private ObjectAndDateCollector rsyncObjectsAboutToExpireCollector;
@@ -37,9 +37,11 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     }
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach(@TempDir Path tempDirectory) throws IOException {
         meterRegistry = new SimpleMeterRegistry();
         repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
+
+        config.setBaseDirectory(tempDirectory);
 
         final RsyncFetcher rsyncFetcher = new RsyncFetcher(config, uri.getPath());
         final CollectorUpdateMetrics collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
