@@ -38,7 +38,7 @@ core:
 published-objects:
   # The interval at which a full diff on all repositories is collected. Incidentally
   # this _also_ is the interval at which the core repository is tracked.
-  full-diff-interval: 10M
+  full-diff-interval: 5M
 
 logging:
   level:
