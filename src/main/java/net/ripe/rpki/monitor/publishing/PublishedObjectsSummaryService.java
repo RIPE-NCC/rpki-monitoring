@@ -104,7 +104,7 @@ public class PublishedObjectsSummaryService {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         for (var tag : appConfig.getRsyncConfig().getOtherUrls().keySet()) {
             var repo = repositories.get("rsync-" + tag);
-            diffs.putAll(comparePublicationPoints(mainRepo, repo, now, threshold));
+            diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(mainRepo, repo, now, threshold));
         }
         return diffs;
     }
@@ -116,7 +116,7 @@ public class PublishedObjectsSummaryService {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         for (var tag : appConfig.getRrdpConfig().getOtherUrls().keySet()) {
             var repo = repositories.get("rrdp-" + tag);
-            diffs.putAll(comparePublicationPoints(mainRepo, repo, now, threshold));
+            diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(mainRepo, repo, now, threshold));
         }
         return diffs;
     }
@@ -169,13 +169,13 @@ public class PublishedObjectsSummaryService {
 
         for (var rhs : rhss) {
             for (var threshold : thresholds) {
-                diffs.putAll(comparePublicationPoints(lhs, rhs, now, threshold));
+                diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, now, threshold));
             }
         }
         return diffs;
     }
 
-    private Map<String, Set<FileEntry>> comparePublicationPoints(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
+    private Map<String, Set<FileEntry>> collectPublishedObjectDifferencesAndUpdateCounters(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
         var diffCounter = getOrCreateDiffCounter(lhs, rhs, threshold);
         var diffCounterInv = getOrCreateDiffCounter(rhs, lhs, threshold);
 
