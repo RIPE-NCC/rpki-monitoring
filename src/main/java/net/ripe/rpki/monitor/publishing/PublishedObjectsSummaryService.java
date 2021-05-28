@@ -147,11 +147,8 @@ public class PublishedObjectsSummaryService {
                 .orElseThrow(() -> new IllegalStateException("No repository tracker for URL: " + url));
 
         tracker.update(now, repositoryObjects.getObjects(tracker.getUrl()));
-        getPublishedObjectsDiff(
-                now,
-                tracker,
-                repositories.values().stream().filter(x -> x != tracker).collect(Collectors.toList())
-        );
+        var counter = getOrCreateCounter(tracker.getTag());
+        counter.set(tracker.size(now));
     }
 
     private Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
