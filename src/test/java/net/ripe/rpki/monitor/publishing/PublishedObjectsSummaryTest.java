@@ -74,6 +74,23 @@ public class PublishedObjectsSummaryTest {
     }
 
     @Test
+    public void processRepositoryUpdateShouldInitializeCounterForTracker(){
+
+        publishedObjectsSummaryService.processRepositoryUpdate("https://rrdp.rpki.ripe.net");
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "rrdp").gauge()).isNotNull();
+
+        publishedObjectsSummaryService.processRepositoryUpdate("rsync://rpki.ripe.net");
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "rsync").gauge()).isNotNull();
+
+        publishedObjectsSummaryService.processRepositoryUpdate("https://ba-apps.ripe.net/certification/");
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "core").gauge()).isNotNull();
+
+    }
+
+    @Test
     public void itShouldReportADifference_caused_by_core() {
         final Set<PublishedObjectEntry> object = Set.of(
             PublishedObjectEntry.builder()
