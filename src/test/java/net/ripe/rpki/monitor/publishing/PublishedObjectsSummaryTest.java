@@ -55,7 +55,7 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldNotReportADifferencesBetweenEmptySources() {
-        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(
+        final var res = publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(
                 now,
                 List.of(
                     RepositoryTracker.empty("core", testConfig.getCoreUrl()),
@@ -98,7 +98,7 @@ public class PublishedObjectsSummaryTest {
                 .uri("rsync://example.org/index.txt")
                 .build());
 
-        publishedObjectsSummaryService.getPublishedObjectsDiff(
+        publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(
                 now,
                 List.of(
                     RepositoryTracker.with("core", testConfig.getCoreUrl(), now.minusSeconds(301), object),
@@ -136,7 +136,7 @@ public class PublishedObjectsSummaryTest {
         Set<RepoObject> object = Set.of(RepoObject.fictionalObjectValidAtInstant(new Date()));
 
         publishedObjectsSummaryService
-            .getPublishedObjectsDiff(
+            .updateAndGetPublishedObjectsDiff(
                     now,
                     List.of(
                         RepositoryTracker.empty("core", testConfig.getCoreUrl()),
@@ -167,7 +167,7 @@ public class PublishedObjectsSummaryTest {
     public void itShouldReportADifference_caused_by_rsync_objects() {
         Set<RepoObject> object = Set.of(RepoObject.fictionalObjectValidAtInstant(new Date()));
 
-        publishedObjectsSummaryService.getPublishedObjectsDiff(
+        publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(
                 now,
                 List.of(
                     RepositoryTracker.empty("core", testConfig.getCoreUrl()),

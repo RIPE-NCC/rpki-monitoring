@@ -56,7 +56,7 @@ public class PublishedObjectsSummaryJob extends QuartzJobBean {
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
         try {
-            final var diff = publishedObjectsSummaryService.getPublishedObjectsDiff();
+            final var diff = publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff();
             final var total = diff.values().stream().mapToInt(Set::size).sum();
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), "total").objectCount(total, 0, 0);
         } catch (Exception e) {

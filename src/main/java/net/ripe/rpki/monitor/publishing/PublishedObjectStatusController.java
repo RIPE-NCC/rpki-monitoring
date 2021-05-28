@@ -20,7 +20,7 @@ public class PublishedObjectStatusController {
 
     @GetMapping("/published-object-diffs")
     public Map<String, Set<FileEntry>> publishedObjectDiffs() {
-        return publishedObjectsSummaryService.getPublishedObjectsDiff();
+        return publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff();
     }
 
     @GetMapping("/rsync-diffs")
