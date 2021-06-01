@@ -29,12 +29,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.time.temporal.ChronoUnit.MINUTES;
+import static java.time.temporal.ChronoUnit.SECONDS;
 
 @Setter
 @Service
 @Slf4j
 public class PublishedObjectsSummaryService {
+    static final List<Duration> THRESHOLDS = List.of(
+            Duration.of(256, SECONDS),
+            Duration.of(596, SECONDS),
+            Duration.of(851, SECONDS),
+            Duration.of(1024, SECONDS),
+            Duration.of(1706, SECONDS),
+            Duration.of(3411, SECONDS)
+            );
 
     private final RepositoryObjects repositoryObjects;
     private final CoreClient rpkiCoreClient;
@@ -155,21 +163,14 @@ public class PublishedObjectsSummaryService {
     }
 
     private Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
-        final var thresholds = new Duration[]{
-                Duration.of(5, MINUTES),
-                Duration.of(10, MINUTES),
-                Duration.of(15, MINUTES),
-                Duration.of(20, MINUTES),
-                Duration.of(30, MINUTES)
-        };
-
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         var counter = getOrCreateCounter(lhs.getTag());
         counter.set(lhs.size(now));
 
         for (var rhs : rhss) {
-            for (var threshold : thresholds) {
-                diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, now, threshold));
+
+            for (var threshold : THRESHOLDS) {
+                DIFFS.PUTALL(COLLECTPUBLISHEDOBJECTDIFFERENCESANDUPDATECOUNTERS(LHS, RHS, NOW, THRESHOLD));
             }
         }
         return diffs;

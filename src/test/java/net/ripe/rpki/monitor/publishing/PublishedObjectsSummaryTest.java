@@ -32,6 +32,9 @@ import static org.junit.Assert.*;
 
 @ExtendWith(MockitoExtension.class)
 public class PublishedObjectsSummaryTest {
+    private final Duration maxThreshold = PublishedObjectsSummaryService.THRESHOLDS.stream().max(Duration::compareTo).get();
+    private final Duration minThreshold = PublishedObjectsSummaryService.THRESHOLDS.stream().min(Duration::compareTo).get();
+
     private final Instant now = Instant.now();
     private final AppConfig testConfig = mkTestConfig();
 
@@ -101,7 +104,7 @@ public class PublishedObjectsSummaryTest {
         publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(
                 now,
                 List.of(
-                    RepositoryTracker.with("core", testConfig.getCoreUrl(), now.minusSeconds(301), object),
+                    RepositoryTracker.with("core", testConfig.getCoreUrl(), now.minus(minThreshold), object),
                     RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
                     RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
                 )
@@ -115,14 +118,15 @@ public class PublishedObjectsSummaryTest {
                 .tags("source", "rrdp").gauge().value()).isZero();
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "core", "threshold", "300").gauges())
+                .tags("lhs", "core", "threshold", String.valueOf(minThreshold.getSeconds())).gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "core", "threshold", "900").gauges())
-                .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "core", "threshold", "1800").gauges())
-                .allMatch(gauge -> gauge.value() == 0.0);
+        PublishedObjectsSummaryService.THRESHOLDS.stream()
+                .filter(x -> x.compareTo(minThreshold) > 0)
+                .forEach(threshold -> {
+                    then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+                            .tags("lhs", "core", "threshold", String.valueOf(threshold.getSeconds())).gauges())
+                            .allMatch(gauge -> gauge.value() == 0.0);
+                });
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rsync").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
@@ -140,7 +144,7 @@ public class PublishedObjectsSummaryTest {
                     now,
                     List.of(
                         RepositoryTracker.empty("core", testConfig.getCoreUrl()),
-                        RepositoryTracker.with("rrdp", testConfig.getRrdpConfig().getMainUrl(), now.minusSeconds(1801), object),
+                        RepositoryTracker.with("rrdp", testConfig.getRrdpConfig().getMainUrl(), now.minus(maxThreshold), object),
                         RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl())
                     )
             );
@@ -172,7 +176,7 @@ public class PublishedObjectsSummaryTest {
                 List.of(
                     RepositoryTracker.empty("core", testConfig.getCoreUrl()),
                     RepositoryTracker.empty("rrdp", testConfig.getRrdpConfig().getMainUrl()),
-                    RepositoryTracker.with("rsync", testConfig.getRsyncConfig().getMainUrl(), now.minusSeconds(901), object)
+                    RepositoryTracker.with("rsync", testConfig.getRsyncConfig().getMainUrl(), now.minus(minThreshold), object)
                 )
         );
 
@@ -187,14 +191,16 @@ public class PublishedObjectsSummaryTest {
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "rsync", "threshold", "300").gauges())
+                .tags("lhs", "rsync", "threshold", String.valueOf(minThreshold.getSeconds())).gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "rsync", "threshold", "900").gauges())
-                .allMatch(gauge -> gauge.value() == 1.0);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "rsync", "threshold", "1800").gauges())
-                .allMatch(gauge -> gauge.value() == 0.0);
+        PublishedObjectsSummaryService.THRESHOLDS.stream()
+                .filter(x -> x.compareTo(minThreshold) > 0)
+                .forEach(threshold -> {
+                    then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+                            .tags("lhs", "rsync", "threshold", String.valueOf(threshold.getSeconds())).gauges())
+                            .allMatch(gauge -> gauge.value() == 0.0);
+                });
+
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rrdp").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
