@@ -2,7 +2,7 @@
 # This is the Gradle build system for JVM applications
 # https://gradle.org/
 # https://github.com/gradle/gradle
-image: docker-registry.ripe.net/swe/gitlab-ci/gradle-buildenv:jdk-11
+image: docker-registry.ripe.net/swe/gitlab-ci/gradle-buildenv:gradle7-jdk-11
 
 
 stages:
