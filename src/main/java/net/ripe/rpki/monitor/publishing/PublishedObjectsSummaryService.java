@@ -63,7 +63,7 @@ public class PublishedObjectsSummaryService {
     /**
      * Get the diff of the published objects <b>and update the metrics</b>.
      */
-    public Map<String, Set<FileEntry>> getPublishedObjectsDiff() {
+    public Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff() {
         var now = Instant.now();
 
         // Update the repository trackers with the latest object information
@@ -71,7 +71,7 @@ public class PublishedObjectsSummaryService {
         updateRsyncRepositories(now);
         updateRrdpRepositories(now);
 
-        return getPublishedObjectsDiff(now,
+        return updateAndGetPublishedObjectsDiff(now,
                 List.copyOf(repositories.values()));
     }
 
@@ -104,7 +104,7 @@ public class PublishedObjectsSummaryService {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         for (var tag : appConfig.getRsyncConfig().getOtherUrls().keySet()) {
             var repo = repositories.get("rsync-" + tag);
-            diffs.putAll(comparePublicationPoints(mainRepo, repo, now, threshold));
+            diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(mainRepo, repo, now, threshold));
         }
         return diffs;
     }
@@ -116,19 +116,19 @@ public class PublishedObjectsSummaryService {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         for (var tag : appConfig.getRrdpConfig().getOtherUrls().keySet()) {
             var repo = repositories.get("rrdp-" + tag);
-            diffs.putAll(comparePublicationPoints(mainRepo, repo, now, threshold));
+            diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(mainRepo, repo, now, threshold));
         }
         return diffs;
     }
 
-    public Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
+    public Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         // n-choose-2
         // It is safe to only generate subsets of size 2 in one order because
         // we calculate the difference in two directions.
         for (var lhs : repositories) {
             var rhss = repositories.stream().takeWhile(x -> x != lhs).collect(Collectors.toList());
-            diffs.putAll(getPublishedObjectsDiff(now, lhs, rhss));
+            diffs.putAll(updateAndGetPublishedObjectsDiff(now, lhs, rhss));
         }
         return diffs;
     }
@@ -147,14 +147,14 @@ public class PublishedObjectsSummaryService {
                 .orElseThrow(() -> new IllegalStateException("No repository tracker for URL: " + url));
 
         tracker.update(now, repositoryObjects.getObjects(tracker.getUrl()));
-        getPublishedObjectsDiff(
+        updateAndGetPublishedObjectsDiff(
                 now,
                 tracker,
                 repositories.values().stream().filter(x -> x != tracker).collect(Collectors.toList())
         );
     }
 
-    private Map<String, Set<FileEntry>> getPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
+    private Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
         final var thresholds = new Duration[]{
                 Duration.of(5, MINUTES),
                 Duration.of(10, MINUTES),
@@ -169,13 +169,13 @@ public class PublishedObjectsSummaryService {
 
         for (var rhs : rhss) {
             for (var threshold : thresholds) {
-                diffs.putAll(comparePublicationPoints(lhs, rhs, now, threshold));
+                diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, now, threshold));
             }
         }
         return diffs;
     }
 
-    private Map<String, Set<FileEntry>> comparePublicationPoints(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
+    private Map<String, Set<FileEntry>> collectPublishedObjectDifferencesAndUpdateCounters(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
         var diffCounter = getOrCreateDiffCounter(lhs, rhs, threshold);
         var diffCounterInv = getOrCreateDiffCounter(rhs, lhs, threshold);
 

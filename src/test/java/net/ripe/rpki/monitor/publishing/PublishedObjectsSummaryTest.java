@@ -55,7 +55,7 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldNotReportADifferencesBetweenEmptySources() {
-        final var res = publishedObjectsSummaryService.getPublishedObjectsDiff(
+        final var res = publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(
                 now,
                 List.of(
                     RepositoryTracker.empty("core", testConfig.getCoreUrl()),
@@ -74,6 +74,23 @@ public class PublishedObjectsSummaryTest {
     }
 
     @Test
+    public void processRepositoryUpdateShouldInitializeCounterForTracker(){
+
+        publishedObjectsSummaryService.processRepositoryUpdate("https://rrdp.rpki.ripe.net");
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "rrdp").gauge()).isNotNull();
+
+        publishedObjectsSummaryService.processRepositoryUpdate("rsync://rpki.ripe.net");
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "rsync").gauge()).isNotNull();
+
+        publishedObjectsSummaryService.processRepositoryUpdate("https://ba-apps.ripe.net/certification/");
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "core").gauge()).isNotNull();
+
+    }
+
+    @Test
     public void itShouldReportADifference_caused_by_core() {
         final Set<PublishedObjectEntry> object = Set.of(
             PublishedObjectEntry.builder()
@@ -81,7 +98,7 @@ public class PublishedObjectsSummaryTest {
                 .uri("rsync://example.org/index.txt")
                 .build());
 
-        publishedObjectsSummaryService.getPublishedObjectsDiff(
+        publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(
                 now,
                 List.of(
                     RepositoryTracker.with("core", testConfig.getCoreUrl(), now.minusSeconds(301), object),
@@ -119,7 +136,7 @@ public class PublishedObjectsSummaryTest {
         Set<RepoObject> object = Set.of(RepoObject.fictionalObjectValidAtInstant(new Date()));
 
         publishedObjectsSummaryService
-            .getPublishedObjectsDiff(
+            .updateAndGetPublishedObjectsDiff(
                     now,
                     List.of(
                         RepositoryTracker.empty("core", testConfig.getCoreUrl()),
@@ -150,7 +167,7 @@ public class PublishedObjectsSummaryTest {
     public void itShouldReportADifference_caused_by_rsync_objects() {
         Set<RepoObject> object = Set.of(RepoObject.fictionalObjectValidAtInstant(new Date()));
 
-        publishedObjectsSummaryService.getPublishedObjectsDiff(
+        publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(
                 now,
                 List.of(
                     RepositoryTracker.empty("core", testConfig.getCoreUrl()),
