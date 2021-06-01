@@ -170,7 +170,7 @@ public class PublishedObjectsSummaryService {
         for (var rhs : rhss) {
 
             for (var threshold : THRESHOLDS) {
-                DIFFS.PUTALL(COLLECTPUBLISHEDOBJECTDIFFERENCESANDUPDATECOUNTERS(LHS, RHS, NOW, THRESHOLD));
+                diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, now, threshold));
             }
         }
         return diffs;
