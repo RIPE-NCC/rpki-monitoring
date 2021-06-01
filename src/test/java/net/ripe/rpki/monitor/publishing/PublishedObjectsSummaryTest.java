@@ -10,6 +10,7 @@ import net.ripe.rpki.monitor.expiration.RepositoryObjects;
 import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.publishing.dto.FileEntry;
+import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.assertj.core.util.Maps;

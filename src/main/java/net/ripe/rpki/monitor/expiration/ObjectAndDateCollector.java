@@ -17,11 +17,13 @@ import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,14 +45,17 @@ public class ObjectAndDateCollector {
      * completely rejected (and the behaviour does not degrade due to being over capacity).
      */
     private final BloomFilter<String> loggedRejectedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 100_000, 0.5);
+    private final RepositoriesState repositoriesState;
 
     public ObjectAndDateCollector(
         @NonNull final RepoFetcher repoFetcher,
         @NonNull CollectorUpdateMetrics metrics,
+        @NonNull RepositoriesState repositoriesState,
         RepositoryObjects repositoryObjects) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
         this.repositoryObjects = repositoryObjects;
+        this.repositoriesState = repositoriesState;
     }
 
     public void run() throws FetcherException {
@@ -78,6 +83,7 @@ public class ObjectAndDateCollector {
             }).flatMap(Optional::stream).collect(ImmutableSortedSet.toImmutableSortedSet(RepoObject::compareTo));
 
             repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
+            repositoriesState.updateByUrl(repoFetcher.repositoryUrl(), Instant.now(), expirationSummary);
 
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
         } catch (SnapshotNotModifiedException e) {

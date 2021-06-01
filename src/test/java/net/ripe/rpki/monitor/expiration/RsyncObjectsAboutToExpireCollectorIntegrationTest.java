@@ -7,6 +7,8 @@ import net.ripe.rpki.monitor.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
+import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,7 +36,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
     RsyncObjectsAboutToExpireCollectorIntegrationTest() throws URISyntaxException {
         config = new RsyncConfig();
-        config.setMainUrl("rsync://example.org");
+        config.setMainUrl(uri.getPath());
     }
 
     @BeforeEach
@@ -43,10 +46,11 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
         config.setBaseDirectory(tempDirectory);
 
-        final RsyncFetcher rsyncFetcher = new RsyncFetcher(config, uri.getPath());
+        final RsyncFetcher rsyncFetcher = new RsyncFetcher(config, config.getMainUrl());
         final CollectorUpdateMetrics collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
-        rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositoryObjects);
+        var state = RepositoriesState.init(List.of(Pair.of("rsync", config.getMainUrl())));
+        rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, state, repositoryObjects);
     }
 
     @Test

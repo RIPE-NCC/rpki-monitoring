@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
 import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,9 @@ import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 
 import java.net.URI;
+import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -26,6 +29,8 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
     @Autowired
     private RepositoryObjects repositoryObjects;
+    @Autowired
+    private RepositoriesState repositoriesState;
 
     @Autowired
     private Collectors collectors;
@@ -82,6 +87,9 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
                 );
 
         rrdpObjectsAboutToExpireCollector.run();
+
+        var tracker = repositoriesState.getTrackerByUrl("http://localhost.example").get();
+        assertThat(tracker.size(Instant.now())).isEqualTo(4);
 
         assertEquals(4, repositoryObjects.geRepositoryObjectsAboutToExpire("http://localhost.example", Integer.MAX_VALUE).size());
     }

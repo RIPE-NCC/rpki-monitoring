@@ -2,6 +2,8 @@ package net.ripe.rpki.monitor;
 
 import io.micrometer.core.instrument.config.MeterFilter;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -11,6 +13,11 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -40,6 +47,32 @@ public class Application {
             .defaultHeader(properties.getInternalApiKeyHeader(), coreApiKey)
             .rootUri(coreUrl)
             .build();
+    }
+
+    @Bean
+    public RepositoriesState repositoriesState(
+            final AppConfig config
+
+    ) {
+        var repos = new ArrayList<Pair<String, String>>();
+        repos.add(Pair.of("core", config.getCoreUrl()));
+        repos.add(Pair.of("rrdp", config.getRrdpConfig().getMainUrl()));
+        repos.addAll(toList(config.getRrdpConfig().getOtherUrls()));
+        repos.add(Pair.of("rsync", config.getRsyncConfig().getMainUrl()));
+        repos.addAll(toList(config.getRsyncConfig().getOtherUrls()));
+
+        var state = RepositoriesState.init(repos);
+        state.addHook((tracker) -> {
+            // TODO update object expiration metrics
+            System.out.println("**** State updated for: " + tracker.getTag() + " ****");
+        });
+        return state;
+    }
+
+    private <K, V> List<Pair<K, V>> toList(Map<K, V> m) {
+        return m.entrySet().stream()
+                .map(x -> Pair.of(x.getKey(), x.getValue()))
+                .collect(Collectors.toList());
     }
 
     @Bean
