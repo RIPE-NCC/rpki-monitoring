@@ -136,27 +136,12 @@ public class PublishedObjectsSummaryService {
     }
 
     /**
-     * Process an update of repository at <code>url</code>.
+     * Process an update of repository (<code>lhs</code>).
      *
      * This updates its corresponding tracker and the difference counters
-     * against the other repositories.
+     * against the other repositories (<code>rhss</code>).
      */
-    public void processRepositoryUpdate(String url) {
-        var now = Instant.now();
-        var tracker = repositories.values().stream()
-                .filter(x -> url.equals(x.getUrl()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No repository tracker for URL: " + url));
-
-        tracker.update(now, repositoryObjects.getObjects(tracker.getUrl()));
-        updateAndGetPublishedObjectsDiff(
-                now,
-                tracker,
-                repositories.values().stream().filter(x -> x != tracker).collect(Collectors.toList())
-        );
-    }
-
-    private Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
+    public Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         var counter = getOrCreateCounter(lhs.getTag());
         counter.set(lhs.size(now));

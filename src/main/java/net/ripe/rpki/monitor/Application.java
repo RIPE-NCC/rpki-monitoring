@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor;
 
 import io.micrometer.core.instrument.config.MeterFilter;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +53,8 @@ public class Application {
 
     @Bean
     public RepositoriesState repositoriesState(
-            final AppConfig config
-
+            final AppConfig config,
+            final PublishedObjectsSummaryService publishedObjectsSummary
     ) {
         var repos = new ArrayList<Pair<String, String>>();
         repos.add(Pair.of("core", config.getCoreUrl()));
@@ -63,8 +65,9 @@ public class Application {
 
         var state = RepositoriesState.init(repos);
         state.addHook((tracker) -> {
-            // TODO update object expiration metrics
-            System.out.println("**** State updated for: " + tracker.getTag() + " ****");
+            var now = Instant.now();
+            var others = state.getOtherTrackers(tracker);
+            publishedObjectsSummary.updateAndGetPublishedObjectsDiff(now, tracker, others);
         });
         return state;
     }

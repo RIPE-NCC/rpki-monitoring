@@ -12,6 +12,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toUnmodifiableList;
+
 /**
  * Stateful representation of the repositories that are monitored.
  */
@@ -60,6 +62,15 @@ public class RepositoriesState {
 
     public void addHook(Consumer<RepositoryTracker> f) {
         updateHooks.set(append(updateHooks.get(), f));
+    }
+
+    /**
+     * Get all trackers for different URLs.
+     */
+    public List<RepositoryTracker> getOtherTrackers(RepositoryTracker tracker) {
+        return repositories.stream()
+                .filter(x -> !x.getUrl().equals(tracker.getUrl()))
+                .collect(toUnmodifiableList());
     }
 
     private <T> List<T> append(List<T> xs, T x) {

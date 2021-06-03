@@ -11,9 +11,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RepositoriesStateTest {
-    private final RepositoriesState state = RepositoriesState.init(
-            List.of(Pair.of("rrdp.ripe.net", "https://rrdp.ripe.net/"))
-    );
+    private final RepositoriesState state = RepositoriesState.init(List.of(
+            Pair.of("rrdp.ripe.net", "https://rrdp.ripe.net/"),
+            Pair.of("rpki.ripe.net", "rsync://rpki.ripe.net/")
+    ));
 
     @Test
     public void test_state_update() {
@@ -49,5 +50,13 @@ class RepositoriesStateTest {
     public void get_tracker_by_url_should_return_tracker() {
         var tracker = state.getTrackerByUrl("https://rrdp.ripe.net/");
         assertThat(tracker).isPresent();
+    }
+
+    @Test
+    public void get_other_trackers() {
+        var tracker = state.getTrackerByTag("rrdp.ripe.net");
+        var others = state.getOtherTrackers(tracker.get());
+        assertThat(others).hasSize(1);
+        assertThat(others.get(0).getTag()).isEqualTo("rpki.ripe.net");
     }
 }

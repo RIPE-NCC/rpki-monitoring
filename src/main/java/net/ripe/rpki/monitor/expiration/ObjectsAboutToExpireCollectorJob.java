@@ -10,22 +10,17 @@ import java.util.List;
 
 public class ObjectsAboutToExpireCollectorJob extends QuartzJobBean {
     protected final List<ObjectAndDateCollector> collectors;
-    private final PublishedObjectsSummaryService publishedObjectsSummaryService;
 
     public ObjectsAboutToExpireCollectorJob(
             List<ObjectAndDateCollector> collectors,
             PublishedObjectsSummaryService publishedObjectsSummaryService) {
         this.collectors = collectors;
-        this.publishedObjectsSummaryService = publishedObjectsSummaryService;
     }
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
         try {
-            collectors.parallelStream().forEach(collector -> {
-                collector.run();
-                publishedObjectsSummaryService.processRepositoryUpdate(collector.repositoryUrl());
-            });
+            collectors.parallelStream().forEach(ObjectAndDateCollector::run);
         } catch (FetcherException e) {
             throw new JobExecutionException(e);
         }
