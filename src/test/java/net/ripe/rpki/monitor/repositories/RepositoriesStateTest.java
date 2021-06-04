@@ -22,7 +22,7 @@ class RepositoriesStateTest {
         var entry = PublishedObjectEntry.builder().sha256("6248c142e1d153a4526f8709613cf4f1600d54d0a13c76d0ab4ed616aef5f0b4").build();
         var entries = List.of(entry);
 
-        var tracker = state.updateByTag("rrdp.ripe.net", now, entries);
+        var tracker = state.updateByUrl("https://rrdp.ripe.net/", now, entries);
         assertThat(tracker.size(now)).isEqualTo(1);
 
         now = now.plusSeconds(300);
@@ -36,7 +36,7 @@ class RepositoriesStateTest {
 
         var called = new AtomicInteger(0);
         state.addHook((tracker) -> called.incrementAndGet());
-        state.updateByTag("rrdp.ripe.net", now, List.of());
+        state.updateByUrl("https://rrdp.ripe.net/", now, List.of());
         assertThat(called.get()).isEqualTo(1);
     }
 

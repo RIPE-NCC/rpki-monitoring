@@ -7,7 +7,6 @@ import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -38,17 +37,6 @@ public class Application {
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder
             .defaultHeader("user-agent", String.format("rpki-monitor %s", properties.getVersion()))
-            .build();
-    }
-
-    @Bean(name = "rpki-core-resttemplate")
-    public RestTemplate coreClient(RestTemplateBuilder builder,
-                                   @Value("${core.url}") String coreUrl,
-                                   @Value("${core.api-key}") String coreApiKey) {
-        return builder
-            .defaultHeader("user-agent", String.format("rpki-monitor %s", properties.getVersion()))
-            .defaultHeader(properties.getInternalApiKeyHeader(), coreApiKey)
-            .rootUri(coreUrl)
             .build();
     }
 

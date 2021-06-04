@@ -1,10 +1,12 @@
 package net.ripe.rpki.monitor.service.core;
 
 import lombok.Setter;
+import net.ripe.rpki.monitor.MonitorProperties;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -14,13 +16,25 @@ import java.util.List;
 @Setter
 @Service
 public class CoreClient {
+    private final String url;
+    private final RestTemplate restTemplate;
+    private final CollectorUpdateMetrics collectorUpdateMetrics;
 
-    @Qualifier("rpki-core-resttemplate")
     @Autowired
-    private RestTemplate restTemplate;
+    public CoreClient(@Value("${core.url}") String url,
+                      @Value("${core.api-key}") String apikey,
+                      RestTemplateBuilder builder,
+                      MonitorProperties properties,
+                      CollectorUpdateMetrics collectorUpdateMetrics) {
+        this.collectorUpdateMetrics = collectorUpdateMetrics;
+        this.url = url;
+        this.restTemplate = builder
+                .defaultHeader("user-agent", String.format("rpki-monitor %s", properties.getVersion()))
+                .defaultHeader(properties.getInternalApiKeyHeader(), apikey)
+                .rootUri(url)
+                .build();
 
-    @Autowired
-    private CollectorUpdateMetrics collectorUpdateMetrics;
+    }
 
     public List<PublishedObjectEntry> publishedObjects() {
         try {
@@ -31,5 +45,9 @@ public class CoreClient {
             collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), "published-objects").zeroCounters();
             throw e;
         }
+    }
+
+    public String repositoryUrl() {
+        return url;
     }
 }

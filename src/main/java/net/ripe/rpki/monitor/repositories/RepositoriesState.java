@@ -1,7 +1,6 @@
 package net.ripe.rpki.monitor.repositories;
 
 import net.ripe.rpki.monitor.HasHashAndUri;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
 import java.time.Instant;
@@ -42,12 +41,6 @@ public class RepositoriesState {
 
     public Optional<RepositoryTracker> getTrackerByUrl(String url) {
         return repositories.stream().filter(x -> url.equals(x.getUrl())).findFirst();
-    }
-
-    public <T extends HasHashAndUri> RepositoryTracker updateByTag(String tag, Instant t, Collection<T> entries) {
-        var tracker = getTrackerByTag(tag).orElseThrow(() -> new IllegalArgumentException("No tracked repository for tag: " + tag));
-        update(tracker, t, entries);
-        return tracker;
     }
 
     public <T extends HasHashAndUri> RepositoryTracker updateByUrl(String url, Instant t, Collection<T> entries) {

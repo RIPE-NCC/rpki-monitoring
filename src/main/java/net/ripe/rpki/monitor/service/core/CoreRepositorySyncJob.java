@@ -29,7 +29,7 @@ public class CoreRepositorySyncJob extends QuartzJobBean {
     @Override
     protected void executeInternal(JobExecutionContext context) {
         var content = coreClient.publishedObjects();
-        state.updateByTag("core", Instant.now(), content);
+        state.updateByUrl(coreClient.repositoryUrl(), Instant.now(), content);
     }
 
     @Bean("CoreRepositorySyncJob")
