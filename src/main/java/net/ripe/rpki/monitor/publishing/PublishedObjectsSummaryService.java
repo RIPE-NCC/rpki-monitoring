@@ -99,26 +99,17 @@ public class PublishedObjectsSummaryService {
         );
     }
 
-    public Map<String, Set<FileEntry>> getRsyncDiff(Instant now, Duration threshold) {
-        updateRsyncRepositories(now);
-        var mainRepo = repositories.get("rsync");
-
-        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
-        for (var tag : appConfig.getRsyncConfig().getOtherUrls().keySet()) {
-            var repo = repositories.get("rsync-" + tag);
-            diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(mainRepo, repo, now, threshold));
-        }
-        return diffs;
-    }
-
-    public Map<String, Set<FileEntry>> getRrdpDiff(Instant now, Duration threshold) {
-        updateRrdpRepositories(now);
-        var mainRepo = repositories.get("rrdp");
-
-        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
-        for (var tag : appConfig.getRrdpConfig().getOtherUrls().keySet()) {
-            var repo = repositories.get("rrdp-" + tag);
-            diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(mainRepo, repo, now, threshold));
+    /**
+     * Diff all repositories on the left-hand side with those on the right-hand
+     * side and update the difference counters.
+     */
+    public Map<String, Set<FileEntry>> getDiff(Instant t, List<RepositoryTracker> lhss, List<RepositoryTracker> rhss) {
+        var threshold = THRESHOLDS.stream().min(Duration::compareTo).get();
+        var diffs = new HashMap<String, Set<FileEntry>>();
+        for (var lhs : lhss) {
+            for (var rhs : rhss) {
+                diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, t, threshold));
+            }
         }
         return diffs;
     }
@@ -176,17 +167,17 @@ public class PublishedObjectsSummaryService {
 
     private static Map<String, RepositoryTracker> initRepositories(AppConfig config) {
         var main = Stream.of(
-                RepositoryTracker.empty("core", config.getCoreUrl()),
-                RepositoryTracker.empty("rrdp", config.getRrdpConfig().getMainUrl()),
-                RepositoryTracker.empty("rsync", config.getRsyncConfig().getMainUrl())
+                RepositoryTracker.empty("core", config.getCoreUrl(), RepositoryTracker.Type.CORE),
+                RepositoryTracker.empty("rrdp", config.getRrdpConfig().getMainUrl(), RepositoryTracker.Type.RRDP),
+                RepositoryTracker.empty("rsync", config.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC)
         );
         var extras = Stream.concat(
                 config.getRsyncConfig().getOtherUrls()
                         .entrySet().stream()
-                        .map(e -> RepositoryTracker.empty("rsync-" + e.getKey(), e.getValue())),
+                        .map(e -> RepositoryTracker.empty("rsync-" + e.getKey(), e.getValue(), RepositoryTracker.Type.RSYNC)),
                 config.getRrdpConfig().getOtherUrls()
                         .entrySet().stream()
-                        .map(e -> RepositoryTracker.empty("rrdp-" + e.getKey(), e.getValue()))
+                        .map(e -> RepositoryTracker.empty("rrdp-" + e.getKey(), e.getValue(), RepositoryTracker.Type.RRDP))
         );
 
         return Stream.concat(main, extras)

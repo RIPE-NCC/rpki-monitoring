@@ -8,7 +8,8 @@ import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
-import org.apache.commons.lang3.tuple.Pair;
+import net.ripe.rpki.monitor.repositories.RepositoryTracker;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -49,7 +50,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         final RsyncFetcher rsyncFetcher = new RsyncFetcher(config, config.getMainUrl());
         final CollectorUpdateMetrics collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
-        var state = RepositoriesState.init(List.of(Pair.of("rsync", config.getMainUrl())));
+        var state = RepositoriesState.init(List.of(Triple.of("rsync", config.getMainUrl(), RepositoryTracker.Type.RSYNC)));
         rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, state, repositoryObjects);
     }
 

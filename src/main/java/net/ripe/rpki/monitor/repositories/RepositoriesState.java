@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.repositories;
 
 import net.ripe.rpki.monitor.HasHashAndUri;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -25,8 +26,8 @@ public class RepositoriesState {
      * Create the initial state from the given repository config. The config
      * defines the repositories as a pair of tag and url, respectively.
      */
-    public static RepositoriesState init(Collection<Pair<String, String>> config) {
-        var repos = config.stream().map(x -> RepositoryTracker.empty(x.getLeft(), x.getRight())).collect(Collectors.toList());
+    public static RepositoriesState init(Collection<Triple<String, String, RepositoryTracker.Type>> config) {
+        var repos = config.stream().map(x -> RepositoryTracker.empty(x.getLeft(), x.getMiddle(), x.getRight())).collect(Collectors.toList());
 
         return new RepositoriesState(repos);
     }
@@ -69,6 +70,15 @@ public class RepositoriesState {
      */
     public List<RepositoryTracker> allTrackers() {
         return List.copyOf(repositories);
+    }
+
+    /**
+     * Get all repsositories of <code>type</code> tracked by this state.
+     */
+    public List<RepositoryTracker> trackersOfType(RepositoryTracker.Type type) {
+        return repositories.stream()
+                .filter(x -> x.getType() == type)
+                .collect(toUnmodifiableList());
     }
 
     /**

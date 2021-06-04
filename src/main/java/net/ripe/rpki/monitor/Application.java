@@ -4,7 +4,8 @@ import io.micrometer.core.instrument.config.MeterFilter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
-import org.apache.commons.lang3.tuple.Pair;
+import net.ripe.rpki.monitor.repositories.RepositoryTracker;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -56,12 +57,12 @@ public class Application {
             final AppConfig config,
             final PublishedObjectsSummaryService publishedObjectsSummary
     ) {
-        var repos = new ArrayList<Pair<String, String>>();
-        repos.add(Pair.of("core", config.getCoreUrl()));
-        repos.add(Pair.of("rrdp", config.getRrdpConfig().getMainUrl()));
-        repos.addAll(toList(config.getRrdpConfig().getOtherUrls()));
-        repos.add(Pair.of("rsync", config.getRsyncConfig().getMainUrl()));
-        repos.addAll(toList(config.getRsyncConfig().getOtherUrls()));
+        var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
+        repos.add(Triple.of("core", config.getCoreUrl(), RepositoryTracker.Type.CORE));
+        repos.add(Triple.of("rrdp", config.getRrdpConfig().getMainUrl(), RepositoryTracker.Type.RRDP));
+        repos.addAll(toTriplets(config.getRrdpConfig().getOtherUrls(), RepositoryTracker.Type.RRDP));
+        repos.add(Triple.of("rsync", config.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC));
+        repos.addAll(toTriplets(config.getRsyncConfig().getOtherUrls(), RepositoryTracker.Type.RSYNC));
 
         var state = RepositoriesState.init(repos);
         state.addHook((tracker) -> {
@@ -72,9 +73,9 @@ public class Application {
         return state;
     }
 
-    private <K, V> List<Pair<K, V>> toList(Map<K, V> m) {
+    private <K, V, Z> List<Triple<K, V, Z>> toTriplets(Map<K, V> m, Z z) {
         return m.entrySet().stream()
-                .map(x -> Pair.of(x.getKey(), x.getValue()))
+                .map(x -> Triple.of(x.getKey(), x.getValue(), z))
                 .collect(Collectors.toList());
     }
 

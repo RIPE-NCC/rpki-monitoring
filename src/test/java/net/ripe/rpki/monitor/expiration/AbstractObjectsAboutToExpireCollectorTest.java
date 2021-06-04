@@ -7,7 +7,8 @@ import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
-import org.apache.commons.lang3.tuple.Pair;
+import net.ripe.rpki.monitor.repositories.RepositoryTracker;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
 
 import java.text.DateFormat;
@@ -26,7 +27,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 
     private final RepositoryObjects repositoryObjects = new RepositoryObjects(mock(ObjectExpirationMetrics.class));
-    private final RepositoriesState state = RepositoriesState.init(List.of(Pair.of("rrdp", "https://rrdp.ripe.net")));
+    private final RepositoriesState state = RepositoriesState.init(List.of(Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)));
 
     ObjectAndDateCollector collector = new ObjectAndDateCollector(
             new NoopRepoFetcher("https://rrdp.ripe.net"),

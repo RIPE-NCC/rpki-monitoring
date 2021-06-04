@@ -31,28 +31,35 @@ public class RepositoryTracker {
     private final String tag;
     @Getter
     private final String url;
+    @Getter
+    private final Type type;
+
+    public enum Type {
+        CORE, RRDP, RSYNC
+    }
 
     private final AtomicReference<Map<String, Pair<FileEntry, Instant>>> objects;
 
     /**
      * Get an empty repository.
      */
-    public static RepositoryTracker empty(String tag, String url) {
-        return new RepositoryTracker(tag, url, Collections.emptyMap());
+    public static RepositoryTracker empty(String tag, String url, Type type) {
+        return new RepositoryTracker(tag, url, type, Collections.emptyMap());
     }
 
     /**
      * Create a repository with the given entries and time <i>t</i>.
      */
-    public static <T extends HasHashAndUri> RepositoryTracker with(String tag, String url, Instant t, Collection<T> entries) {
-        var repo = RepositoryTracker.empty(tag, url);
+    public static <T extends HasHashAndUri> RepositoryTracker with(String tag, String url, Type type, Instant t, Collection<T> entries) {
+        var repo = RepositoryTracker.empty(tag, url, type);
         repo.update(t, entries);
         return repo;
     }
 
-    private RepositoryTracker(String tag, String url, Map<String, Pair<FileEntry, Instant>> objects) {
+    private RepositoryTracker(String tag, String url, Type type, Map<String, Pair<FileEntry, Instant>> objects) {
         this.tag = tag;
         this.url = url;
+        this.type = type;
         this.objects = new AtomicReference<>(objects);
     }
 

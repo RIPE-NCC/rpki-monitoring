@@ -1,7 +1,7 @@
 package net.ripe.rpki.monitor.repositories;
 
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -12,8 +12,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RepositoriesStateTest {
     private final RepositoriesState state = RepositoriesState.init(List.of(
-            Pair.of("rrdp.ripe.net", "https://rrdp.ripe.net/"),
-            Pair.of("rpki.ripe.net", "rsync://rpki.ripe.net/")
+            Triple.of("rrdp.ripe.net", "https://rrdp.ripe.net/", RepositoryTracker.Type.RRDP),
+            Triple.of("rpki.ripe.net", "rsync://rpki.ripe.net/", RepositoryTracker.Type.RSYNC)
     ));
 
     @Test
@@ -53,7 +53,20 @@ class RepositoriesStateTest {
     }
 
     @Test
-    public void get_other_trackers() {
+    public void test_get_all_trackers() {
+        var trackers = state.allTrackers();
+        assertThat(trackers).hasSize(2);
+    }
+
+    @Test
+    public void test_get_trackers_by_type() {
+        var trackers = state.trackersOfType(RepositoryTracker.Type.RRDP);
+        assertThat(trackers).hasSize(1);
+        assertThat(trackers.get(0).getTag()).isEqualTo("rrdp.ripe.net");
+    }
+
+    @Test
+    public void test_get_other_trackers() {
         var tracker = state.getTrackerByTag("rrdp.ripe.net");
         var others = state.otherTrackers(tracker.get());
         assertThat(others).hasSize(1);
