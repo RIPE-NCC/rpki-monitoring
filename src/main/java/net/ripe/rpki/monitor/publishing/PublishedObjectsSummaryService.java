@@ -18,10 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -36,16 +35,10 @@ public class PublishedObjectsSummaryService {
             Duration.of(1024, SECONDS),
             Duration.of(1706, SECONDS),
             Duration.of(3411, SECONDS)
-            );
+    );
 
-    private final RepositoryObjects repositoryObjects;
-    private final CoreClient rpkiCoreClient;
-    private final AppConfig appConfig;
-
-    private final Map<String, AtomicLong> counters = new HashMap<>();
     private final MeterRegistry registry;
-
-    private final Map<String, RepositoryTracker> repositories;
+    private final Map<String, AtomicLong> counters = new ConcurrentHashMap<>();
 
     @Autowired
     public PublishedObjectsSummaryService(
@@ -55,48 +48,6 @@ public class PublishedObjectsSummaryService {
         final AppConfig appConfig
     ) {
         this.registry = registry;
-        this.repositoryObjects = repositoryObjects;
-        this.rpkiCoreClient = rpkiCoreClient;
-        this.appConfig = appConfig;
-
-        this.repositories = initRepositories(appConfig);
-    }
-
-    /**
-     * Get the diff of the published objects <b>and update the metrics</b>.
-     */
-    public Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff() {
-        var now = Instant.now();
-
-        // Update the repository trackers with the latest object information
-        updateCoreRepository(now);
-        updateRsyncRepositories(now);
-        updateRrdpRepositories(now);
-
-        return updateAndGetPublishedObjectsDiff(now,
-                List.copyOf(repositories.values()));
-    }
-
-    private void updateCoreRepository(Instant now) {
-        try {
-            repositories.get("core").update(now, rpkiCoreClient.publishedObjects());
-        } catch (Exception e) {
-            log.error("Cannot fetch published objects from rpki-core", e);
-        }
-    }
-
-    private void updateRsyncRepositories(Instant now) {
-        repositories.get("rsync").update(now, repositoryObjects.getObjects(appConfig.getRsyncConfig().getMainUrl()));
-        appConfig.getRsyncConfig().getOtherUrls().forEach(
-                (tag, url) -> repositories.get("rsync-" + tag).update(now, repositoryObjects.getObjects(url))
-        );
-    }
-
-    private void updateRrdpRepositories(Instant now) {
-        repositories.get("rrdp").update(now, repositoryObjects.getObjects(appConfig.getRrdpConfig().getMainUrl()));
-        appConfig.getRrdpConfig().getOtherUrls().forEach(
-                (tag, url) -> repositories.get("rrdp-" + tag).update(now, repositoryObjects.getObjects(url))
-        );
     }
 
     /**
@@ -163,25 +114,6 @@ public class PublishedObjectsSummaryService {
                 diffTag(lhs.getUrl(), rhs.getUrl(), threshold), diff,
                 diffTag(rhs.getUrl(), lhs.getUrl(), threshold), diffInv
         );
-    }
-
-    private static Map<String, RepositoryTracker> initRepositories(AppConfig config) {
-        var main = Stream.of(
-                RepositoryTracker.empty("core", config.getCoreUrl(), RepositoryTracker.Type.CORE),
-                RepositoryTracker.empty("rrdp", config.getRrdpConfig().getMainUrl(), RepositoryTracker.Type.RRDP),
-                RepositoryTracker.empty("rsync", config.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC)
-        );
-        var extras = Stream.concat(
-                config.getRsyncConfig().getOtherUrls()
-                        .entrySet().stream()
-                        .map(e -> RepositoryTracker.empty("rsync-" + e.getKey(), e.getValue(), RepositoryTracker.Type.RSYNC)),
-                config.getRrdpConfig().getOtherUrls()
-                        .entrySet().stream()
-                        .map(e -> RepositoryTracker.empty("rrdp-" + e.getKey(), e.getValue(), RepositoryTracker.Type.RRDP))
-        );
-
-        return Stream.concat(main, extras)
-                .collect(Collectors.toUnmodifiableMap(RepositoryTracker::getTag, Function.identity()));
     }
 
     private AtomicLong getOrCreateDiffCounter(RepositoryTracker lhs, RepositoryTracker rhs, Duration threshold) {
