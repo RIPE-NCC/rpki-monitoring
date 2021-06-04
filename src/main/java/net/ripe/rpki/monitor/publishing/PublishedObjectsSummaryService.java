@@ -123,6 +123,9 @@ public class PublishedObjectsSummaryService {
         return diffs;
     }
 
+    /**
+     * Get the diff of the published objects <b>and update the metrics</b>.
+     */
     public Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
         final Map<String, Set<FileEntry>> diffs = new HashMap<>();
         // n-choose-2

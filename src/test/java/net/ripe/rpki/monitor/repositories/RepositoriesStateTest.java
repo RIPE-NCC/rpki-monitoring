@@ -55,7 +55,7 @@ class RepositoriesStateTest {
     @Test
     public void get_other_trackers() {
         var tracker = state.getTrackerByTag("rrdp.ripe.net");
-        var others = state.getOtherTrackers(tracker.get());
+        var others = state.otherTrackers(tracker.get());
         assertThat(others).hasSize(1);
         assertThat(others.get(0).getTag()).isEqualTo("rpki.ripe.net");
     }

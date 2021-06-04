@@ -66,7 +66,7 @@ public class Application {
         var state = RepositoriesState.init(repos);
         state.addHook((tracker) -> {
             var now = Instant.now();
-            var others = state.getOtherTrackers(tracker);
+            var others = state.otherTrackers(tracker);
             publishedObjectsSummary.updateAndGetPublishedObjectsDiff(now, tracker, others);
         });
         return state;

@@ -65,9 +65,16 @@ public class RepositoriesState {
     }
 
     /**
+     * Get all repsositories tracked by this state.
+     */
+    public List<RepositoryTracker> allTrackers() {
+        return List.copyOf(repositories);
+    }
+
+    /**
      * Get all trackers for different URLs.
      */
-    public List<RepositoryTracker> getOtherTrackers(RepositoryTracker tracker) {
+    public List<RepositoryTracker> otherTrackers(RepositoryTracker tracker) {
         return repositories.stream()
                 .filter(x -> !x.getUrl().equals(tracker.getUrl()))
                 .collect(toUnmodifiableList());
