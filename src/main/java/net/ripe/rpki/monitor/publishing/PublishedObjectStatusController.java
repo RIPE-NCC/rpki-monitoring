@@ -1,8 +1,8 @@
 package net.ripe.rpki.monitor.publishing;
 
 import lombok.AllArgsConstructor;
-import net.ripe.rpki.monitor.publishing.dto.FileEntry;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,13 +19,13 @@ public class PublishedObjectStatusController {
     private final RepositoriesState repositories;
 
     @GetMapping("/published-object-diffs")
-    public Map<String, Set<FileEntry>> publishedObjectDiffs() {
+    public Map<String, Set<RepositoryEntry>> publishedObjectDiffs() {
         var now = Instant.now();
         return publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(now, repositories.allTrackers());
     }
 
     @GetMapping("/rsync-diffs")
-    public Map<String, Set<FileEntry>> rsyncDiff() {
+    public Map<String, Set<RepositoryEntry>> rsyncDiff() {
         return publishedObjectsSummaryService.getDiff(
                 Instant.now(),
                 repositories.trackersOfType(RepositoryTracker.Type.CORE),
@@ -34,7 +34,7 @@ public class PublishedObjectStatusController {
     }
 
     @GetMapping("/rrdp-diffs")
-    public Map<String, Set<FileEntry>> rrdpDiff() {
+    public Map<String, Set<RepositoryEntry>> rrdpDiff() {
         return publishedObjectsSummaryService.getDiff(
                 Instant.now(),
                 repositories.trackersOfType(RepositoryTracker.Type.CORE),

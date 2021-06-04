@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.AppConfig;
 import net.ripe.rpki.monitor.expiration.RepositoryObjects;
 import net.ripe.rpki.monitor.metrics.Metrics;
-import net.ripe.rpki.monitor.publishing.dto.FileEntry;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,9 +54,9 @@ public class PublishedObjectsSummaryService {
      * Diff all repositories on the left-hand side with those on the right-hand
      * side and update the difference counters.
      */
-    public Map<String, Set<FileEntry>> getDiff(Instant t, List<RepositoryTracker> lhss, List<RepositoryTracker> rhss) {
+    public Map<String, Set<RepositoryEntry>> getDiff(Instant t, List<RepositoryTracker> lhss, List<RepositoryTracker> rhss) {
         var threshold = THRESHOLDS.stream().min(Duration::compareTo).get();
-        var diffs = new HashMap<String, Set<FileEntry>>();
+        var diffs = new HashMap<String, Set<RepositoryEntry>>();
         for (var lhs : lhss) {
             for (var rhs : rhss) {
                 diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, t, threshold));
@@ -68,8 +68,8 @@ public class PublishedObjectsSummaryService {
     /**
      * Get the diff of the published objects <b>and update the metrics</b>.
      */
-    public Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
-        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
+    public Map<String, Set<RepositoryEntry>> updateAndGetPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
+        var diffs = new HashMap<String, Set<RepositoryEntry>>();
         // n-choose-2
         // It is safe to only generate subsets of size 2 in one order because
         // we calculate the difference in two directions.
@@ -86,8 +86,8 @@ public class PublishedObjectsSummaryService {
      * This updates its corresponding tracker and the difference counters
      * against the other repositories (<code>rhss</code>).
      */
-    public Map<String, Set<FileEntry>> updateAndGetPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
-        final Map<String, Set<FileEntry>> diffs = new HashMap<>();
+    public Map<String, Set<RepositoryEntry>> updateAndGetPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
+        final Map<String, Set<RepositoryEntry>> diffs = new HashMap<>();
         var counter = getOrCreateCounter(lhs.getTag());
         counter.set(lhs.size(now));
 
@@ -100,7 +100,7 @@ public class PublishedObjectsSummaryService {
         return diffs;
     }
 
-    private Map<String, Set<FileEntry>> collectPublishedObjectDifferencesAndUpdateCounters(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
+    private Map<String, Set<RepositoryEntry>> collectPublishedObjectDifferencesAndUpdateCounters(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
         var diffCounter = getOrCreateDiffCounter(lhs, rhs, threshold);
         var diffCounterInv = getOrCreateDiffCounter(rhs, lhs, threshold);
 

@@ -3,7 +3,6 @@ package net.ripe.rpki.monitor.repositories;
 import com.google.common.collect.Sets;
 import lombok.Getter;
 import net.ripe.rpki.monitor.HasHashAndUri;
-import net.ripe.rpki.monitor.publishing.dto.FileEntry;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Duration;
@@ -38,7 +37,7 @@ public class RepositoryTracker {
         CORE, RRDP, RSYNC
     }
 
-    private final AtomicReference<Map<String, Pair<FileEntry, Instant>>> objects;
+    private final AtomicReference<Map<String, Pair<RepositoryEntry, Instant>>> objects;
 
     /**
      * Get an empty repository.
@@ -56,7 +55,7 @@ public class RepositoryTracker {
         return repo;
     }
 
-    private RepositoryTracker(String tag, String url, Type type, Map<String, Pair<FileEntry, Instant>> objects) {
+    private RepositoryTracker(String tag, String url, Type type, Map<String, Pair<RepositoryEntry, Instant>> objects) {
         this.tag = tag;
         this.url = url;
         this.type = type;
@@ -72,7 +71,7 @@ public class RepositoryTracker {
      */
     public <T extends HasHashAndUri> void update(Instant t, Collection<T> entries) {
         var newObjects = entries.stream()
-                .map(x -> Pair.of(FileEntry.from(x), firstSeenAt(x.getSha256(), t)))
+                .map(x -> Pair.of(RepositoryEntry.from(x), firstSeenAt(x.getSha256(), t)))
                 .collect(Collectors.toUnmodifiableMap(x -> x.getLeft().getSha256(), Function.identity()));
         objects.set(newObjects);
     }
@@ -81,7 +80,7 @@ public class RepositoryTracker {
      * Get the (non-associative) difference between this and the other repository
      * at time <i>t</i>, not exceeding threshold.
      */
-    public Set<FileEntry> difference(RepositoryTracker other, Instant t, Duration threshold) {
+    public Set<RepositoryEntry> difference(RepositoryTracker other, Instant t, Duration threshold) {
         return Sets.difference(entriesAt(t.minus(threshold)), other.entriesAt(t));
     }
 
@@ -98,7 +97,7 @@ public class RepositoryTracker {
      * Presence is defined as objects first seen before (or at) a given time.
      * I.e. any objects first seen after <i>t</i> are considered not present.
      */
-    private Set<FileEntry> entriesAt(Instant t) {
+    private Set<RepositoryEntry> entriesAt(Instant t) {
         return objects.get().values().stream()
                 .filter(x -> x.getRight().compareTo(t) <= 0)
                 .map(Pair::getLeft).collect(Collectors.toSet());

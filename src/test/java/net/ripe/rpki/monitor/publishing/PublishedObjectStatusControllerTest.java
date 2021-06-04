@@ -1,7 +1,7 @@
 package net.ripe.rpki.monitor.publishing;
 
-import net.ripe.rpki.monitor.publishing.dto.FileEntry;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
@@ -64,8 +64,8 @@ class PublishedObjectStatusControllerTest {
         assertThat(result).isEqualTo(diff);
     }
 
-    private Map<String, Set<FileEntry>> anyDiff() {
-        var entry = new FileEntry(
+    private Map<String, Set<RepositoryEntry>> anyDiff() {
+        var entry = new RepositoryEntry(
                 "rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer",
                 "55c71d1c5d23d18ff782be46c93ed6f76a6c391b60298b6c67e9adae7b3f0d37"
         );
