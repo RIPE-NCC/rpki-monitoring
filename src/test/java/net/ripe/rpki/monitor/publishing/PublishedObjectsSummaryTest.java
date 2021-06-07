@@ -9,6 +9,7 @@ import net.ripe.rpki.monitor.expiration.RepoObject;
 import net.ripe.rpki.monitor.expiration.RepositoryObjects;
 import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import net.ripe.rpki.monitor.service.core.CoreClient;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
@@ -55,6 +56,19 @@ public class PublishedObjectsSummaryTest {
     }
 
     @Test
+    public void itShouldUpdateSizeMetrics() {
+        var objects = Set.of(
+                new RepositoryEntry("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer", "a9d505c70f1fc166062d1c16f7f200df2d2f89a8377593b5a408daa376de9fe2")
+        );
+        var repository = RepositoryTracker.with("rrdp", "https://rrdp.ripe.net/", RepositoryTracker.Type.RRDP, now, objects);
+
+        publishedObjectsSummaryService.updateSize(now, repository);
+
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "rrdp").gauge().value()).isEqualTo(1);
+    }
+
+    @Test
     public void itShouldNotReportADifferencesBetweenEmptySources() {
         final var res = publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(
                 now,
@@ -66,9 +80,6 @@ public class PublishedObjectsSummaryTest {
         );
 
         then(res.values().stream()).allMatch(Collection::isEmpty);
-
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT).gauges())
-            .allMatch(gauge -> gauge.value() == 0.0);
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF).gauges())
             .allMatch(gauge -> gauge.value() == 0.0);
@@ -90,13 +101,6 @@ public class PublishedObjectsSummaryTest {
                     RepositoryTracker.empty("rsync", testConfig.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC)
                 )
         );
-
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "core").gauge().value()).isEqualTo(1);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rsync").gauge().value()).isZero();
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rrdp").gauge().value()).isZero();
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core", "threshold", String.valueOf(minThreshold.getSeconds())).gauges())
@@ -130,13 +134,6 @@ public class PublishedObjectsSummaryTest {
                     )
             );
 
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "core").gauge().value()).isZero();
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rsync").gauge().value()).isZero();
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                    .tags("source", "rrdp").gauge().value()).isEqualTo(1);
-
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
@@ -160,13 +157,6 @@ public class PublishedObjectsSummaryTest {
                     RepositoryTracker.with("rsync", testConfig.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC, now.minus(minThreshold), object)
                 )
         );
-
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "core").gauge().value()).isZero();
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rsync").gauge().value()).isEqualTo(1);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rrdp").gauge().value()).isZero();
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core").gauges())

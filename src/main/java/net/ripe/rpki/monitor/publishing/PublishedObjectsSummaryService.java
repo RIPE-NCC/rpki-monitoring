@@ -51,6 +51,17 @@ public class PublishedObjectsSummaryService {
     }
 
     /**
+     * Update the repository size counter.
+     */
+    public void updateSize(Instant now, RepositoryTracker repository) {
+        counters.computeIfAbsent(repository.getTag(), tag -> {
+            var sizeCount = new AtomicLong(0);
+            Metrics.buildObjectCountGauge(registry, sizeCount, tag);
+            return sizeCount;
+        }).set(repository.size(now));
+    }
+
+    /**
      * Diff all repositories on the left-hand side with those on the right-hand
      * side and update the difference counters.
      */
@@ -88,11 +99,7 @@ public class PublishedObjectsSummaryService {
      */
     public Map<String, Set<RepositoryEntry>> updateAndGetPublishedObjectsDiff(Instant now, RepositoryTracker lhs, List<RepositoryTracker> rhss) {
         final Map<String, Set<RepositoryEntry>> diffs = new HashMap<>();
-        var counter = getOrCreateCounter(lhs.getTag());
-        counter.set(lhs.size(now));
-
         for (var rhs : rhss) {
-
             for (var threshold : THRESHOLDS) {
                 diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, now, threshold));
             }
@@ -128,13 +135,4 @@ public class PublishedObjectsSummaryService {
     private static String diffTag(String lhs, String rhs, Duration threshold) {
         return String.format("%s-diff-%s-%d", lhs, rhs, threshold.getSeconds());
     }
-
-    private AtomicLong getOrCreateCounter(String tag) {
-        return counters.computeIfAbsent(tag, newTag -> {
-            final var diffCount = new AtomicLong(0);
-            Metrics.buildObjectCountGauge(registry, diffCount, tag);
-            return diffCount;
-        });
-    }
 }
-

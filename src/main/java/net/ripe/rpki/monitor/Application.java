@@ -53,6 +53,7 @@ public class Application {
         repos.addAll(toTriplets(config.getRsyncConfig().getOtherUrls(), RepositoryTracker.Type.RSYNC));
 
         var state = RepositoriesState.init(repos);
+        state.addHook((tracker) -> publishedObjectsSummary.updateSize(Instant.now(), tracker));
         state.addHook((tracker) -> {
             var now = Instant.now();
             var others = state.otherTrackers(tracker);
