@@ -1,12 +1,12 @@
 package net.ripe.rpki.monitor.repositories;
 
-import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,14 +19,17 @@ class RepositoriesStateTest {
     @Test
     public void test_state_update() {
         var now = Instant.now();
-        var entry = PublishedObjectEntry.builder().sha256("6248c142e1d153a4526f8709613cf4f1600d54d0a13c76d0ab4ed616aef5f0b4").build();
-        var entries = List.of(entry);
+        var entry = RepositoryEntry.builder()
+                .sha256("6248c142e1d153a4526f8709613cf4f1600d54d0a13c76d0ab4ed616aef5f0b4")
+                .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
+                .build();
+        var entries = Stream.of(entry);
 
         var tracker = state.updateByUrl("https://rrdp.ripe.net/", now, entries);
         assertThat(tracker.size(now)).isEqualTo(1);
 
         now = now.plusSeconds(300);
-        var tracker_ = state.updateByUrl("https://rrdp.ripe.net/", now, List.of());
+        var tracker_ = state.updateByUrl("https://rrdp.ripe.net/", now, Stream.empty());
         assertThat(tracker_.size(now)).isEqualTo(0);
     }
 
@@ -36,7 +39,7 @@ class RepositoriesStateTest {
 
         var called = new AtomicInteger(0);
         state.addHook((tracker) -> called.incrementAndGet());
-        state.updateByUrl("https://rrdp.ripe.net/", now, List.of());
+        state.updateByUrl("https://rrdp.ripe.net/", now, Stream.empty());
         assertThat(called.get()).isEqualTo(1);
     }
 

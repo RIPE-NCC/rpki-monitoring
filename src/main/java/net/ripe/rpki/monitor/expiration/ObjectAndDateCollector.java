@@ -18,6 +18,7 @@ import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -83,7 +84,7 @@ public class ObjectAndDateCollector {
             }).flatMap(Optional::stream).collect(ImmutableSortedSet.toImmutableSortedSet(RepoObject::compareTo));
 
             repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
-            repositoriesState.updateByUrl(repoFetcher.repositoryUrl(), Instant.now(), expirationSummary);
+            repositoriesState.updateByUrl(repoFetcher.repositoryUrl(), Instant.now(), expirationSummary.stream().map(RepositoryEntry::from));
 
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
         } catch (SnapshotNotModifiedException e) {

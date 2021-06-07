@@ -65,10 +65,10 @@ class PublishedObjectStatusControllerTest {
     }
 
     private Map<String, Set<RepositoryEntry>> anyDiff() {
-        var entry = new RepositoryEntry(
-                "rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer",
-                "55c71d1c5d23d18ff782be46c93ed6f76a6c391b60298b6c67e9adae7b3f0d37"
-        );
+        var entry = RepositoryEntry.builder()
+            .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
+            .sha256("55c71d1c5d23d18ff782be46c93ed6f76a6c391b60298b6c67e9adae7b3f0d37")
+            .build();
         return Map.of("key", Set.of(entry));
     }
 }

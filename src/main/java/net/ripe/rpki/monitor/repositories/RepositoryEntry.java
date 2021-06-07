@@ -1,14 +1,35 @@
 package net.ripe.rpki.monitor.repositories;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NonNull;
 import lombok.Value;
 import net.ripe.rpki.monitor.HasHashAndUri;
+import net.ripe.rpki.monitor.expiration.RepoObject;
+import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
+
+import java.time.Instant;
+import java.util.Date;
+import java.util.Optional;
 
 @Value
+@AllArgsConstructor
+@Builder
 public class RepositoryEntry implements HasHashAndUri {
-    String uri;
-    String sha256;
+    @NonNull String uri;
+    @NonNull String sha256;
+    @Builder.Default
+    Optional<Instant> expiration = Optional.empty();
 
-    public static RepositoryEntry from(HasHashAndUri x) {
-        return new RepositoryEntry(x.getUri(), x.getSha256());
+    public static RepositoryEntry from(RepoObject x) {
+        return new RepositoryEntry(
+                x.getUri(),
+                x.getSha256(),
+                Optional.ofNullable(x.getExpiration()).map(Date::toInstant)
+        );
+    }
+
+    public static RepositoryEntry from(PublishedObjectEntry x) {
+        return new RepositoryEntry(x.getUri(), x.getSha256(), Optional.empty());
     }
 }

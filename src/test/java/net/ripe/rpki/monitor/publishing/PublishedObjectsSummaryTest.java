@@ -2,11 +2,9 @@ package net.ripe.rpki.monitor.publishing;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import net.ripe.rpki.monitor.expiration.RepoObject;
 import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
-import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,9 +13,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.BDDAssertions.then;
@@ -45,8 +43,11 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldUpdateSizeMetrics() {
-        var objects = Set.of(
-                new RepositoryEntry("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer", "a9d505c70f1fc166062d1c16f7f200df2d2f89a8377593b5a408daa376de9fe2")
+        var objects = Stream.of(
+                RepositoryEntry.builder()
+                    .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
+                    .sha256("a9d505c70f1fc166062d1c16f7f200df2d2f89a8377593b5a408daa376de9fe2")
+                    .build()
         );
         rrdp.update(now, objects);
 
@@ -70,12 +71,12 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldReportADifference_caused_by_core() {
-        var object = Set.of(
-            PublishedObjectEntry.builder()
+        var objects = Stream.of(
+            RepositoryEntry.builder()
                 .sha256("not-a-sha256-but-will-do")
                 .uri("rsync://example.org/index.txt")
                 .build());
-        core.update(now.minus(minThreshold), object);
+        core.update(now.minus(minThreshold), objects);
 
         subject.updateAndGetPublishedObjectsDiff(
                 now,
@@ -102,8 +103,13 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldReportADifference_caused_by_rrdp_objects() {
-        var object = Set.of(RepoObject.fictionalObjectValidAtInstant(new Date()));
-        rrdp.update(now.minus(maxThreshold), object);
+        var objects = Stream.of(
+                RepositoryEntry.builder()
+                    .sha256("f19e8fbc6d520c06f3424ddf6a53cda830fc8ef4ca7074aa43ad97a42f946d50")
+                    .uri("rsync://example.org/file.cer")
+                    .build()
+        );
+        rrdp.update(now.minus(maxThreshold), objects);
 
         subject.updateAndGetPublishedObjectsDiff(
                 now,
@@ -123,7 +129,12 @@ public class PublishedObjectsSummaryTest {
 
     @Test
     public void itShouldReportADifference_caused_by_rsync_objects() {
-        var objects = Set.of(RepoObject.fictionalObjectValidAtInstant(new Date()));
+        var objects = Stream.of(
+                RepositoryEntry.builder()
+                        .sha256("f19e8fbc6d520c06f3424ddf6a53cda830fc8ef4ca7074aa43ad97a42f946d50")
+                        .uri("rsync://example.org/file.cer")
+                        .build()
+        );
         rsync.update(now.minus(minThreshold), objects);
 
         subject.updateAndGetPublishedObjectsDiff(
@@ -153,14 +164,13 @@ public class PublishedObjectsSummaryTest {
     @Test
     public void itShouldDoRsyncDiff() {
         var now = Instant.now();
-        var oneHourAgo = now.minusSeconds(3600);
-        var obj1 = new RepoObject(Date.from(oneHourAgo), Date.from(now), "url1", new byte[]{1, 2, 3, 3});
-        var obj2 = new RepoObject(Date.from(oneHourAgo), Date.from(now), "url2", new byte[]{1, 4, 5, 6});
+        var obj1 = RepositoryEntry.builder().uri("url1").sha256("hash1").expiration(Optional.of(now)).build();
+        var obj2 = RepositoryEntry.builder().uri("url2").sha256("hash2").expiration(Optional.of(now)).build();
 
         var beforeThreshold = now.minus(minThreshold);
 
-        core.update(beforeThreshold, Set.of(obj1, obj2));
-        rsync.update(beforeThreshold, Set.of(obj1));
+        core.update(beforeThreshold, Stream.of(obj1, obj2));
+        rsync.update(beforeThreshold, Stream.of(obj1));
 
         var res = subject.getDiff(now, List.of(core), List.of(rsync));
         assertThat(res).hasSize(2);

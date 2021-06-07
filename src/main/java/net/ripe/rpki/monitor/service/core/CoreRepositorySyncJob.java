@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.service.core;
 
 import lombok.AllArgsConstructor;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
@@ -29,7 +30,11 @@ public class CoreRepositorySyncJob extends QuartzJobBean {
     @Override
     protected void executeInternal(JobExecutionContext context) {
         var content = coreClient.publishedObjects();
-        state.updateByUrl(coreClient.repositoryUrl(), Instant.now(), content);
+        state.updateByUrl(
+                coreClient.repositoryUrl(),
+                Instant.now(),
+                content.stream().map(RepositoryEntry::from)
+        );
     }
 
     @Bean("CoreRepositorySyncJob")

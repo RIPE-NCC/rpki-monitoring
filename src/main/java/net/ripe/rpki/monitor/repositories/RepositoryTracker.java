@@ -2,18 +2,17 @@ package net.ripe.rpki.monitor.repositories;
 
 import com.google.common.collect.Sets;
 import lombok.Getter;
-import net.ripe.rpki.monitor.HasHashAndUri;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Track lifetime of objects in a single repository.
@@ -49,7 +48,7 @@ public class RepositoryTracker {
     /**
      * Create a repository with the given entries and time <i>t</i>.
      */
-    public static <T extends HasHashAndUri> RepositoryTracker with(String tag, String url, Type type, Instant t, Collection<T> entries) {
+    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries) {
         var repo = RepositoryTracker.empty(tag, url, type);
         repo.update(t, entries);
         return repo;
@@ -69,9 +68,9 @@ public class RepositoryTracker {
      * no longer present in the <code>entries</code> set are discarded from the
      * repository.
      */
-    public <T extends HasHashAndUri> void update(Instant t, Collection<T> entries) {
-        var newObjects = entries.stream()
-                .map(x -> Pair.of(RepositoryEntry.from(x), firstSeenAt(x.getSha256(), t)))
+    public void update(Instant t, Stream<RepositoryEntry> entries) {
+        var newObjects = entries
+                .map(x -> Pair.of(x, firstSeenAt(x.getSha256(), t)))
                 .collect(Collectors.toUnmodifiableMap(x -> x.getLeft().getSha256(), Function.identity()));
         objects.set(newObjects);
     }
@@ -89,6 +88,16 @@ public class RepositoryTracker {
      */
     public int size(Instant t) {
         return entriesAt(t).size();
+    }
+
+    /**
+     * Get the objects that are expired at time <i>t</i>. Object that have no
+     * expiration are considered open-ended (i.e. never to expire.
+     */
+    public Set<RepositoryEntry> expirationBefore(Instant t) {
+        return entriesAt(t).stream()
+                .filter(x -> x.getExpiration().map(expiration -> expiration.compareTo(t) < 0).orElse(false))
+                .collect(Collectors.toSet());
     }
 
     /**
