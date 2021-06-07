@@ -41,12 +41,7 @@ public class PublishedObjectsSummaryService {
     private final Map<String, AtomicLong> counters = new ConcurrentHashMap<>();
 
     @Autowired
-    public PublishedObjectsSummaryService(
-        final RepositoryObjects repositoryObjects,
-        final CoreClient rpkiCoreClient,
-        final MeterRegistry registry,
-        final AppConfig appConfig
-    ) {
+    public PublishedObjectsSummaryService(MeterRegistry registry) {
         this.registry = registry;
     }
 
