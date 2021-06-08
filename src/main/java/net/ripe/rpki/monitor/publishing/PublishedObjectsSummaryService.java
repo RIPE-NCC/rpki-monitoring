@@ -58,7 +58,8 @@ public class PublishedObjectsSummaryService {
      * side and update the difference counters.
      */
     public Map<String, Set<RepositoryEntry>> getDiff(Instant t, List<RepositoryTracker> lhss, List<RepositoryTracker> rhss) {
-        var threshold = THRESHOLDS.stream().min(Duration::compareTo).get();
+        var threshold = THRESHOLDS.stream().min(Duration::compareTo)
+                .orElseThrow(() -> new IllegalStateException("PublishedObjectsSummaryService.THRESHOLDS is empty"));
         var diffs = new HashMap<String, Set<RepositoryEntry>>();
         for (var lhs : lhss) {
             for (var rhs : rhss) {
