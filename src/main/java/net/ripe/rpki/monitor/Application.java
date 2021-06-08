@@ -65,6 +65,9 @@ public class Application {
             var now = Instant.now();
             objectExpirationMetrics.trackExpiration(tracker.getUrl(), now, tracker.entriesAt(now));
         });
+        state.addHook((tracker) -> {
+            log.info("Updated {} repository at {}; it now has {} entries.", tracker.getType(), tracker.getUrl(), tracker.size(Instant.now()));
+        });
         return state;
     }
 
