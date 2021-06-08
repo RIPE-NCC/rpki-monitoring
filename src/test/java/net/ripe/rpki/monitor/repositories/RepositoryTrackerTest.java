@@ -47,6 +47,36 @@ class RepositoryTrackerTest {
         assertThat(repo.size(t)).isOne();
     }
 
+    @Test
+    public void test_get_object() {
+        var object = new RepositoryEntry(
+                "rsync://example.com/repository/DEFAULT/xyz.cer",
+                "45cdf3f6082774e19fecf80817863c39e29a5a3646746125c55ed3209d3508ea",
+                Optional.of(t),
+                Optional.empty()
+        );
+        var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object));
+
+        assertThat(repo.getObject(object.getSha256())).isEqualTo(Optional.of(object));
+        assertThat(repo.getObject("unknown")).isEmpty();
+    }
+
+    @Test
+    public void test_has_object() {
+        var object = new RepositoryEntry(
+                "rsync://example.com/repository/DEFAULT/xyz.cer",
+                "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                Optional.of(t),
+                Optional.of(t.plusSeconds(3600))
+        );
+        var noTimestamps = new RepositoryEntry(object.getUri(), object.getSha256(),Optional.empty(), Optional.empty());
+        var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object));
+
+        assertThat(repo.hasObject(object)).isTrue();
+        assertThat(repo.hasObject(noTimestamps)).isTrue();
+        assertThat(repo.hasObject(RepositoryEntry.builder().sha256("unknown").uri(object.getUri()).build())).isFalse();
+    }
+
     @Nested
     class Expiration {
         RepositoryEntry openEnded = new RepositoryEntry(
@@ -118,6 +148,16 @@ class RepositoryTrackerTest {
 
             assertThat(core.difference(rsync, t, Duration.ofSeconds(300))).isEmpty();
             assertThat(core.difference(rsync, t, Duration.ofSeconds(0))).isEqualTo(Set.of(newObject));
+        }
+
+        @Test
+        public void test_ignore_object_timestamps() {
+            var coreObject = new RepositoryEntry(newObject.getUri(), newObject.getSha256(),Optional.empty(), Optional.empty());
+            var rrdpObject = new RepositoryEntry(newObject.getUri(), newObject.getSha256(), Optional.of(t), Optional.of(t.plusSeconds(3600 * 8)));
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(coreObject));
+            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(rrdpObject));
+
+            assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();
         }
     }
 }

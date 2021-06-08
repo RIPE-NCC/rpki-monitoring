@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 @AllArgsConstructor
 @Component
@@ -37,10 +37,10 @@ public class ObjectExpirationMetrics {
 
     private final ConcurrentHashMap<String, RepositoryExpirationSummary> expirationSummaries = new ConcurrentHashMap<>();
 
-    public void trackExpiration(String url, Instant t, Collection<RepositoryEntry> content) {
+    public void trackExpiration(String url, Instant t, Stream<RepositoryEntry> content) {
         final var updateHistogram = getExpirationSummary(url);
 
-        content.parallelStream().forEach(obj -> updateHistogram.update(t, obj));
+        content.parallel().forEach(obj -> updateHistogram.update(t, obj));
     }
 
     private RepositoryExpirationSummary getExpirationSummary(final String repoUrl) {

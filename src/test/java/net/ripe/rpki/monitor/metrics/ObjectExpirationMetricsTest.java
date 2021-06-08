@@ -15,7 +15,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -43,7 +42,7 @@ public class ObjectExpirationMetricsTest {
                 RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofHours(14))))
         );
 
-        subject.trackExpiration(REPO_URL, now, objects.stream().map(RepositoryEntry::from).collect(Collectors.toList()));
+        subject.trackExpiration(REPO_URL, now, objects.stream().map(RepositoryEntry::from));
 
         final var buckets = Arrays.asList(meterRegistry.get(ObjectExpirationMetrics.COLLECTOR_EXPIRATION_METRIC)
                 .tag("url", REPO_URL)
@@ -78,7 +77,7 @@ public class ObjectExpirationMetricsTest {
                 RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(18, ChronoUnit.HOURS)))
         );
 
-        subject.trackExpiration(REPO_URL, now, objects.stream().map(RepositoryEntry::from).collect(Collectors.toList()));
+        subject.trackExpiration(REPO_URL, now, objects.stream().map(RepositoryEntry::from));
 
         final var snapshot = meterRegistry.get(ObjectExpirationMetrics.COLLECTOR_CREATION_METRIC)
                 .tag("url", REPO_URL)
