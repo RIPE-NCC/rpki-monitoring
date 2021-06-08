@@ -6,6 +6,7 @@ import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
+import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -47,6 +48,7 @@ public class Application {
             final PublishedObjectsSummaryService publishedObjectsSummary,
             ObjectExpirationMetrics objectExpirationMetrics
     ) {
+        checkOverlappingRepositoryKeys(config);
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
         repos.add(Triple.of("core", config.getCoreUrl(), RepositoryTracker.Type.CORE));
         repos.add(Triple.of("rrdp", config.getRrdpConfig().getMainUrl(), RepositoryTracker.Type.RRDP));
@@ -69,6 +71,24 @@ public class Application {
             log.info("Updated {} repository at {}; it now has {} entries.", tracker.getType(), tracker.getUrl(), tracker.size(Instant.now()));
         });
         return state;
+    }
+
+    private void checkOverlappingRepositoryKeys(AppConfig config) {
+        var builtinKeys = List.of("core", "rrdp", "rsync");
+        var rrdpKeys = config.getRrdpConfig().getOtherUrls().keySet();
+        var rsyncKeys = config.getRsyncConfig().getOtherUrls().keySet();
+        Validate.isTrue(
+                rrdpKeys.stream().noneMatch(builtinKeys::contains),
+                "RRDP other-urls keys overlap with builtin keys"
+        );
+        Validate.isTrue(
+                rsyncKeys.stream().noneMatch(builtinKeys::contains),
+                "Rsync other-urls keys overlap with builtin keys"
+        );
+        Validate.isTrue(
+                rrdpKeys.stream().noneMatch(rsyncKeys::contains),
+                "RRDP and rsync other-urls keys overlap"
+        );
     }
 
     private <K, V, Z> List<Triple<K, V, Z>> toTriplets(Map<K, V> m, Z z) {
