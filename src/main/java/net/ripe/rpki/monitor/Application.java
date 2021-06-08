@@ -57,19 +57,19 @@ public class Application {
         repos.addAll(toTriplets(config.getRsyncConfig().getOtherUrls(), RepositoryTracker.Type.RSYNC));
 
         var state = RepositoriesState.init(repos);
-        state.addHook((tracker) -> publishedObjectsSummary.updateSize(Instant.now(), tracker));
-        state.addHook((tracker) -> {
+        state.addHook(tracker -> publishedObjectsSummary.updateSize(Instant.now(), tracker));
+        state.addHook(tracker -> {
             var now = Instant.now();
             var others = state.otherTrackers(tracker);
             publishedObjectsSummary.updateAndGetPublishedObjectsDiff(now, tracker, others);
         });
-        state.addHook((tracker) -> {
+        state.addHook(tracker -> {
             var now = Instant.now();
             objectExpirationMetrics.trackExpiration(tracker.getUrl(), now, tracker.entriesAt(now));
         });
-        state.addHook((tracker) -> {
-            log.info("Updated {} repository at {}; it now has {} entries.", tracker.getType(), tracker.getUrl(), tracker.size(Instant.now()));
-        });
+        state.addHook(tracker ->
+            log.info("Updated {} repository at {}; it now has {} entries.", tracker.getType(), tracker.getUrl(), tracker.size(Instant.now()))
+        );
         return state;
     }
 
