@@ -15,9 +15,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
-import java.sql.Date;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Date;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
