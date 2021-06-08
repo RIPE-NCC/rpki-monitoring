@@ -3,13 +3,13 @@ package net.ripe.rpki.monitor.metrics;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
-import net.ripe.rpki.monitor.expiration.RepoObject;
-import net.ripe.rpki.monitor.expiration.RepositoryObjects;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 @AllArgsConstructor
@@ -37,11 +37,10 @@ public class ObjectExpirationMetrics {
 
     private final ConcurrentHashMap<String, RepositoryExpirationSummary> expirationSummaries = new ConcurrentHashMap<>();
 
-    public void trackExpiration(final String url, RepositoryObjects.RepositoryContent content) {
-        final var now = Instant.now();
+    public void trackExpiration(String url, Instant t, Collection<RepositoryEntry> content) {
         final var updateHistogram = getExpirationSummary(url);
 
-        content.getObjects().parallelStream().forEach(obj -> updateHistogram.update(now, obj));
+        content.parallelStream().forEach(obj -> updateHistogram.update(t, obj));
     }
 
     private RepositoryExpirationSummary getExpirationSummary(final String repoUrl) {
@@ -74,9 +73,11 @@ public class ObjectExpirationMetrics {
                     .register(registry);
         }
 
-        public void update(Instant now, RepoObject object) {
-            expirationHistogram.record(now.until(object.getExpiration().toInstant(), ChronoUnit.SECONDS));
-            creationHistogram.record(object.getCreation().toInstant().until(now, ChronoUnit.SECONDS));
+        public void update(Instant now, RepositoryEntry object) {
+            object.getExpiration().ifPresent(expiration ->
+                    expirationHistogram.record(now.until(expiration, ChronoUnit.SECONDS)));
+            object.getCreation().ifPresent(creation ->
+                    creationHistogram.record(creation.until(now, ChronoUnit.SECONDS)));
         }
     }
 }

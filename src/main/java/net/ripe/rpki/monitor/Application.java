@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor;
 
 import io.micrometer.core.instrument.config.MeterFilter;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
@@ -43,7 +44,8 @@ public class Application {
     @Bean
     public RepositoriesState repositoriesState(
             final AppConfig config,
-            final PublishedObjectsSummaryService publishedObjectsSummary
+            final PublishedObjectsSummaryService publishedObjectsSummary,
+            ObjectExpirationMetrics objectExpirationMetrics
     ) {
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
         repos.add(Triple.of("core", config.getCoreUrl(), RepositoryTracker.Type.CORE));
@@ -58,6 +60,10 @@ public class Application {
             var now = Instant.now();
             var others = state.otherTrackers(tracker);
             publishedObjectsSummary.updateAndGetPublishedObjectsDiff(now, tracker, others);
+        });
+        state.addHook((tracker) -> {
+            var now = Instant.now();
+            objectExpirationMetrics.trackExpiration(tracker.getUrl(), now, tracker.entriesAt(now));
         });
         return state;
     }

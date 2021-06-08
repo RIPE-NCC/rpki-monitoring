@@ -3,12 +3,9 @@ package net.ripe.rpki.monitor.publishing;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.monitor.AppConfig;
-import net.ripe.rpki.monitor.expiration.RepositoryObjects;
 import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
-import net.ripe.rpki.monitor.service.core.CoreClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

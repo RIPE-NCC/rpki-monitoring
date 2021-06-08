@@ -19,17 +19,20 @@ public class RepositoryEntry implements HasHashAndUri {
     @NonNull String uri;
     @NonNull String sha256;
     @Builder.Default
+    Optional<Instant> creation = Optional.empty();
+    @Builder.Default
     Optional<Instant> expiration = Optional.empty();
 
     public static RepositoryEntry from(RepoObject x) {
         return new RepositoryEntry(
                 x.getUri(),
                 x.getSha256(),
+                Optional.ofNullable(x.getCreation()).map(Date::toInstant),
                 Optional.ofNullable(x.getExpiration()).map(Date::toInstant)
         );
     }
 
     public static RepositoryEntry from(PublishedObjectEntry x) {
-        return new RepositoryEntry(x.getUri(), x.getSha256(), Optional.empty());
+        return new RepositoryEntry(x.getUri(), x.getSha256(), Optional.empty(), Optional.empty());
     }
 }

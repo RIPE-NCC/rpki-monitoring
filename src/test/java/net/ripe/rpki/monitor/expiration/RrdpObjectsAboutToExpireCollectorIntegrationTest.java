@@ -18,7 +18,8 @@ import java.net.URI;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -27,8 +28,6 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
-    @Autowired
-    private RepositoryObjects repositoryObjects;
     @Autowired
     private RepositoriesState repositoriesState;
 
@@ -65,7 +64,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     }
 
     @Test
-    public void itShouldPopulateRrdpObjectsSummaryList() throws Exception {
+    public void itShouldUpdateRrdpRepositoryState() throws Exception {
 
         final String serial = "574";
         final URI repositoryURI = new URI("http://localhost.example/notification.xml");
@@ -90,8 +89,6 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
         var tracker = repositoriesState.getTrackerByUrl("http://localhost.example").get();
         assertThat(tracker.size(Instant.now())).isEqualTo(4);
-
-        assertEquals(4, repositoryObjects.geRepositoryObjectsAboutToExpire("http://localhost.example", Integer.MAX_VALUE).size());
     }
 
     @Test

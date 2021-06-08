@@ -20,6 +20,7 @@ class RepositoryTrackerTest {
         var object = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
                 "0cf7574c4cfbe49b68fa4817828225592c4ef9a538ad617d42de26f6cc349b33",
+                Optional.of(t),
                 Optional.empty()
         );
         var repo = RepositoryTracker.empty("tag", "https://example.com", RepositoryTracker.Type.CORE);
@@ -34,6 +35,7 @@ class RepositoryTrackerTest {
         var object = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
                 "a6c0ffd45b7a799fbd1a303cb4322a1387e74cb22b80c9c54ed4378f22a81f0f",
+                Optional.of(t),
                 Optional.empty()
         );
         var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t.minusSeconds(300), Stream.of(object));
@@ -50,11 +52,13 @@ class RepositoryTrackerTest {
         RepositoryEntry openEnded = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
                 "6cfe9a0498cf15254b85f8b03fa727ec2d528fe590d2a202428542435a0a62f7",
+                Optional.of(t),
                 Optional.empty()
         );
         RepositoryEntry expiresInOneHour = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
                 "6cfe9a0498cf15254b85f8b03fa727ec2d528fe590d2a202428542435a0a62f7",
+                Optional.of(t),
                 Optional.of(t.plusSeconds(3600))
         );
 
@@ -80,11 +84,13 @@ class RepositoryTrackerTest {
         RepositoryEntry newObject = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
                 "02c2a8e60fde7d630eb3b44c61b1b0326d6f664c9d3d4be6f5cef4393f8bd468",
+                Optional.of(t),
                 Optional.empty()
         );
         RepositoryEntry oldObject = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
                 "fbb8cef9856ddd08d351c2647dac92354ca61600f52bb56b7b0af7d504ee6ea4",
+                Optional.of(t),
                 Optional.empty()
         );
 

@@ -106,7 +106,7 @@ public class RepositoryTracker {
      * Presence is defined as objects first seen before (or at) a given time.
      * I.e. any objects first seen after <i>t</i> are considered not present.
      */
-    private Set<RepositoryEntry> entriesAt(Instant t) {
+    public Set<RepositoryEntry> entriesAt(Instant t) {
         return objects.get().values().stream()
                 .filter(x -> x.getRight().compareTo(t) <= 0)
                 .map(Pair::getLeft).collect(Collectors.toSet());

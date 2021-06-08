@@ -9,7 +9,6 @@ import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -21,17 +20,14 @@ import static java.util.stream.Collectors.toList;
 public class Collectors {
 
     private final CollectorUpdateMetrics metrics;
-    private final RepositoryObjects repositoryObjects;
     private final AppConfig config;
     private final RepositoriesState repositoriesState;
 
     @Autowired
     public Collectors(CollectorUpdateMetrics metrics,
-                      RepositoryObjects repositoryObjects,
                       RepositoriesState repositoriesState,
                       AppConfig config) {
         this.metrics = metrics;
-        this.repositoryObjects = repositoryObjects;
         this.repositoriesState = repositoriesState;
         this.config = config;
     }
@@ -60,8 +56,7 @@ public class Collectors {
                 new ObjectAndDateCollector(
                     creator.apply(e.getKey(), e.getValue()),
                     metrics,
-                    repositoriesState,
-                    repositoryObjects)
+                    repositoriesState)
             );
     }
 
@@ -77,16 +72,16 @@ public class Collectors {
         return new ObjectAndDateCollector(
             createRrdpFetcher("main", config.getRrdpConfig().getMainUrl()),
             metrics,
-            repositoriesState,
-            repositoryObjects);
+            repositoriesState
+        );
     }
 
     ObjectAndDateCollector createDefaultRsyncCollector() {
         return new ObjectAndDateCollector(
             createRsyncFetcher("main", config.getRsyncConfig().getMainUrl()),
             metrics,
-            repositoriesState,
-            repositoryObjects);
+            repositoriesState
+        );
     }
 
 }

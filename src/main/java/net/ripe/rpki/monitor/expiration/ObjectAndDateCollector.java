@@ -37,7 +37,6 @@ public class ObjectAndDateCollector {
 
     private final RepoFetcher repoFetcher;
     private final CollectorUpdateMetrics collectorUpdateMetrics;
-    private final RepositoryObjects repositoryObjects;
 
     /**
      * Bloom filter with 0.5% false positives (and no false negatives) at 100K objects to reduce logging.
@@ -51,11 +50,9 @@ public class ObjectAndDateCollector {
     public ObjectAndDateCollector(
         @NonNull final RepoFetcher repoFetcher,
         @NonNull CollectorUpdateMetrics metrics,
-        @NonNull RepositoriesState repositoriesState,
-        RepositoryObjects repositoryObjects) {
+        @NonNull RepositoriesState repositoriesState) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
-        this.repositoryObjects = repositoryObjects;
         this.repositoriesState = repositoriesState;
     }
 
@@ -83,7 +80,6 @@ public class ObjectAndDateCollector {
                 return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
             }).flatMap(Optional::stream).collect(ImmutableSortedSet.toImmutableSortedSet(RepoObject::compareTo));
 
-            repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
             repositoriesState.updateByUrl(repoFetcher.repositoryUrl(), Instant.now(), expirationSummary.stream().map(RepositoryEntry::from));
 
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());

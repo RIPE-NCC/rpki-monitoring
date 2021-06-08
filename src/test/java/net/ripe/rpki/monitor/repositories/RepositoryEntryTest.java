@@ -25,6 +25,7 @@ class RepositoryEntryTest {
         var r = RepositoryEntry.from(x);
         assertThat(r.getUri()).isEqualTo(x.getUri());
         assertThat(r.getSha256()).isEqualTo(x.getSha256());
+        assertThat(r.getCreation()).isEqualTo(Optional.of(x.getCreation().toInstant()));
         assertThat(r.getExpiration()).isEqualTo(Optional.of(x.getExpiration().toInstant()));
     }
 
