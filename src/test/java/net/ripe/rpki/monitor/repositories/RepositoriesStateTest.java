@@ -26,11 +26,11 @@ class RepositoriesStateTest {
         var entries = Stream.of(entry);
 
         var tracker = state.updateByUrl("https://rrdp.ripe.net/", now, entries);
-        assertThat(tracker.size(now)).isEqualTo(1);
+        assertThat(tracker.view(now).size()).isEqualTo(1);
 
         now = now.plusSeconds(300);
         var tracker_ = state.updateByUrl("https://rrdp.ripe.net/", now, Stream.empty());
-        assertThat(tracker_.size(now)).isEqualTo(0);
+        assertThat(tracker_.view(now).size()).isEqualTo(0);
     }
 
     @Test

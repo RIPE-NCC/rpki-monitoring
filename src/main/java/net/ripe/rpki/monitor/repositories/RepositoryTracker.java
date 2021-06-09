@@ -82,59 +82,84 @@ public class RepositoryTracker {
      * at time <i>t</i>, not exceeding threshold.
      */
     public Set<RepositoryEntry> difference(RepositoryTracker other, Instant t, Duration threshold) {
-        return entriesAt(t.minus(threshold))
-                .filter(Predicate.not(other::hasObject))
+        var rhs = other.view(t);
+        return view(t.minus(threshold)).entries()
+                .filter(Predicate.not(rhs::hasObject))
                 .collect(Collectors.toSet());
     }
 
     /**
-     * Get the repository entry with the given hash, or nothing if the repository
-     * does not have such object.
-     */
-    public Optional<RepositoryEntry> getObject(String sha256) {
-        return Optional.ofNullable(objects.get().get(sha256)).map(Pair::getLeft);
-    }
-
-    /**
-     * Test if the repository has an object with the given object's hash and URI.
-     */
-    public boolean hasObject(RepositoryEntry object) {
-        return getObject(object.getSha256())
-                .map(x -> Objects.equals(x.getUri(), object.getUri()))
-                .orElse(false);
-    }
-
-    /**
-     * Get the number of objects in this repository, at time <i>t</i>.
-     */
-    public long size(Instant t) {
-        return entriesAt(t).count();
-    }
-
-    /**
-     * Get the objects that are expired at time <i>t</i>. Object that have no
-     * expiration are considered open-ended (i.e. never to expire.
-     */
-    public Set<RepositoryEntry> expirationBefore(Instant t) {
-        return entriesAt(t)
-                .filter(x -> x.getExpiration().map(expiration -> expiration.compareTo(t) < 0).orElse(false))
-                .collect(Collectors.toSet());
-    }
-
-    /**
-     * Get all entries in the repository present at time <i>t</i>.
-     * <p>
+     * Get a view on the repository objects present at time <i>t</i>.
+     *
      * Presence is defined as objects first seen before (or at) a given time.
      * I.e. any objects first seen after <i>t</i> are considered not present.
      */
-    public Stream<RepositoryEntry> entriesAt(Instant t) {
-        return objects.get().values().stream()
-                .filter(x -> x.getRight().compareTo(t) <= 0)
-                .map(Pair::getLeft);
+    public View view(Instant t) {
+        return new View(objects.get(), t);
     }
 
     private Instant firstSeenAt(String sha256, Instant now) {
         var previous = objects.get().get(sha256);
         return previous != null ? previous.getRight() : now;
+    }
+
+    /**
+     * Represents a view on the contents of a repository at a specific time.
+     *
+     * More specifically, objects first seen after that time are considered out
+     * of scope from this view. Objects that are now gone from the repository
+     * are not brought back.
+     */
+    public static class View {
+        private final Map<String, Pair<RepositoryEntry, Instant>> objects;
+        private final Instant t;
+
+        private View(Map<String, Pair<RepositoryEntry, Instant>> objects, Instant t) {
+            this.objects = objects;
+            this.t = t;
+        }
+
+        /**
+         * Get the repository entry with the given hash, or nothing if the repository
+         * does not have such object.
+         */
+        public Optional<RepositoryEntry> getObject(String sha256) {
+            return Optional.ofNullable(objects.get(sha256))
+                    .filter(this::inScope)
+                    .map(Pair::getLeft);
+        }
+
+        /**
+         * Test if the repository has an object with the given object's hash and URI.
+         */
+        public boolean hasObject(RepositoryEntry object) {
+            return getObject(object.getSha256())
+                    .map(x -> Objects.equals(x.getUri(), object.getUri()))
+                    .orElse(false);
+        }
+
+        /**
+         * Get the objects that are expired at time <i>t</i>. Objects that have no
+         * expiration are considered open-ended (i.e. never to expire).
+         */
+        public Set<RepositoryEntry> expiration(Instant t) {
+            return entries()
+                    .filter(x -> x.getExpiration().map(expiration -> expiration.compareTo(t) < 0).orElse(false))
+                    .collect(Collectors.toSet());
+        }
+
+        public long size() {
+            return entries().count();
+        }
+
+        public Stream<RepositoryEntry> entries() {
+            return objects.values().stream()
+                    .filter(this::inScope)
+                    .map(Pair::getLeft);
+        }
+
+        private boolean inScope(Pair<RepositoryEntry, Instant> x) {
+            return x.getRight().compareTo(t) <= 0;
+        }
     }
 }

@@ -31,6 +31,6 @@ class CoreRepositorySyncJobTest {
         var subject = new CoreRepositorySyncJob(state, coreClientStub);
         subject.execute(mock(JobExecutionContext.class, RETURNS_DEEP_STUBS));
 
-        assertThat(state.getTrackerByTag("core").get().size(Instant.now())).isEqualTo(1);
+        assertThat(state.getTrackerByTag("core").get().view(Instant.now()).size()).isEqualTo(1);
     }
 }

@@ -50,7 +50,7 @@ public class PublishedObjectsSummaryService {
             var sizeCount = new AtomicLong(0);
             Metrics.buildObjectCountGauge(registry, sizeCount, tag);
             return sizeCount;
-        }).set(repository.size(now));
+        }).set(repository.view(now).size());
     }
 
     /**

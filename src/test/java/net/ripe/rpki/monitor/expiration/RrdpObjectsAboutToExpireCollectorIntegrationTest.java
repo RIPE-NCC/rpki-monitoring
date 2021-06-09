@@ -88,7 +88,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         rrdpObjectsAboutToExpireCollector.run();
 
         var tracker = repositoriesState.getTrackerByUrl("http://localhost.example").get();
-        assertThat(tracker.size(Instant.now())).isEqualTo(4);
+        assertThat(tracker.view(Instant.now()).size()).isEqualTo(4);
     }
 
     @Test

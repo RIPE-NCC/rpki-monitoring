@@ -65,10 +65,10 @@ public class Application {
         });
         state.addHook(tracker -> {
             var now = Instant.now();
-            objectExpirationMetrics.trackExpiration(tracker.getUrl(), now, tracker.entriesAt(now));
+            objectExpirationMetrics.trackExpiration(tracker.getUrl(), now, tracker.view(now).entries());
         });
         state.addHook(tracker ->
-            log.info("Updated {} repository at {}; it now has {} entries.", tracker.getType(), tracker.getUrl(), tracker.size(Instant.now()))
+            log.info("Updated {} repository at {}; it now has {} entries.", tracker.getType(), tracker.getUrl(), tracker.view(Instant.now()).size())
         );
         return state;
     }

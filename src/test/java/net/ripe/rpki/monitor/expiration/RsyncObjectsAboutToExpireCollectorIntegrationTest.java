@@ -43,6 +43,6 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         subject.run();
 
         var tracker = repositories.getTrackerByTag("rsync").get();
-        assertThat(tracker.size(Instant.now())).isEqualTo(5);
+        assertThat(tracker.view(Instant.now()).size()).isEqualTo(5);
     }
 }
