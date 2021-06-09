@@ -64,8 +64,10 @@ public class Application {
             publishedObjectsSummary.updateAndGetPublishedObjectsDiff(now, tracker, others);
         });
         state.addHook(tracker -> {
-            var now = Instant.now();
-            objectExpirationMetrics.trackExpiration(tracker.getUrl(), now, tracker.view(now).entries());
+            if (tracker.getType() == RepositoryTracker.Type.RRDP || tracker.getType() == RepositoryTracker.Type.RSYNC) {
+                var now = Instant.now();
+                objectExpirationMetrics.trackExpiration(tracker.getUrl(), now, tracker.view(now).entries());
+            }
         });
         state.addHook(tracker ->
             log.info("Updated {} repository at {}; it now has {} entries.", tracker.getType(), tracker.getUrl(), tracker.view(Instant.now()).size())
