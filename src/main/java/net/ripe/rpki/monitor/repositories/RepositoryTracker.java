@@ -38,6 +38,7 @@ public class RepositoryTracker {
         CORE, RRDP, RSYNC
     }
 
+    // Stores the repository objects index by their sha256 hash
     private final AtomicReference<Map<String, Pair<RepositoryEntry, Instant>>> objects;
 
     /**
