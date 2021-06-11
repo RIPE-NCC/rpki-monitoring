@@ -1,6 +1,5 @@
 package net.ripe.rpki.monitor.expiration;
 
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.hash.BloomFilter;
 import lombok.NonNull;
 import lombok.Value;
@@ -78,9 +77,9 @@ public class ObjectAndDateCollector {
                 }
 
                 return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
-            }).flatMap(Optional::stream).collect(ImmutableSortedSet.toImmutableSortedSet(RepoObject::compareTo));
+            }).flatMap(Optional::stream);
 
-            repositoriesState.updateByUrl(repoFetcher.repositoryUrl(), Instant.now(), expirationSummary.stream().map(RepositoryEntry::from));
+            repositoriesState.updateByUrl(repoFetcher.repositoryUrl(), Instant.now(), expirationSummary.map(RepositoryEntry::from));
 
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
         } catch (SnapshotNotModifiedException e) {
