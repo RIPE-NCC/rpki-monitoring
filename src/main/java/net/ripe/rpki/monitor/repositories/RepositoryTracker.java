@@ -132,6 +132,11 @@ public class RepositoryTracker {
 
         /**
          * Test if the repository has an object with the given object's hash and URI.
+         *
+         * Semantically objects in a repository would be present by just verifying
+         * their hash. However, semantics are not checked here. Hence for the purpose
+         * of monitoring, two identical objects are considered different when at
+         * different paths in the repository.
          */
         public boolean hasObject(RepositoryEntry object) {
             return getObject(object.getSha256())
