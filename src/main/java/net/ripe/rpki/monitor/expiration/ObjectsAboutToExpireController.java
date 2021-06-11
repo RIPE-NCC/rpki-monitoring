@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 
@@ -30,7 +31,7 @@ public class ObjectsAboutToExpireController {
         var now = Instant.now();
         var repository = repositories.getTrackerByUrl(appConfig.getRrdpConfig().getMainUrl())
                 .orElseThrow(() -> new IllegalStateException("No tracker for RRDP main repository"));
-        return repository.view(now).expiration(now.plusSeconds(3600L * inHours));
+        return repository.view(now).expiration(now.plus(Duration.ofHours(inHours)));
     }
 
     @GetMapping(value = "rsync")
@@ -38,6 +39,6 @@ public class ObjectsAboutToExpireController {
         var now = Instant.now();
         var repository = repositories.getTrackerByUrl(appConfig.getRsyncConfig().getMainUrl())
                 .orElseThrow(() -> new IllegalStateException("No tracker for rsync main repository"));
-        return repository.view(now).expiration(now.plusSeconds(3600L * inHours));
+        return repository.view(now).expiration(now.plus(Duration.ofHours(inHours)));
     }
 }
