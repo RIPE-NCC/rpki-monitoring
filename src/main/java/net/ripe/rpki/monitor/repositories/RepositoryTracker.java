@@ -113,11 +113,11 @@ public class RepositoryTracker {
      */
     public static class View {
         private final Map<String, Pair<RepositoryEntry, Instant>> objects;
-        private final Instant t;
+        private final Instant time;
 
-        private View(Map<String, Pair<RepositoryEntry, Instant>> objects, Instant t) {
+        private View(Map<String, Pair<RepositoryEntry, Instant>> objects, Instant time) {
             this.objects = objects;
-            this.t = t;
+            this.time = time;
         }
 
         /**
@@ -165,7 +165,7 @@ public class RepositoryTracker {
         }
 
         private boolean inScope(Pair<RepositoryEntry, Instant> x) {
-            return x.getRight().compareTo(t) <= 0;
+            return x.getRight().compareTo(time) <= 0;
         }
     }
 }
