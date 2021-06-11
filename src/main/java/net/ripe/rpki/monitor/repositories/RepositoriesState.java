@@ -57,7 +57,7 @@ public class RepositoriesState {
      * Get all repsositories tracked by this state.
      */
     public List<RepositoryTracker> allTrackers() {
-        return List.copyOf(repositories);
+        return repositories;
     }
 
     /**
