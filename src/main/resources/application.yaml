@@ -35,6 +35,8 @@ rpkimonitor:
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
+  interval: 1m
+  initial-delay: 10s
 
 published-objects:
   # The interval at which a full diff on all repositories is collected. Incidentally

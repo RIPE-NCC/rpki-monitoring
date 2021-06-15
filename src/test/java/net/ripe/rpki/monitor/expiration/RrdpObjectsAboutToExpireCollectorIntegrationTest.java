@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
 import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,8 +15,11 @@ import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 
 import java.net.URI;
+import java.time.Instant;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -25,7 +29,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
     @Autowired
-    private RepositoryObjects repositoryObjects;
+    private RepositoriesState repositoriesState;
 
     @Autowired
     private Collectors collectors;
@@ -60,7 +64,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     }
 
     @Test
-    public void itShouldPopulateRrdpObjectsSummaryList() throws Exception {
+    public void itShouldUpdateRrdpRepositoryState() throws Exception {
 
         final String serial = "574";
         final URI repositoryURI = new URI("http://localhost.example/notification.xml");
@@ -83,7 +87,8 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
         rrdpObjectsAboutToExpireCollector.run();
 
-        assertEquals(4, repositoryObjects.geRepositoryObjectsAboutToExpire("http://localhost.example", Integer.MAX_VALUE).size());
+        var tracker = repositoriesState.getTrackerByUrl("http://localhost.example").get();
+        assertThat(tracker.view(Instant.now()).size()).isEqualTo(4);
     }
 
     @Test

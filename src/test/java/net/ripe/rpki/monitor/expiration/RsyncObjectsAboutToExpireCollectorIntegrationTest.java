@@ -1,65 +1,48 @@
 package net.ripe.rpki.monitor.expiration;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
-import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
+import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import net.ripe.rpki.monitor.repositories.RepositoryTracker;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
 
-import static org.assertj.core.api.BDDAssertions.then;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@Slf4j
 class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
-    private ObjectAndDateCollector rsyncObjectsAboutToExpireCollector;
+    private ObjectAndDateCollector subject;
 
-    private MeterRegistry meterRegistry;
-    private RepositoryObjects repositoryObjects;
-
-    private final URI uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
-
-    private final RsyncConfig config;
-
-    RsyncObjectsAboutToExpireCollectorIntegrationTest() throws URISyntaxException {
-        config = new RsyncConfig();
-        config.setMainUrl("rsync://example.org");
-    }
+    private final RsyncConfig config = new RsyncConfig();
+    private RepositoriesState repositories;
 
     @BeforeEach
-    public void beforeEach(@TempDir Path tempDirectory) throws IOException {
-        meterRegistry = new SimpleMeterRegistry();
-        repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
-
+    public void beforeEach(@TempDir Path tempDirectory) throws Exception {
+        var uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
+        config.setMainUrl(uri.getPath());
         config.setBaseDirectory(tempDirectory);
 
-        final RsyncFetcher rsyncFetcher = new RsyncFetcher(config, uri.getPath());
-        final CollectorUpdateMetrics collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
+        var meterRegistry = new SimpleMeterRegistry();
+        var rsyncFetcher = new RsyncFetcher(config, config.getMainUrl());
+        var collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
-        rsyncObjectsAboutToExpireCollector = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositoryObjects);
+        repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getMainUrl(), RepositoryTracker.Type.RSYNC)));
+        subject = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositories);
     }
 
     @Test
-    public void itShouldPopulateRsyncObjectsSummaryList() throws Exception {
-        rsyncObjectsAboutToExpireCollector.run();
-        assertEquals(5, repositoryObjects.geRepositoryObjectsAboutToExpire(uri.getPath(), Integer.MAX_VALUE).size());
-    }
+    public void itShouldUpdateRsyncRepositoryState() throws Exception {
+        subject.run();
 
-    @Test
-    public void itShouldSetTheObjectUrlMatchingTheMainUrl() throws Exception {
-        rsyncObjectsAboutToExpireCollector.run();
-
-        final var objects = repositoryObjects.getObjects(uri.getPath());
-        then(objects).allSatisfy(o -> o.getUri().startsWith(config.getMainUrl()));
+        var tracker = repositories.getTrackerByTag("rsync").get();
+        assertThat(tracker.view(Instant.now()).size()).isEqualTo(5);
     }
 }

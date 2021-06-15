@@ -9,7 +9,7 @@ import java.time.Instant;
 @Builder
 @Value
 public class PublishedObjectEntry implements HasHashAndUri {
-    private String uri;
-    private Instant updatedAt;
-    private String sha256;
+    String uri;
+    String sha256;
+    Instant updatedAt;
 }

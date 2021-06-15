@@ -1,14 +1,22 @@
 package net.ripe.rpki.monitor.expiration;
 
+import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
+import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
-import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
+import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
+import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import net.ripe.rpki.monitor.repositories.RepositoryTracker;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
 
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,12 +25,13 @@ import static org.mockito.Mockito.mock;
 class AbstractObjectsAboutToExpireCollectorTest {
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 
-    private final RepositoryObjects repositoryObjects = new RepositoryObjects(mock(ObjectExpirationMetrics.class));
+    private final RepositoriesState state = RepositoriesState.init(List.of(Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)));
 
     ObjectAndDateCollector collector = new ObjectAndDateCollector(
-            mock(RepoFetcher.class),
+            new NoopRepoFetcher("https://rrdp.ripe.net"),
             mock(CollectorUpdateMetrics.class),
-            repositoryObjects);
+            state
+    );
 
     @Test
     public void itShouldGetCerNotAfterDate() throws ParseException {
@@ -87,5 +96,24 @@ class AbstractObjectsAboutToExpireCollectorTest {
         final var res = collector.getDateFor("A.bla", new byte[]{});
         assertThat(res.getLeft()).isEqualTo(UNKNOWN);
         assertThat(res.getRight()).isEmpty();
+    }
+}
+
+class NoopRepoFetcher implements RepoFetcher {
+    private final String url;
+
+    NoopRepoFetcher(String url) {
+        this.url = url;
+    }
+
+
+    @Override
+    public Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public String repositoryUrl() {
+        return url;
     }
 }

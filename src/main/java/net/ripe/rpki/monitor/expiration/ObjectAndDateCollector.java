@@ -1,6 +1,5 @@
 package net.ripe.rpki.monitor.expiration;
 
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.hash.BloomFilter;
 import lombok.NonNull;
 import lombok.Value;
@@ -17,11 +16,14 @@ import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,7 +36,6 @@ public class ObjectAndDateCollector {
 
     private final RepoFetcher repoFetcher;
     private final CollectorUpdateMetrics collectorUpdateMetrics;
-    private final RepositoryObjects repositoryObjects;
 
     /**
      * Bloom filter with 0.5% false positives (and no false negatives) at 100K objects to reduce logging.
@@ -43,14 +44,15 @@ public class ObjectAndDateCollector {
      * completely rejected (and the behaviour does not degrade due to being over capacity).
      */
     private final BloomFilter<String> loggedRejectedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 100_000, 0.5);
+    private final RepositoriesState repositoriesState;
 
     public ObjectAndDateCollector(
         @NonNull final RepoFetcher repoFetcher,
         @NonNull CollectorUpdateMetrics metrics,
-        RepositoryObjects repositoryObjects) {
+        @NonNull RepositoriesState repositoriesState) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
-        this.repositoryObjects = repositoryObjects;
+        this.repositoriesState = repositoriesState;
     }
 
     public void run() throws FetcherException {
@@ -75,9 +77,9 @@ public class ObjectAndDateCollector {
                 }
 
                 return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
-            }).flatMap(Optional::stream).collect(ImmutableSortedSet.toImmutableSortedSet(RepoObject::compareTo));
+            }).flatMap(Optional::stream);
 
-            repositoryObjects.setRepositoryObject(repoFetcher.repositoryUrl(), expirationSummary);
+            repositoriesState.updateByUrl(repoFetcher.repositoryUrl(), Instant.now(), expirationSummary.map(RepositoryEntry::from));
 
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
         } catch (SnapshotNotModifiedException e) {

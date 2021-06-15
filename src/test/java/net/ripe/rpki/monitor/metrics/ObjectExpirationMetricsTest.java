@@ -1,11 +1,10 @@
 package net.ripe.rpki.monitor.metrics;
 
-import com.google.common.collect.ImmutableSortedSet;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.NoArgsConstructor;
 import net.ripe.rpki.monitor.expiration.RepoObject;
-import net.ripe.rpki.monitor.expiration.RepositoryObjects;
+import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +13,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.BDDAssertions.then;
@@ -22,26 +22,28 @@ import static org.assertj.core.api.BDDAssertions.then;
 @NoArgsConstructor
 public class ObjectExpirationMetricsTest {
     private MeterRegistry meterRegistry;
-    private RepositoryObjects repositoryObjects;
 
     public final static String REPO_URL = "rsync://rpki.example.org/";
+    private ObjectExpirationMetrics subject;
 
     @BeforeEach
     public void beforeEach() {
         meterRegistry = new SimpleMeterRegistry();
-        repositoryObjects = new RepositoryObjects(new ObjectExpirationMetrics(meterRegistry));
+        subject = new ObjectExpirationMetrics(meterRegistry);
     }
 
     @Test
     public void itShouldHaveTimeToExpiryMetricsWhichCountedAllObjects() throws Exception {
-        final var now = Instant.now();
-        // Store the objects
-        repositoryObjects.setRepositoryObject(REPO_URL, ImmutableSortedSet.of(
+        var now = Instant.now();
+        var objects = Set.of(
                 RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofMinutes(50)))),
                 RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofMinutes(61)))),
                 RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofHours(7).plusMinutes(10)))),
                 RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofHours(14))))
-        ));
+        );
+
+        subject.trackExpiration(REPO_URL, now, objects.stream().map(RepositoryEntry::from));
+
         final var buckets = Arrays.asList(meterRegistry.get(ObjectExpirationMetrics.COLLECTOR_EXPIRATION_METRIC)
                 .tag("url", REPO_URL)
                 .summary()
@@ -68,13 +70,14 @@ public class ObjectExpirationMetricsTest {
 
     @Test
     public void itShouldHaveTimeSinceCreationMetricsWhichCountedAllObjects() throws Exception {
-        final var now = Instant.now();
-        // Store the objects
-        repositoryObjects.setRepositoryObject(REPO_URL, ImmutableSortedSet.of(
+        var now = Instant.now();
+        var objects = Set.of(
                 RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(90, ChronoUnit.MINUTES))),
-                RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(18L * 31, ChronoUnit.DAYS))), // java.time.temporal.UnsupportedTemporalTypeException: Unsupported unit: Months
+                RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(18L * 31, ChronoUnit.DAYS))),
                 RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(18, ChronoUnit.HOURS)))
-        ));
+        );
+
+        subject.trackExpiration(REPO_URL, now, objects.stream().map(RepositoryEntry::from));
 
         final var snapshot = meterRegistry.get(ObjectExpirationMetrics.COLLECTOR_CREATION_METRIC)
                 .tag("url", REPO_URL)
