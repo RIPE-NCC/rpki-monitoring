@@ -43,7 +43,7 @@ public class ObjectAndDateCollector {
      * Using 3% at 10K would log 0,03*40000=1200 lines per time the repo is checked if a repo containing 40K files is
      * completely rejected (and the behaviour does not degrade due to being over capacity).
      */
-    private final BloomFilter<String> loggedRejectedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 100_000, 0.5);
+    private final BloomFilter<String> loggedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 100_000, 0.5);
     private final RepositoriesState repositoriesState;
 
     public ObjectAndDateCollector(
@@ -142,15 +142,29 @@ public class ObjectAndDateCollector {
                             ghostbusterCms.getNotValidAfter().toDate()
                     );
                 default:
+                    maybeLogObject(String.format("%s-%s-unknown", repoFetcher.repositoryUrl(), objectUri),
+                                   "[{}] Object at {} is unknown.", repoFetcher.repositoryUrl(), objectUri);
                     return Pair.of(UNKNOWN, Optional.empty());
             }
         } catch (Exception e) {
-            final var key = String.format("%s-%s", repoFetcher.repositoryUrl(), objectUri);
-            if (!loggedRejectedObjects.mightContain(key)) {
-                log.info("[{}] Object at {} rejected: {}.", repoFetcher.repositoryUrl(), objectUri, e.getMessage());
-                loggedRejectedObjects.put(key);
-            }
+            maybeLogObject(String.format("%s-%s-rejected", repoFetcher.repositoryUrl(), objectUri),
+                           "[{}] Object at {} rejected: {}.", repoFetcher.repositoryUrl(), objectUri, e.getMessage());
             return Pair.of(REJECTED, Optional.empty());
+        }
+    }
+
+    /**
+     * Log a message about an object if it (likely) has nog been logged before.
+     *
+     * <b>likely:</b> because a bloomfilter does not give guarantees about non-presence
+     * @param key key to set in the bloom filter
+     * @param message message - passed to log.info
+     * @param arguments arguments passed to log.info
+     */
+    private void maybeLogObject(final String key, final String message, Object... arguments) {
+        if (!loggedObjects.mightContain(key)) {
+            log.info(message, arguments);
+            loggedObjects.put(key);
         }
     }
 
