@@ -1,40 +1,51 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
-        id 'org.springframework.boot' version '2.5.4'
-        id 'io.spring.dependency-management' version '1.0.11.RELEASE'
-
-        id 'java'
-        id 'jacoco'
-
-        id "org.sonarqube" version "3.3"
-
-        // Enable Lombok project (https://projectlombok.org/features/all)
-        id "io.freefair.lombok" version "6.2.0"
-        // jib: Thinner Java docker images
-        id "com.google.cloud.tools.jib" version "3.1.4"
-        // git version
-        id "com.palantir.git-version" version "0.12.3"
+    id 'java'
+    id "io.freefair.lombok" version "6.2.0"
+    id 'org.springframework.boot' version '2.5.4'
+    id "com.palantir.git-version" version "0.12.3"
+    id 'jacoco'
+    id "org.sonarqube" version "3.3"
+    id "com.google.cloud.tools.jib" version "3.1.4"
 }
 
-jib {
-        from {
-                image = "docker-registry.ripe.net/swe/gitlab-ci/adoptopenjdk-rsync:jre-11"
-        }
-        to {
-                image = "docker-registry.ripe.net/rpki/rpki-monitoring"
-        }
+apply plugin: 'java'
+apply plugin: 'io.spring.dependency-management'
+
+group = 'net.ripe.rpki'
+version = '0.4.4'
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri('https://nexus.ripe.net/nexus/content/repositories/releases/')
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-quartz'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+
+    // Metrics
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "io.micrometer:micrometer-registry-prometheus"
+
+    implementation 'net.ripe.rpki:rpki-commons:1.24'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+    testImplementation("org.assertj:assertj-core:3.20.0")
 }
 
 // Replace the application version in resources. But not in test resources.
 processResources {
-        filter(ReplaceTokens, tokens:[
-                        gitVersion: gitVersion(),
-        ])
+    filter(ReplaceTokens, tokens:[
+        gitVersion: gitVersion(),
+    ])
 }
-
-group = 'net.ripe.rpki'
-version = '0.4.4'
 
 java {
     toolchain {
@@ -42,33 +53,9 @@ java {
     }
 }
 
-repositories {
-        mavenCentral()
-        maven {
-                url = uri('https://nexus.ripe.net/nexus/content/repositories/releases/')
-        }
-}
-
-dependencies {
-        implementation 'org.springframework.boot:spring-boot-starter-quartz'
-        implementation 'org.springframework.boot:spring-boot-starter-web'
-
-        developmentOnly "org.springframework.boot:spring-boot-devtools"
-
-        // Metrics
-        implementation "org.springframework.boot:spring-boot-starter-actuator"
-        implementation "io.micrometer:micrometer-registry-prometheus"
-
-        implementation 'net.ripe.rpki:rpki-commons:1.24'
-        testImplementation('org.springframework.boot:spring-boot-starter-test') {
-                exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-        }
-        testImplementation("org.assertj:assertj-core:3.20.0")
-}
-
 test {
-        useJUnitPlatform()
-        finalizedBy jacocoTestReport
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }
 
 tasks['sonarqube'].dependsOn test
@@ -79,6 +66,14 @@ jacocoTestReport {
     }
 }
 
-jib.container.environment = [
+jib {
+    from {
+        image = "docker-registry.ripe.net/swe/gitlab-ci/adoptopenjdk-rsync:jre-11"
+    }
+    to {
+        image = "docker-registry.ripe.net/rpki/rpki-monitoring"
+    }
+    container.environment = [
         JAVA_TOOL_OPTIONS: "-Xms512m -Xmx2048m"
-]
+    ]
+}
