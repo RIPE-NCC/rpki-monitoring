@@ -84,7 +84,7 @@ rrdp:
   main-url: https://rrdp.prepdev.ripe.net
   interval: 5M
   other-urls:
-    publish-1: http://publish-1.rpki.prepdev.ripe.net:7788
+    publish: https://publish.rpki.prepdev.ripe.net
 
 rsync:
   # *without* a trailing slash
