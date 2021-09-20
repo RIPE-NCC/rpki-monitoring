@@ -105,7 +105,8 @@ spring:
 rrdp:
   main-url: https://rrdp.ripe.net
   interval: 5M
-  other-urls: {}
+  other-urls:
+    publish: https://rrdp.int.ripe.net
 
 rsync:
   # *without* the trailing slash
