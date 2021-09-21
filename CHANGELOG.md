@@ -1,3 +1,9 @@
+## v0.4.5
+
+  * spring-boot: 2.5.1 -> 2.5.4
+  * rpki-commons: 1.21 -> 1.24
+  * Update Gradle build plugins
+
 ## v0.4.4
   * Log unknown objects when encountered.
   * Monitor RRDP repository at `https://publish.rpki.prepdev.ripe.net`

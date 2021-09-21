@@ -119,7 +119,7 @@ public class ObjectAndDateCollector {
                             roaCms.getNotValidAfter().toDate()
                     );
                 case Certificate:
-                    X509CertificateParser x509CertificateParser = new X509ResourceCertificateParser();
+                    X509ResourceCertificateParser x509CertificateParser = new X509ResourceCertificateParser();
                     x509CertificateParser.parse(ValidationResult.withLocation(objectUri), decoded);
                     final var cert = x509CertificateParser.getCertificate().getCertificate();
                     return acceptedObjectValidBetween(
