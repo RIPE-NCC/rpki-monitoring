@@ -15,19 +15,23 @@ import java.util.stream.Stream;
 @AllArgsConstructor
 @Component
 public class ObjectExpirationMetrics {
-    private static final String COLLECTOR_CREATION_DESCRIPTION = "Number of objects by collector by time since creation";
+    private static final String COLLECTOR_CREATION_DESCRIPTION = "Number of counted objects by collector by time since creation";
     public static final String COLLECTOR_CREATION_METRIC = "rpkimonitoring.collector.creation";
 
-    private static final String COLLECTOR_EXPIRATION_DESCRIPTION = "Number of objects by collector by time to expiration";
+    private static final String COLLECTOR_EXPIRATION_DESCRIPTION = "Number of counted objects by collector by time to expiration";
     public static final String COLLECTOR_EXPIRATION_METRIC = "rpkimonitoring.collector.expiration";
 
     private static final double[] SERVICE_LEVEL_INDICATORS = new double[]{
+        Duration.ofMinutes(1).toSeconds(),
+        Duration.ofMinutes(30).toSeconds(),
         Duration.ofHours(1).toSeconds(),
         Duration.ofHours(4).toSeconds(),
         Duration.ofHours(7).toSeconds(),
         Duration.ofHours(8).toSeconds(),
-        Duration.ofHours(24).toSeconds(), // CRLs, manifest eContent
-        Duration.ofDays(7).toSeconds(), // Manifest EE certs
+        Duration.ofHours(13).toSeconds(), // manifests MUST be refreshed before they have 13h left
+        Duration.ofHours(15).toSeconds(), // manifests and SHOULD be refreshed by this timestamp
+        Duration.ofHours(24).toSeconds(), // validity of CRLs, manifest eContent, manifest EE cert (6486-bis 5.1.2)
+        Duration.ofDays(7).toSeconds(),
         Duration.ofDays(182).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
         Duration.ofDays(365).toSeconds(),
         Duration.ofDays(548).toSeconds()
