@@ -3,7 +3,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '6.2.0'
-    id 'org.springframework.boot' version '2.5.4'
+    id 'org.springframework.boot' version '2.5.5'
     id 'com.palantir.git-version' version '0.12.3'
     id 'jacoco'
     id 'org.sonarqube' version '3.3'
@@ -14,7 +14,7 @@ apply plugin: 'java'
 apply plugin: 'io.spring.dependency-management'
 
 group = 'net.ripe.rpki'
-version = '0.4.4'
+version = '0.4.5'
 
 repositories {
     mavenCentral()
@@ -33,11 +33,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    implementation 'net.ripe.rpki:rpki-commons:1.24'
+    implementation 'net.ripe.rpki:rpki-commons:1.25'
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
-    testImplementation('org.assertj:assertj-core:3.20.0')
+    testImplementation('org.assertj:assertj-core:3.21.0')
 }
 
 // Replace the application version in resources. But not in test resources.
