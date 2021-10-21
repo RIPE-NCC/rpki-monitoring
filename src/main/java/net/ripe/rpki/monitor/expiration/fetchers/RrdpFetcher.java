@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration.fetchers;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.RrdpConfig;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
@@ -29,33 +30,31 @@ import static com.google.common.base.Verify.verifyNotNull;
 public class RrdpFetcher implements RepoFetcher {
 
     private final RestTemplate restTemplate;
-    private final String notificationXmlUrl;
-    private final String name;
-    private final String rrdpUrl;
+    private final RrdpConfig.RrdpRepositoryConfig config;
     private String lastSnapshotUrl;
 
-    public RrdpFetcher(String name, String rrdpUrl, RestTemplate restTemplate) {
-        this.name = name;
-        this.rrdpUrl = rrdpUrl;
-        this.notificationXmlUrl = String.format("%s/notification.xml", rrdpUrl);
+    public RrdpFetcher(RrdpConfig.RrdpRepositoryConfig config, RestTemplate restTemplate) {
+        this.config = config;
         this.restTemplate = restTemplate;
+
+        log.info("RrdpFetcher({}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostName());
     }
 
     @Override
     public String repositoryUrl() {
-        return rrdpUrl;
+        return config.getNotificationUrl();
     }
 
     public Map<String, RpkiObject> fetchObjects() throws SnapshotNotModifiedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
-            final String notificationXml = restTemplate.getForObject(notificationXmlUrl, String.class);
+            final String notificationXml = restTemplate.getForObject(config.getNotificationUrl(), String.class);
             verifyNotNull(notificationXml);
             final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
 
             final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
-            final String snapshotUrl = snapshotTag.getAttributes().getNamedItem("uri").getNodeValue();
+            final String snapshotUrl = config.rewriteUrl(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
             final String desiredSnapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
 
             verifyNotNull(snapshotUrl);

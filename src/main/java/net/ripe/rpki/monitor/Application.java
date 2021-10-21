@@ -51,8 +51,11 @@ public class Application {
         checkOverlappingRepositoryKeys(config);
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
         repos.add(Triple.of("core", config.getCoreUrl(), RepositoryTracker.Type.CORE));
-        repos.add(Triple.of("rrdp", config.getRrdpConfig().getMainUrl(), RepositoryTracker.Type.RRDP));
-        repos.addAll(toTriplets(config.getRrdpConfig().getOtherUrls(), RepositoryTracker.Type.RRDP));
+        repos.addAll(
+                config.getRrdpConfig().getTargets().stream()
+                        .map(repo -> Triple.of(repo.getName(), repo.getNotificationUrl(), RepositoryTracker.Type.RRDP))
+                        .collect(Collectors.toSet())
+        );
         repos.add(Triple.of("rsync", config.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC));
         repos.addAll(toTriplets(config.getRsyncConfig().getOtherUrls(), RepositoryTracker.Type.RSYNC));
 
@@ -76,8 +79,8 @@ public class Application {
     }
 
     private void checkOverlappingRepositoryKeys(AppConfig config) {
-        var builtinKeys = List.of("core", "rrdp", "rsync");
-        var rrdpKeys = config.getRrdpConfig().getOtherUrls().keySet();
+        var builtinKeys = List.of(config.getCoreUrl(), config.getRsyncConfig().getMainUrl());
+        var rrdpKeys = config.getRrdpConfig().getTargets().stream().map(RrdpConfig.RrdpRepositoryConfig::getNotificationUrl).collect(Collectors.toSet());
         var rsyncKeys = config.getRsyncConfig().getOtherUrls().keySet();
         Validate.isTrue(
                 rrdpKeys.stream().noneMatch(builtinKeys::contains),

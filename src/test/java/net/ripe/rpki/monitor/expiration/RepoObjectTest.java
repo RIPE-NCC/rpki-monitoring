@@ -3,16 +3,11 @@ package net.ripe.rpki.monitor.expiration;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.TemporalAmount;
-import java.time.temporal.TemporalUnit;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RepoObjectTest {
-
-
     @Test
     public void itShouldCompareByDate() {
         final var creation = new Date();

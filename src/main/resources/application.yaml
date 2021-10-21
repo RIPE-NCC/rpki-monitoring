@@ -11,9 +11,10 @@ spring:
 
 
 rrdp:
-  main-url: https://rrdp.prepdev.ripe.net
   interval: 5M
-  other-urls: {}
+  targets:
+    - name: rrdp
+      notification-url: https://rrdp.ripe.net/notification.xml
 
 rsync:
   # *without* the trailing slash
@@ -63,8 +64,11 @@ spring:
   profiles: local
 
 rrdp:
-  url: http://localhost
   interval: 5M
+  targets:
+    - name: main
+      notification-url: https://rrdp.int.ripe.net/notification.xml
+      override-host-name: rrdp.int.ripe.net
 
 rsync:
   # *without* the trailing slash
@@ -81,10 +85,12 @@ spring:
   profiles: prepdev
 
 rrdp:
-  main-url: https://rrdp.prepdev.ripe.net
   interval: 5M
-  other-urls:
-    publish: https://publish.rpki.prepdev.ripe.net
+  targets:
+    - name: main
+      notification-url: https://rrdp.prepdev.ripe.net/notification.xml
+    - name: publish
+      notification-url: https://publish.rpki.prepdev.ripe.net/notification.xml
 
 rsync:
   # *without* a trailing slash
@@ -103,10 +109,13 @@ spring:
   profiles: production
 
 rrdp:
-  main-url: https://rrdp.ripe.net
   interval: 5M
-  other-urls:
-    publish: https://rrdp.int.ripe.net
+  targets:
+    - name: main
+      notification-url: https://rrdp.ripe.net/notification.xml
+    - name: publish
+      notification-url: https://rrdp.int.ripe.net/notification.xml
+      override-host-name: rrdp.int.ripe.net
 
 rsync:
   # *without* the trailing slash
