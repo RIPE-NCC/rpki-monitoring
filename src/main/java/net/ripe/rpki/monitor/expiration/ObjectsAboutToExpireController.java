@@ -29,7 +29,7 @@ public class ObjectsAboutToExpireController {
     @GetMapping(value = "rrdp")
     public Set<RepositoryEntry> rrdpSummary(@RequestParam(value = "in_hours", defaultValue = "2") int inHours) {
         var now = Instant.now();
-        var repository = repositories.getTrackerByUrl(appConfig.getRrdpConfig().getMainUrl())
+        var repository = repositories.getTrackerByUrl(appConfig.getRrdpConfig().getTargets().get(0).getNotificationUrl())
                 .orElseThrow(() -> new IllegalStateException("No tracker for RRDP main repository"));
         return repository.view(now).expiration(now.plus(Duration.ofHours(inHours)));
     }

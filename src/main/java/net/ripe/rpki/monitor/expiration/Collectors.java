@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
 import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.RrdpConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
@@ -43,9 +44,8 @@ public class Collectors {
     }
 
     public List<ObjectAndDateCollector> getRrdpCollectors() {
-        return Stream.concat(
-            Stream.of(createDefaultRrdpCollector()),
-            createOtherUrlsCollectors(config.getRrdpConfig().getOtherUrls(), this::createRrdpFetcher)
+        return config.getRrdpConfig().getTargets().stream().map(
+                rrdpTarget -> new ObjectAndDateCollector(createRrdpFetcher(rrdpTarget), metrics, repositoriesState)
         ).collect(toList());
     }
 
@@ -64,16 +64,8 @@ public class Collectors {
         return new RsyncFetcher(config.getRsyncConfig(), name, url);
     }
 
-    private RrdpFetcher createRrdpFetcher(String name, String url) {
-        return new RrdpFetcher(name, url, config.getRestTemplate());
-    }
-
-    ObjectAndDateCollector createDefaultRrdpCollector() {
-        return new ObjectAndDateCollector(
-            createRrdpFetcher("main", config.getRrdpConfig().getMainUrl()),
-            metrics,
-            repositoriesState
-        );
+    private RrdpFetcher createRrdpFetcher(RrdpConfig.RrdpRepositoryConfig rrdpTarget) {
+        return new RrdpFetcher(rrdpTarget, config.getRestTemplate());
     }
 
     ObjectAndDateCollector createDefaultRsyncCollector() {

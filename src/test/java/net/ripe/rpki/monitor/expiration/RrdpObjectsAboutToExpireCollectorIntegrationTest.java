@@ -24,7 +24,10 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
-@SpringBootTest(properties = { "rrdp.main-url=http://localhost.example" })
+@SpringBootTest(properties = {
+        "rrdp.targets[0].name=main",
+        "rrdp.targets[0].notification-url=http://localhost.example/notification.xml"
+})
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
@@ -60,7 +63,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     @BeforeEach
     public void init() {
         mockServer = MockRestServiceServer.createServer(appConfig.getRestTemplate());
-        rrdpObjectsAboutToExpireCollector = collectors.createDefaultRrdpCollector();
+        rrdpObjectsAboutToExpireCollector = collectors.getRrdpCollectors().get(0);
     }
 
     @Test
@@ -87,7 +90,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
         rrdpObjectsAboutToExpireCollector.run();
 
-        var tracker = repositoriesState.getTrackerByUrl("http://localhost.example").get();
+        var tracker = repositoriesState.getTrackerByUrl("http://localhost.example/notification.xml").get();
         assertThat(tracker.view(Instant.now()).size()).isEqualTo(4);
     }
 

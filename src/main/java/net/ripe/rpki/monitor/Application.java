@@ -18,9 +18,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -51,8 +49,11 @@ public class Application {
         checkOverlappingRepositoryKeys(config);
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
         repos.add(Triple.of("core", config.getCoreUrl(), RepositoryTracker.Type.CORE));
-        repos.add(Triple.of("rrdp", config.getRrdpConfig().getMainUrl(), RepositoryTracker.Type.RRDP));
-        repos.addAll(toTriplets(config.getRrdpConfig().getOtherUrls(), RepositoryTracker.Type.RRDP));
+        repos.addAll(
+                config.getRrdpConfig().getTargets().stream()
+                        .map(repo -> Triple.of(repo.getName(), repo.getNotificationUrl(), RepositoryTracker.Type.RRDP))
+                        .collect(Collectors.toSet())
+        );
         repos.add(Triple.of("rsync", config.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC));
         repos.addAll(toTriplets(config.getRsyncConfig().getOtherUrls(), RepositoryTracker.Type.RSYNC));
 
@@ -75,20 +76,36 @@ public class Application {
         return state;
     }
 
+    /**
+     * Tags need to be unique, both within, and between sources.
+     */
     private void checkOverlappingRepositoryKeys(AppConfig config) {
-        var builtinKeys = List.of("core", "rrdp", "rsync");
-        var rrdpKeys = config.getRrdpConfig().getOtherUrls().keySet();
+        var builtinKeys = Set.of("core", "rsync");
+
+        var rrdpKeys = config.getRrdpConfig().getTargets().stream().map(RrdpConfig.RrdpRepositoryConfig::getName).collect(Collectors.toSet());
         var rsyncKeys = config.getRsyncConfig().getOtherUrls().keySet();
+
+        // Check for overlap within-source
         Validate.isTrue(
-                rrdpKeys.stream().noneMatch(builtinKeys::contains),
+                rrdpKeys.size() == config.getRrdpConfig().getTargets().size(),
+                "There are duplicate keys in the `name` of the rrdp targets."
+        );
+        Validate.isTrue(
+                rsyncKeys.size() == config.getRsyncConfig().getOtherUrls().size(),
+                "There are duplicate keys in the rsync targets."
+        );
+
+        // Check for overlap between sources
+        Validate.isTrue(
+                Collections.disjoint(builtinKeys, rrdpKeys),
                 "RRDP other-urls keys overlap with builtin keys"
         );
         Validate.isTrue(
-                rsyncKeys.stream().noneMatch(builtinKeys::contains),
+                Collections.disjoint(builtinKeys, rsyncKeys),
                 "Rsync other-urls keys overlap with builtin keys"
         );
         Validate.isTrue(
-                rrdpKeys.stream().noneMatch(rsyncKeys::contains),
+                Collections.disjoint(rrdpKeys, rsyncKeys),
                 "RRDP and rsync other-urls keys overlap"
         );
     }
