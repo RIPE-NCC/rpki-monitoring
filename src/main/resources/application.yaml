@@ -68,7 +68,7 @@ rrdp:
   targets:
     - name: main
       notification-url: https://rrdp.int.ripe.net/notification.xml
-      override-host-name: rrdp.int.ripe.net
+      override-hostname: rrdp.int.ripe.net
 
 rsync:
   # *without* the trailing slash
@@ -115,7 +115,7 @@ rrdp:
       notification-url: https://rrdp.ripe.net/notification.xml
     - name: publish
       notification-url: https://rrdp.int.ripe.net/notification.xml
-      override-host-name: rrdp.int.ripe.net
+      override-hostname: rrdp.int.ripe.net
 
 rsync:
   # *without* the trailing slash

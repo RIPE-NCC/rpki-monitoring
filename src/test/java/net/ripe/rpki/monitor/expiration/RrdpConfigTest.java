@@ -7,26 +7,26 @@ import static org.assertj.core.api.BDDAssertions.then;
 
 public class RrdpConfigTest {
     @Test
-    public void testRewriteHostname_not_set() {
+    public void testOverrideHostname_not_set() {
         final var baseUrl = "https://rrdp.int.example.org/";
         final var config = new RrdpConfig.RrdpRepositoryConfig("test-config", baseUrl + "notification.xml", null);
 
-        then(config.rewriteUrl(baseUrl + "12343/1/delta.xml")).isEqualTo(baseUrl + "12343/1/delta.xml");
+        then(config.overrideHostname(baseUrl + "12343/1/delta.xml")).isEqualTo(baseUrl + "12343/1/delta.xml");
     }
 
     @Test
-    public void testRewriteHostname_different_host() {
+    public void testOverrideHostname_different_host() {
         final var baseUrl = "https://rrdp.example.org/";
         final var config = new RrdpConfig.RrdpRepositoryConfig("test-config", baseUrl + "notification.xml", "rrdp.example.org");
 
-        then(config.rewriteUrl("https://rrdp.other.host.example.org/12343/1/delta.xml")).isEqualTo(baseUrl + "12343/1/delta.xml");
+        then(config.overrideHostname("https://rrdp.other.host.example.org/12343/1/delta.xml")).isEqualTo(baseUrl + "12343/1/delta.xml");
     }
 
     @Test
-    public void testRewriteHostname_broken_urls() {
+    public void testOverrideHostname_broken_urls() {
         final var config = new RrdpConfig.RrdpRepositoryConfig("test-config", "https://rrdp.example.org/notification.xml", "rrdp.example.org");
         final var brokenUrl = "https:/\\\\$/rrdp.other.host.example.org/12343/1/delta.xml";
-        then(config.rewriteUrl(brokenUrl)).isEqualTo(brokenUrl);
-        then(config.rewriteUrl(null)).isNull();
+        then(config.overrideHostname(brokenUrl)).isEqualTo(brokenUrl);
+        then(config.overrideHostname(null)).isNull();
     }
 }

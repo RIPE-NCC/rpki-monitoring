@@ -7,9 +7,7 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -30,11 +28,13 @@ public class RrdpConfig {
          * (Usage of optional is not recommended with @ConfigurationProperties [0])
          * [0]: https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config.typesafe-configuration-properties.constructor-binding
          */
-        private String overrideHostName = null;
+        private String overrideHostname = null;
 
-        /** Rewrite a URL given this config */
-        public String rewriteUrl(String url) {
-            return Optional.ofNullable(overrideHostName).map(override -> rewriteHostInUrl(url, override)).orElse(url);
+        /**
+         * Override the hostname in the given URL according to this config.
+         * */
+        public String overrideHostname(String url) {
+            return Optional.ofNullable(overrideHostname).map(override -> rewriteHostInUrl(url, override)).orElse(url);
         }
 
         private static String rewriteHostInUrl(String inp, String overrideHostWith) {

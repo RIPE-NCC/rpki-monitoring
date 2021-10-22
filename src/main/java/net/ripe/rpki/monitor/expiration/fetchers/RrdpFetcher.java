@@ -37,7 +37,7 @@ public class RrdpFetcher implements RepoFetcher {
         this.config = config;
         this.restTemplate = restTemplate;
 
-        log.info("RrdpFetcher({}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostName());
+        log.info("RrdpFetcher({}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostname());
     }
 
     @Override
@@ -54,7 +54,7 @@ public class RrdpFetcher implements RepoFetcher {
             final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
 
             final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
-            final String snapshotUrl = config.rewriteUrl(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
+            final String snapshotUrl = config.overrideHostname(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
             final String desiredSnapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
 
             verifyNotNull(snapshotUrl);
