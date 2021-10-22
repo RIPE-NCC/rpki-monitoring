@@ -13,7 +13,7 @@ spring:
 rrdp:
   interval: 5M
   targets:
-    - name: rrdp
+    - name: main
       notification-url: https://rrdp.ripe.net/notification.xml
 
 rsync:
