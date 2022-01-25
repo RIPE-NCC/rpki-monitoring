@@ -82,6 +82,6 @@ jib {
         image = 'docker-registry.ripe.net/rpki/rpki-monitoring'
     }
     container.environment = [
-        JAVA_TOOL_OPTIONS: '-Xms512m -Xmx2048m'
+        JAVA_TOOL_OPTIONS: '-Xms512m -Xmx3584m'
     ]
 }
