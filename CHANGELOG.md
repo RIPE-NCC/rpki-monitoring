@@ -1,5 +1,8 @@
 ## HEAD
 
+## v0.5.2
+  * increase Xmx to 3.5GB for the container.
+
 ## v0.5.1
   * spring boot: 2.6.2 -> 2.6.3
 
