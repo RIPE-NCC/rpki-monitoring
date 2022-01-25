@@ -81,7 +81,9 @@ jib {
     to {
         image = 'docker-registry.ripe.net/rpki/rpki-monitoring'
     }
+    // JVM memory is set from the environment - might be overridden in the
+    // container configuration
     container.environment = [
-        JAVA_TOOL_OPTIONS: '-Xms512m -Xmx3584m'
+        JAVA_TOOL_OPTIONS: '-Xms3072m -Xmx3072m'
     ]
 }
