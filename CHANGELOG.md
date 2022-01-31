@@ -2,6 +2,7 @@
 
 ## v0.5.3
   * clarify that memory may be set from environment (...)
+  * Monitor i3d endpoint
 
 ## v0.5.2
   * increase Xmx to 3.5GB for the container.
