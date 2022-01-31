@@ -116,6 +116,9 @@ rrdp:
     - name: publish
       notification-url: https://rrdp.int.ripe.net/notification.xml
       override-hostname: rrdp.int.ripe.net
+    - name: i3d
+      notification-url: https://ripe.cdn.i3d.net/notification.xml
+      override-hostname: ripe.cdn.i3d.net
 
 rsync:
   # *without* the trailing slash
