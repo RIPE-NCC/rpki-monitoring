@@ -90,6 +90,9 @@ rrdp:
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
     - name: publish
       notification-url: https://publish.rpki.prepdev.ripe.net/notification.xml
+    - name: i3d
+      notification-url: https://ripe-test.cdn.i3d.net/notification.xml
+      override-hostname: ripe-test.cdn.i3d.net
 
 rsync:
   # *without* a trailing slash
