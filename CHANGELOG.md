@@ -1,5 +1,8 @@
 ## HEAD
 
+## v0.5.5
+  * Monitor i3d test endpoint
+
 ## v0.5.4
   * remove rpki2 from configuration
 
