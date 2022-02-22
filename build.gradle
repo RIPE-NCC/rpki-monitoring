@@ -49,7 +49,7 @@ processResources {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
@@ -76,7 +76,7 @@ jacocoTestReport {
 
 jib {
     from {
-        image = 'docker-registry.ripe.net/swe/gitlab-ci/adoptopenjdk-rsync:jre-11'
+        image = 'docker-registry.ripe.net/swe/gitlab-ci/openjdk-rsync:jre-17'
     }
     to {
         image = 'docker-registry.ripe.net/rpki/rpki-monitoring'
