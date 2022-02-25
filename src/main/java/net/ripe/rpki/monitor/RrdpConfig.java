@@ -1,6 +1,8 @@
 package net.ripe.rpki.monitor;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +31,7 @@ public class RrdpConfig {
          * [0]: https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config.typesafe-configuration-properties.constructor-binding
          */
         private String overrideHostname = null;
+        private List<ConnectTo> connectTo = List.of();
 
         /**
          * Override the hostname in the given URL according to this config.
@@ -53,4 +56,6 @@ public class RrdpConfig {
             }
         }
     }
+
+    public record ConnectTo(String host, String connect) {}
 }
