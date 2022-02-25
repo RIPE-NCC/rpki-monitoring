@@ -8,9 +8,7 @@ import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
@@ -35,12 +33,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     static final int TEST_SERVER_PORT = 9999;
+    private static final TestHttpServer server = new TestHttpServer("rrdp.ripe.net", TEST_SERVER_PORT);
 
     @Autowired
     private RepositoriesState repositoriesState;
     @Autowired
     private Collectors collectors;
-    private TestHttpServer server;
 
     private ObjectAndDateCollector subject;
 
@@ -61,16 +59,24 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
             "<publish uri=\"rsync://rpki.ripe.net/repository/DEFAULT/YIyyikWvgf2dDgKFvSnVORZbWpo.cer\">MIIFazCCBFOgAwIBAgIFW+aFOG8wDQYJKoZIhvcNAQELBQAwMzExMC8GA1UEAxMoMmE5NGE4ZGQ1NTRhZTcwMTA3MjA5OWM3MGI2NDA3NTU1ZGRkZTY2OTAeFw0yMDAyMjQxNDU2MzlaFw0yMTA3MDEwMDAwMDBaMDMxMTAvBgNVBAMTKDYwOGNiMjhhNDVhZjgxZmQ5ZDBlMDI4NWJkMjlkNTM5MTY1YjVhOWEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCtG1f7qhk7bqzrAeXKUjvPx/CcKSk6lpUB3w6EXipam0qF2ugZOsY41tC5qnF5lW+6n/RAasr3itbuaxU05uHkCSPLnnG7U2SfLty7WNLubLwFUK7EqTBHBK8T6VJ4tMhOy6vEDLJFWzZzd7EEy9R5gy39FKU+KERuzgrpkFo8lsUIVsh9BczmgmG3WqMMDGJIq1raPPYgSaNF9BAfu9lNZFEESxNtVhxFMBdq30U7+cHo4awWDk6qU9MOtdsYIpmM49XuDAoGlOXNQuqdZ07Z/eN5QXM+SWqNrjoH/qJ89E+wkNwrbO6IWEAGciHenC/CMUzahrmmZg7jdSpW5PsHAgMBAAGjggKEMIICgDAdBgNVHQ4EFgQUYIyyikWvgf2dDgKFvSnVORZbWpowHwYDVR0jBBgwFoAUKpSo3VVK5wEHIJnHC2QHVV3d5mkwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwYAYIKwYBBQUHAQEEVDBSMFAGCCsGAQUFBzAChkRyc3luYzovL3Jwa2kucmlwZS5uZXQvcmVwb3NpdG9yeS9hY2EvS3BTbzNWVks1d0VISUpuSEMyUUhWVjNkNW1rLmNlcjCCASMGCCsGAQUFBwELBIIBFTCCAREwXQYIKwYBBQUHMAWGUXJzeW5jOi8vcnBraS5yaXBlLm5ldC9yZXBvc2l0b3J5L0RFRkFVTFQvMjAvMzM0OTc1LTEzZGItNDdjZC04YzRhLTcxM2VmNzhiZWQwZC8xLzB8BggrBgEFBQcwCoZwcnN5bmM6Ly9ycGtpLnJpcGUubmV0L3JlcG9zaXRvcnkvREVGQVVMVC8yMC8zMzQ5NzUtMTNkYi00N2NkLThjNGEtNzEzZWY3OGJlZDBkLzEvWUl5eWlrV3ZnZjJkRGdLRnZTblZPUlpiV3BvLm1mdDAyBggrBgEFBQcwDYYmaHR0cHM6Ly9ycmRwLnJpcGUubmV0L25vdGlmaWNhdGlvbi54bWwwWQYDVR0fBFIwUDBOoEygSoZIcnN5bmM6Ly9ycGtpLnJpcGUubmV0L3JlcG9zaXRvcnkvREVGQVVMVC9LcFNvM1ZWSzV3RUhJSm5IQzJRSFZWM2Q1bWsuY3JsMBgGA1UdIAEB/wQOMAwwCgYIKwYBBQUHDgIwHwYIKwYBBQUHAQcBAf8EEDAOMAwEAgABMAYDBALCJ6QwDQYJKoZIhvcNAQELBQADggEBACFosm4qQ1nBvEk5OwW8scL1egXWB5dqOl0SDhHN2uIuEo8owKD7ddyeAYcg8370r5mnAmM9/JiSpNf+AjYpbWaVllJvQ6YJqbhMY1B7d5CKLewpTS80BgArxK8VugshGy+Ddffx1dS+hTRvvxURNOCgYmrHsTfgi0A2myHip8BisFUK4NqPZOyNdg1thyp++xcTs09svJbN3ZZAFMUYndU5O1GcIId8do8RM66dGan31Knn35Enj5KlQ3Q7CE+ZBd5sd4Y77c+WLtKBrtxcm7R/LbhrpotvIR0SX4/uogrtI1/UgKaYmlligc1E6IGHLQuTAocpRmlk7rUcI8TjERM=</publish>" +
             "</snapshot>";
 
-    @BeforeEach
-    public void init() throws IOException {
-        server = new TestHttpServer("rrdp.ripe.net", TEST_SERVER_PORT);
+    @BeforeAll
+    public static void start() throws Exception {
         server.start();
-        subject = collectors.getRrdpCollectors().get(0);
+    }
+
+    @AfterAll
+    public static void shutdown() {
+        server.stop();
     }
 
     @AfterEach
     public void tearDown() {
-        server.stop();
+        server.reset();
+    }
+
+    @BeforeEach
+    public void init() throws IOException {
+        subject = collectors.getRrdpCollectors().get(0);
     }
 
     @Test
@@ -181,5 +187,9 @@ class TestHttpServer {
 
     public void stop() {
         server.stop();
+    }
+
+    public void reset() {
+        files.clear();
     }
 }
