@@ -96,8 +96,7 @@ rrdp:
     - name: cloudflare
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
       connect-to:
-        - host: rrdp.prepdev.ripe.net
-          connect: rrdp.prepdev.ripe.net.cdn.cloudflare.net
+        rrdp.prepdev.ripe.net: rrdp.prepdev.ripe.net.cdn.cloudflare.net
 
 rsync:
   # *without* a trailing slash
@@ -128,8 +127,7 @@ rrdp:
     - name: cloudflare
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
-        - host: rrdp.ripe.net
-          connect: rrdp.ripe.net.cdn.cloudflare.net
+        rrdp.ripe.net: rrdp.ripe.net.cdn.cloudflare.net
 
 rsync:
   # *without* the trailing slash

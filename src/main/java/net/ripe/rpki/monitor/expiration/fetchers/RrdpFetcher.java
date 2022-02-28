@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -160,8 +159,8 @@ public class RrdpFetcher implements RepoFetcher {
     static class ConnectToResolver extends SystemDefaultDnsResolver {
         private final Map<String, String> connectTo;
 
-        public ConnectToResolver(List<RrdpConfig.ConnectTo> connectTo) {
-            this.connectTo = connectTo.stream().collect(Collectors.toMap(x -> x.host(), x -> x.connect()));
+        public ConnectToResolver(Map<String, String> connectTo) {
+            this.connectTo = Map.copyOf(connectTo);
         }
 
         @Override

@@ -27,8 +27,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 @SpringBootTest(properties = {
         "rrdp.targets[0].name=main",
         "rrdp.targets[0].notification-url=http://rrdp.ripe.net:" + RrdpObjectsAboutToExpireCollectorIntegrationTest.TEST_SERVER_PORT + "/notification.xml",
-        "rrdp.targets[0].connect-to[0].host=rrdp.ripe.net",
-        "rrdp.targets[0].connect-to[0].connect=localhost",
+        "rrdp.targets[0].connect-to[rrdp.ripe.net]=localhost",
 })
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
