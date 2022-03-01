@@ -52,6 +52,7 @@ public class CollectorUpdateMetrics {
 
     public class ExecutionStatus {
         private final String collectorName;
+        private final String repoTag;
         private final String repoUrl;
 
         private final AtomicLong lastUpdated = new AtomicLong();
@@ -67,6 +68,7 @@ public class CollectorUpdateMetrics {
 
         public ExecutionStatus(String collectorName, String tag, String repoUrl) {
             this.collectorName = collectorName;
+            this.repoTag = tag;
             this.repoUrl = repoUrl;
 
             Gauge.builder("rpkimonitoring.collector.lastupdated", lastUpdated::get)
@@ -79,6 +81,7 @@ public class CollectorUpdateMetrics {
             successCount = Counter.builder(COLLECTOR_UPDATE_METRIC)
                     .description(COLLECTOR_UPDATE_DESCRIPTION)
                     .tag(COLLECTOR, collectorName)
+                    .tag(NAME, tag)
                     .tag(URL, repoUrl)
                     .tag(STATUS, "success")
                     .register(registry);
@@ -86,6 +89,7 @@ public class CollectorUpdateMetrics {
             failureCount = Counter.builder(COLLECTOR_UPDATE_METRIC)
                     .description(COLLECTOR_UPDATE_DESCRIPTION)
                     .tag(COLLECTOR, collectorName)
+                    .tag(NAME, tag)
                     .tag(URL, repoUrl)
                     .tag(STATUS, "failure")
                     .register(registry);
@@ -97,6 +101,7 @@ public class CollectorUpdateMetrics {
                 Gauge.builder(COLLECTOR_COUNT_METRIC, passedObjectCount::get)
                         .description(COLLECTOR_COUNT_DESCRIPTION)
                         .tag(COLLECTOR, collectorName)
+                        .tag(NAME, repoTag)
                         .tag(URL, repoUrl)
                         .tag(STATUS, "passed")
                         .register(registry);
@@ -104,6 +109,7 @@ public class CollectorUpdateMetrics {
                 Gauge.builder(COLLECTOR_COUNT_METRIC, rejectedObjectCount::get)
                         .description(COLLECTOR_COUNT_DESCRIPTION)
                         .tag(COLLECTOR, collectorName)
+                        .tag(NAME, repoTag)
                         .tag(URL, repoUrl)
                         .tag(STATUS, "rejected")
                         .register(registry);
@@ -111,6 +117,7 @@ public class CollectorUpdateMetrics {
                 Gauge.builder(COLLECTOR_COUNT_METRIC, unknownObjectCount::get)
                         .description(COLLECTOR_COUNT_DESCRIPTION)
                         .tag(COLLECTOR, collectorName)
+                        .tag(NAME, repoTag)
                         .tag(URL, repoUrl)
                         .tag(STATUS, "unknown")
                         .register(registry);
