@@ -50,7 +50,7 @@ public class RepositoriesState {
     }
 
     public void addHook(Consumer<RepositoryTracker> f) {
-        updateHooks.set(append(updateHooks.get(), f));
+        updateHooks.getAndUpdate((xs -> append(xs, f)));
     }
 
     /**
