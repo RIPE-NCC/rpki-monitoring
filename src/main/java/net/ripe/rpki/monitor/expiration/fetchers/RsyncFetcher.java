@@ -65,7 +65,7 @@ public class RsyncFetcher implements RepoFetcher {
         Verify.verify(targetPath.normalize().startsWith(basePath), String.format("Directory traversal detected - %s is not below %s", targetPath, basePath));
 
         Files.createDirectories(targetPath);
-        log.info("RsyncFetcher({}, {}) -> {}", name, rsyncUrl, targetPath.toString());
+        log.info("RsyncFetcher({}, {}) -> {}", name, rsyncUrl, targetPath);
     }
 
     @Override
