@@ -61,12 +61,12 @@ public class RrdpFetcher implements RepoFetcher {
 
             verifyNotNull(snapshotUrl);
             if (snapshotUrl.equals(lastSnapshotUrl)) {
-                log.debug("not updating: snapshot url {} is the same as during the last check.", snapshotUrl);
+                log.debug("not updating: {} snapshot url {} is the same as during the last check.", config.getName(), snapshotUrl);
                 throw new SnapshotNotModifiedException(snapshotUrl);
             }
             lastSnapshotUrl = snapshotUrl;
 
-            log.info("loading RRDP snapshot from {}", snapshotUrl);
+            log.info("loading {} RRDP snapshot from {}", config.getName(), snapshotUrl);
 
             final String snapshotXml = http.fetch(snapshotUrl);
             assert snapshotXml != null;
