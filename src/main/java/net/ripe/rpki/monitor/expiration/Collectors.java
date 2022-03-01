@@ -70,7 +70,7 @@ public class Collectors {
 
     ObjectAndDateCollector createDefaultRsyncCollector() {
         return new ObjectAndDateCollector(
-            createRsyncFetcher("main", config.getRsyncConfig().getMainUrl()),
+            createRsyncFetcher("rsync", config.getRsyncConfig().getMainUrl()),
             metrics,
             repositoriesState
         );
