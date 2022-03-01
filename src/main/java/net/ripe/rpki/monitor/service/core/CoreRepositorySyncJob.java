@@ -3,11 +3,7 @@ package net.ripe.rpki.monitor.service.core;
 import lombok.AllArgsConstructor;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
-import org.quartz.JobBuilder;
-import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
-import org.quartz.Trigger;
-import org.quartz.TriggerBuilder;
+import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,8 +26,8 @@ public class CoreRepositorySyncJob extends QuartzJobBean {
     @Override
     protected void executeInternal(JobExecutionContext context) {
         var content = coreClient.publishedObjects();
-        state.updateByUrl(
-                coreClient.repositoryUrl(),
+        state.updateByTag(
+                coreClient.getName(),
                 Instant.now(),
                 content.stream().map(RepositoryEntry::from)
         );

@@ -25,11 +25,11 @@ class RepositoriesStateTest {
                 .build();
         var entries = Stream.of(entry);
 
-        var tracker = state.updateByUrl("https://rrdp.ripe.net/", now, entries);
+        var tracker = state.updateByTag("rrdp.ripe.net", now, entries);
         assertThat(tracker.view(now).size()).isEqualTo(1);
 
         now = now.plusSeconds(300);
-        var tracker_ = state.updateByUrl("https://rrdp.ripe.net/", now, Stream.empty());
+        var tracker_ = state.updateByTag("rrdp.ripe.net", now, Stream.empty());
         assertThat(tracker_.view(now).size()).isEqualTo(0);
     }
 
@@ -39,19 +39,13 @@ class RepositoriesStateTest {
 
         var called = new AtomicInteger(0);
         state.addHook((tracker) -> called.incrementAndGet());
-        state.updateByUrl("https://rrdp.ripe.net/", now, Stream.empty());
+        state.updateByTag("rrdp.ripe.net", now, Stream.empty());
         assertThat(called.get()).isEqualTo(1);
     }
 
     @Test
     public void get_tracker_by_tag_should_return_tracker() {
         var tracker = state.getTrackerByTag("rrdp.ripe.net");
-        assertThat(tracker).isPresent();
-    }
-
-    @Test
-    public void get_tracker_by_url_should_return_tracker() {
-        var tracker = state.getTrackerByUrl("https://rrdp.ripe.net/");
         assertThat(tracker).isPresent();
     }
 

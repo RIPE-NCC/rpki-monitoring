@@ -38,12 +38,8 @@ public class RepositoriesState {
         return repositories.stream().filter(x -> tag.equals(x.getTag())).findFirst();
     }
 
-    public Optional<RepositoryTracker> getTrackerByUrl(String url) {
-        return repositories.stream().filter(x -> url.equals(x.getUrl())).findFirst();
-    }
-
-    public RepositoryTracker updateByUrl(String url, Instant t, Stream<RepositoryEntry> entries) {
-        var tracker = getTrackerByUrl(url).orElseThrow(() -> new IllegalArgumentException("No tracked repository for URL: " + url));
+    public RepositoryTracker updateByTag(String tag, Instant t, Stream<RepositoryEntry> entries) {
+        var tracker = getTrackerByTag(tag).orElseThrow(() -> new IllegalArgumentException("No tracked repository by tag: " + tag));
         tracker.update(t, entries);
         updateHooks.get().forEach(f -> f.accept(tracker));
         return tracker;

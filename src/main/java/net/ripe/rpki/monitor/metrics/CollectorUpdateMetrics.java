@@ -5,7 +5,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +18,7 @@ public class CollectorUpdateMetrics {
     public static final String COLLECTOR_UPDATE_DESCRIPTION = "Number of updates by collector by status";
     public static final String COLLECTOR_UPDATE_METRIC = "rpkimonitoring.collector.update";
     public static final String COLLECTOR = "collector";
+    public static final String NAME = "name";
     public static final String URL = "url";
 
     public static final String COLLECTOR_COUNT_DESCRIPTION = "Number of objects by collector by status";
@@ -27,26 +28,26 @@ public class CollectorUpdateMetrics {
     @Autowired
     private final MeterRegistry registry;
 
-    private final ConcurrentHashMap<Pair<String, String>, ExecutionStatus> executionStatus = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Triple<String, String, String>, ExecutionStatus> executionStatus = new ConcurrentHashMap<>();
 
-    public ExecutionStatus trackSuccess(final String collectorName, final String url) {
-        final var status = getExecutionStatus(collectorName, url);
+    public ExecutionStatus trackSuccess(final String collectorName, final String tag, final String url) {
+        final var status = getExecutionStatus(collectorName, tag, url);
 
         status.successCount.increment();
         status.lastUpdated.set(System.currentTimeMillis()/1000);
         return status;
     }
 
-    public ExecutionStatus trackFailure(final String collectorName, final String url) {
-        final var status = getExecutionStatus(collectorName, url);
+    public ExecutionStatus trackFailure(final String collectorName, final String tag, final String url) {
+        final var status = getExecutionStatus(collectorName, tag, url);
 
         status.failureCount.increment();
         status.lastUpdated.set(System.currentTimeMillis()/1000);
         return status;
     }
 
-    private ExecutionStatus getExecutionStatus(final String collectorName, final String repoUrl) {
-        return executionStatus.computeIfAbsent(Pair.of(collectorName, repoUrl), key -> new ExecutionStatus(collectorName, repoUrl));
+    private ExecutionStatus getExecutionStatus(final String collectorName, final String tag, final String repoUrl) {
+        return executionStatus.computeIfAbsent(Triple.of(collectorName, tag, repoUrl), key -> new ExecutionStatus(collectorName, tag, repoUrl));
     }
 
     public class ExecutionStatus {
@@ -64,13 +65,14 @@ public class CollectorUpdateMetrics {
 
         private boolean initialisedCounters = false;
 
-        public ExecutionStatus(String collectorName, String repoUrl) {
+        public ExecutionStatus(String collectorName, String tag, String repoUrl) {
             this.collectorName = collectorName;
             this.repoUrl = repoUrl;
 
             Gauge.builder("rpkimonitoring.collector.lastupdated", lastUpdated::get)
                     .description("Last update by collector")
                     .tag(COLLECTOR, collectorName)
+                    .tag(NAME, tag)
                     .tag(URL, repoUrl)
                     .register(registry);
 

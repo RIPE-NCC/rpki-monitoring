@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.service.core;
 
+import lombok.Getter;
 import lombok.Setter;
 import net.ripe.rpki.monitor.MonitorProperties;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
@@ -16,6 +17,8 @@ import java.util.List;
 @Setter
 @Service
 public class CoreClient {
+    @Getter
+    private final String name = "core";
     private final String url;
     private final RestTemplate restTemplate;
     private final CollectorUpdateMetrics collectorUpdateMetrics;
@@ -39,15 +42,11 @@ public class CoreClient {
     public List<PublishedObjectEntry> publishedObjects() {
         try {
             final var res = restTemplate.getForObject("/api/published-objects", PublishedObjectEntry[].class);
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), "published-objects").objectCount(res.length, 0, 0);
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), name, "published-objects").objectCount(res.length, 0, 0);
             return Arrays.asList(res);
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), "published-objects").zeroCounters();
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), name, "published-objects").zeroCounters();
             throw e;
         }
-    }
-
-    public String repositoryUrl() {
-        return url;
     }
 }

@@ -43,8 +43,8 @@ public class RrdpFetcher implements RepoFetcher {
     }
 
     @Override
-    public String repositoryUrl() {
-        return config.getNotificationUrl();
+    public Meta meta() {
+        return new Meta(config.getName(), config.getNotificationUrl());
     }
 
     public Map<String, RpkiObject> fetchObjects() throws SnapshotNotModifiedException {

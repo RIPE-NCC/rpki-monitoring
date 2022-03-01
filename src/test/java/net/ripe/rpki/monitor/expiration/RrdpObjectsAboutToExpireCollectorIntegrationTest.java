@@ -88,7 +88,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
         subject.run();
 
-        var tracker = repositoriesState.getTrackerByUrl("http://rrdp.ripe.net:" + TEST_SERVER_PORT + "/notification.xml").get();
+        var tracker = repositoriesState.getTrackerByTag("main").get();
         assertThat(tracker.view(Instant.now()).size()).isEqualTo(4);
     }
 

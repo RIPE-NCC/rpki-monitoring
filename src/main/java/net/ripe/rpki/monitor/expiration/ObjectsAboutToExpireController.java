@@ -29,7 +29,7 @@ public class ObjectsAboutToExpireController {
     @GetMapping(value = "rrdp")
     public Set<RepositoryEntry> rrdpSummary(@RequestParam(value = "in_hours", defaultValue = "2") int inHours) {
         var now = Instant.now();
-        var repository = repositories.getTrackerByUrl(appConfig.getRrdpConfig().getTargets().get(0).getNotificationUrl())
+        var repository = repositories.getTrackerByTag(appConfig.getRrdpConfig().getTargets().get(0).getName())
                 .orElseThrow(() -> new IllegalStateException("No tracker for RRDP main repository"));
         return repository.view(now).expiration(now.plus(Duration.ofHours(inHours)));
     }
@@ -37,7 +37,7 @@ public class ObjectsAboutToExpireController {
     @GetMapping(value = "rsync")
     public Set<RepositoryEntry> rsyncSummary(@RequestParam(value = "in_hours", defaultValue = "2") int inHours) {
         var now = Instant.now();
-        var repository = repositories.getTrackerByUrl(appConfig.getRsyncConfig().getMainUrl())
+        var repository = repositories.getTrackerByTag("rsync")
                 .orElseThrow(() -> new IllegalStateException("No tracker for rsync main repository"));
         return repository.view(now).expiration(now.plus(Duration.ofHours(inHours)));
     }

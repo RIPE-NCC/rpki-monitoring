@@ -31,7 +31,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         config.setBaseDirectory(tempDirectory);
 
         var meterRegistry = new SimpleMeterRegistry();
-        var rsyncFetcher = new RsyncFetcher(config, config.getMainUrl());
+        var rsyncFetcher = new RsyncFetcher(config, "rsync", config.getMainUrl());
         var collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
         repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getMainUrl(), RepositoryTracker.Type.RSYNC)));
