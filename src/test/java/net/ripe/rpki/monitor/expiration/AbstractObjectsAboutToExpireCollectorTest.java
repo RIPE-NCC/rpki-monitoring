@@ -28,7 +28,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
     private final RepositoriesState state = RepositoriesState.init(List.of(Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)));
 
     ObjectAndDateCollector collector = new ObjectAndDateCollector(
-            new NoopRepoFetcher("https://rrdp.ripe.net"),
+            new NoopRepoFetcher("noop", "https://rrdp.ripe.net"),
             mock(CollectorUpdateMetrics.class),
             state
     );
@@ -99,21 +99,14 @@ class AbstractObjectsAboutToExpireCollectorTest {
     }
 }
 
-class NoopRepoFetcher implements RepoFetcher {
-    private final String url;
-
-    NoopRepoFetcher(String url) {
-        this.url = url;
-    }
-
-
+record NoopRepoFetcher(String name, String url) implements RepoFetcher {
     @Override
     public Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
         return Collections.emptyMap();
     }
 
     @Override
-    public String repositoryUrl() {
-        return url;
+    public Meta meta() {
+        return new Meta(name, url);
     }
 }

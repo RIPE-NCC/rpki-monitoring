@@ -25,8 +25,8 @@ class CoreRepositorySyncJobTest {
                 .sha256("51f83dd6a174889f29038686aca85c44b64b87a4f1ab702c5b531b3c5687fc0e")
                 .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
                 .build();
+        when(coreClientStub.getName()).thenReturn("core");
         when(coreClientStub.publishedObjects()).thenReturn(List.of(object));
-        when(coreClientStub.repositoryUrl()).thenReturn("https://ba-apps.ripe.net/certification/");
 
         var subject = new CoreRepositorySyncJob(state, coreClientStub);
         subject.execute(mock(JobExecutionContext.class, RETURNS_DEEP_STUBS));

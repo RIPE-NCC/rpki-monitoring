@@ -65,12 +65,12 @@ public class Collectors {
     }
 
     private RrdpFetcher createRrdpFetcher(RrdpConfig.RrdpRepositoryConfig rrdpTarget) {
-        return new RrdpFetcher(rrdpTarget, config.getRestTemplate());
+        return new RrdpFetcher(rrdpTarget, config.getProperties());
     }
 
     ObjectAndDateCollector createDefaultRsyncCollector() {
         return new ObjectAndDateCollector(
-            createRsyncFetcher("main", config.getRsyncConfig().getMainUrl()),
+            createRsyncFetcher("rsync", config.getRsyncConfig().getMainUrl()),
             metrics,
             repositoriesState
         );

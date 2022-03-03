@@ -93,6 +93,10 @@ rrdp:
     - name: i3d
       notification-url: https://ripe-test.cdn.i3d.net/notification.xml
       override-hostname: ripe-test.cdn.i3d.net
+    - name: cloudflare
+      notification-url: https://rrdp.prepdev.ripe.net/notification.xml
+      connect-to:
+        rrdp.prepdev.ripe.net: rrdp.prepdev.ripe.net.cdn.cloudflare.net
 
 rsync:
   # *without* a trailing slash
@@ -120,6 +124,10 @@ rrdp:
     - name: i3d
       notification-url: https://ripe.cdn.i3d.net/notification.xml
       override-hostname: ripe.cdn.i3d.net
+    - name: cloudflare
+      notification-url: https://rrdp.ripe.net/notification.xml
+      connect-to:
+        rrdp.ripe.net: rrdp.ripe.net.cdn.cloudflare.net
 
 rsync:
   # *without* the trailing slash

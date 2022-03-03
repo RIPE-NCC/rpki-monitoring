@@ -1,53 +1,51 @@
 package net.ripe.rpki.monitor.expiration;
 
-import net.ripe.rpki.monitor.AppConfig;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
+import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
+import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.web.client.ExpectedCount;
-import org.springframework.test.web.client.MockRestServiceServer;
 
-import java.net.URI;
+import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 @SpringBootTest(properties = {
         "rrdp.targets[0].name=main",
-        "rrdp.targets[0].notification-url=http://localhost.example/notification.xml"
+        "rrdp.targets[0].notification-url=http://rrdp.ripe.net:" + RrdpObjectsAboutToExpireCollectorIntegrationTest.TEST_SERVER_PORT + "/notification.xml",
+        "rrdp.targets[0].connect-to[rrdp.ripe.net]=localhost",
 })
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
+    static final int TEST_SERVER_PORT = 9999;
+    private static final TestHttpServer server = new TestHttpServer("rrdp.ripe.net", TEST_SERVER_PORT);
 
     @Autowired
     private RepositoriesState repositoriesState;
-
     @Autowired
     private Collectors collectors;
 
-    @Autowired
-    private AppConfig appConfig;
+    private ObjectAndDateCollector subject;
 
-    private ObjectAndDateCollector rrdpObjectsAboutToExpireCollector;
-
-    private MockRestServiceServer mockServer;
 
     private String getNotificationXml(String serial, String snapshotHash) {
         return
             "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"" + serial + "\">" +
-            "<snapshot uri=\"http://localhost.example/" + serial + "/snapshot.xml\" hash=\"" + snapshotHash + "\"/>" +
+            "<snapshot uri=\"http://rrdp.ripe.net:9999/" + serial + "/snapshot.xml\" hash=\"" + snapshotHash + "\"/>" +
             "</notification>";
     }
 
@@ -60,37 +58,37 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
             "<publish uri=\"rsync://rpki.ripe.net/repository/DEFAULT/YIyyikWvgf2dDgKFvSnVORZbWpo.cer\">MIIFazCCBFOgAwIBAgIFW+aFOG8wDQYJKoZIhvcNAQELBQAwMzExMC8GA1UEAxMoMmE5NGE4ZGQ1NTRhZTcwMTA3MjA5OWM3MGI2NDA3NTU1ZGRkZTY2OTAeFw0yMDAyMjQxNDU2MzlaFw0yMTA3MDEwMDAwMDBaMDMxMTAvBgNVBAMTKDYwOGNiMjhhNDVhZjgxZmQ5ZDBlMDI4NWJkMjlkNTM5MTY1YjVhOWEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCtG1f7qhk7bqzrAeXKUjvPx/CcKSk6lpUB3w6EXipam0qF2ugZOsY41tC5qnF5lW+6n/RAasr3itbuaxU05uHkCSPLnnG7U2SfLty7WNLubLwFUK7EqTBHBK8T6VJ4tMhOy6vEDLJFWzZzd7EEy9R5gy39FKU+KERuzgrpkFo8lsUIVsh9BczmgmG3WqMMDGJIq1raPPYgSaNF9BAfu9lNZFEESxNtVhxFMBdq30U7+cHo4awWDk6qU9MOtdsYIpmM49XuDAoGlOXNQuqdZ07Z/eN5QXM+SWqNrjoH/qJ89E+wkNwrbO6IWEAGciHenC/CMUzahrmmZg7jdSpW5PsHAgMBAAGjggKEMIICgDAdBgNVHQ4EFgQUYIyyikWvgf2dDgKFvSnVORZbWpowHwYDVR0jBBgwFoAUKpSo3VVK5wEHIJnHC2QHVV3d5mkwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwYAYIKwYBBQUHAQEEVDBSMFAGCCsGAQUFBzAChkRyc3luYzovL3Jwa2kucmlwZS5uZXQvcmVwb3NpdG9yeS9hY2EvS3BTbzNWVks1d0VISUpuSEMyUUhWVjNkNW1rLmNlcjCCASMGCCsGAQUFBwELBIIBFTCCAREwXQYIKwYBBQUHMAWGUXJzeW5jOi8vcnBraS5yaXBlLm5ldC9yZXBvc2l0b3J5L0RFRkFVTFQvMjAvMzM0OTc1LTEzZGItNDdjZC04YzRhLTcxM2VmNzhiZWQwZC8xLzB8BggrBgEFBQcwCoZwcnN5bmM6Ly9ycGtpLnJpcGUubmV0L3JlcG9zaXRvcnkvREVGQVVMVC8yMC8zMzQ5NzUtMTNkYi00N2NkLThjNGEtNzEzZWY3OGJlZDBkLzEvWUl5eWlrV3ZnZjJkRGdLRnZTblZPUlpiV3BvLm1mdDAyBggrBgEFBQcwDYYmaHR0cHM6Ly9ycmRwLnJpcGUubmV0L25vdGlmaWNhdGlvbi54bWwwWQYDVR0fBFIwUDBOoEygSoZIcnN5bmM6Ly9ycGtpLnJpcGUubmV0L3JlcG9zaXRvcnkvREVGQVVMVC9LcFNvM1ZWSzV3RUhJSm5IQzJRSFZWM2Q1bWsuY3JsMBgGA1UdIAEB/wQOMAwwCgYIKwYBBQUHDgIwHwYIKwYBBQUHAQcBAf8EEDAOMAwEAgABMAYDBALCJ6QwDQYJKoZIhvcNAQELBQADggEBACFosm4qQ1nBvEk5OwW8scL1egXWB5dqOl0SDhHN2uIuEo8owKD7ddyeAYcg8370r5mnAmM9/JiSpNf+AjYpbWaVllJvQ6YJqbhMY1B7d5CKLewpTS80BgArxK8VugshGy+Ddffx1dS+hTRvvxURNOCgYmrHsTfgi0A2myHip8BisFUK4NqPZOyNdg1thyp++xcTs09svJbN3ZZAFMUYndU5O1GcIId8do8RM66dGan31Knn35Enj5KlQ3Q7CE+ZBd5sd4Y77c+WLtKBrtxcm7R/LbhrpotvIR0SX4/uogrtI1/UgKaYmlligc1E6IGHLQuTAocpRmlk7rUcI8TjERM=</publish>" +
             "</snapshot>";
 
+    @BeforeAll
+    public static void start() throws Exception {
+        server.start();
+    }
+
+    @AfterAll
+    public static void shutdown() {
+        server.stop();
+    }
+
+    @AfterEach
+    public void tearDown() {
+        server.reset();
+    }
+
     @BeforeEach
-    public void init() {
-        mockServer = MockRestServiceServer.createServer(appConfig.getRestTemplate());
-        rrdpObjectsAboutToExpireCollector = collectors.getRrdpCollectors().get(0);
+    public void init() throws IOException {
+        subject = collectors.getRrdpCollectors().get(0);
     }
 
     @Test
     public void itShouldUpdateRrdpRepositoryState() throws Exception {
 
         final String serial = "574";
-        final URI repositoryURI = new URI("http://localhost.example/notification.xml");
 
-        mockServer.expect(ExpectedCount.once(),
-                requestTo(repositoryURI))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(getNotificationXml(serial, Sha256.asString(snapshotXml)))
-                );
+        server.stub("/notification.xml", getNotificationXml(serial, Sha256.asString(snapshotXml)));
+        server.stub("/" + serial + "/snapshot.xml", snapshotXml);
 
-        mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(snapshotXml)
-                );
+        subject.run();
 
-        rrdpObjectsAboutToExpireCollector.run();
-
-        var tracker = repositoriesState.getTrackerByUrl("http://localhost.example/notification.xml").get();
+        var tracker = repositoriesState.getTrackerByTag("main").get();
         assertThat(tracker.view(Instant.now()).size()).isEqualTo(4);
     }
 
@@ -98,24 +96,11 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     public void itShouldCheckHash() throws Exception {
 
         final String serial = "666";
-        mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/notification.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(getNotificationXml(serial, "ababababababababababababababababababab1b1b1b1bababababababababab"))
-                );
-
-        mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(snapshotXml)
-                );
+        server.stub("/notification.xml", getNotificationXml(serial, "ababababababababababababababababababab1b1b1b1bababababababababab"));
+        server.stub("/" + serial + "/snapshot.xml", snapshotXml);
 
         try {
-            rrdpObjectsAboutToExpireCollector.run();
+            subject.run();
             fail();
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("Snapshot hash (" +Sha256.asString(snapshotXml) + ") is not the same as " +
@@ -126,70 +111,84 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     @Test
     public void itShouldOnlyDownloadSnapshotWhenNeeded() throws Exception {
         final String serial = "42";
-        mockServer.expect(ExpectedCount.twice(),
-                requestTo(new URI("http://localhost.example/notification.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(getNotificationXml(serial, Sha256.asString(snapshotXml)))
-                );
+        server.stub("/notification.xml", getNotificationXml(serial, Sha256.asString(snapshotXml)));
+        server.stub("/" + serial + "/snapshot.xml", snapshotXml);
 
-        mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(snapshotXml)
-                );
+        subject.run();
+        server.unstub("/" + serial + "/snapshot.xml");
 
-        // Run twice
-        rrdpObjectsAboutToExpireCollector.run();
-        rrdpObjectsAboutToExpireCollector.run();
-
-        mockServer.verify();
+        subject.run();
     }
 
     @Test
     public void itShouldDownloadSnapshotWhenChanged() throws Exception {
-        final String serial = "42";
+        final int serial = 42;
 
-        mockServer.expect(ExpectedCount.twice(),
-                requestTo(new URI("http://localhost.example/notification.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(getNotificationXml(serial, Sha256.asString(snapshotXml)))
-                );
+        server.stub("/notification.xml", getNotificationXml(String.valueOf(serial), Sha256.asString(snapshotXml)));
+        server.stub("/" + serial + "/snapshot.xml", snapshotXml);
 
-        mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/" + serial + "/snapshot.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(snapshotXml)
-                );
+        subject.run();
 
-        mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/notification.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(getNotificationXml(serial + "1", Sha256.asString(snapshotXml)))
-                );
+        server.stub("/notification.xml", getNotificationXml(String.valueOf(serial + 1), Sha256.asString(snapshotXml)));
+        server.stub("/" + (serial + 1) + "/snapshot.xml", snapshotXml);
 
-        mockServer.expect(ExpectedCount.once(),
-                requestTo(new URI("http://localhost.example/" + serial + "1" + "/snapshot.xml")))
-                .andExpect(method(HttpMethod.GET))
-                .andRespond(withStatus(HttpStatus.OK)
-                        .contentType(MediaType.TEXT_XML)
-                        .body(snapshotXml)
-                );
+        subject.run();
+    }
+}
 
-        // Run for original notification, then retrieve new notification + snapshot
-        rrdpObjectsAboutToExpireCollector.run();
-        rrdpObjectsAboutToExpireCollector.run();
-        rrdpObjectsAboutToExpireCollector.run();
+class TestHttpServer {
+    private final HttpServer server;
+    private final Map<String, String> files = new HashMap<>();
 
-        mockServer.verify();
+    public TestHttpServer(String host, int port) {
+        var socketConfig = SocketConfig.custom()
+                .setSoTimeout(3, TimeUnit.SECONDS)
+                .setTcpNoDelay(true)
+                .build();
+        server = ServerBootstrap.bootstrap()
+                .setCanonicalHostName(host)
+                .setListenerPort(port)
+                .setSocketConfig(socketConfig)
+                .register("*", this::handleRequest)
+                .create();
+    }
+
+    private void handleRequest(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
+        if (!Method.GET.isSame( request.getMethod())) {
+            throw new MethodNotSupportedException("Method not supported: " + request.getMethod());
+        }
+
+        Optional.ofNullable(files.get(request.getPath())).ifPresentOrElse(
+                (file) -> {
+                    response.setCode(200);
+                    response.setEntity(new StringEntity(file, ContentType.TEXT_XML));
+                },
+                () -> {
+                    response.setCode(404);
+                    response.setEntity(new StringEntity("File not found: " + request.getPath()));
+                }
+        );
+    }
+
+    public void stub(String path, String content) {
+        files.put(path, content);
+    }
+
+    public void unstub(String path) {
+        if (files.remove(path) == null) {
+            throw new IllegalArgumentException("Nothing stubbed on " + path);
+        }
+    }
+
+    public void start() throws IOException {
+        server.start();
+    }
+
+    public void stop() {
+        server.stop();
+    }
+
+    public void reset() {
+        files.clear();
     }
 }

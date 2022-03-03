@@ -8,5 +8,7 @@ public interface RepoFetcher {
 
     Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException;
 
-    String repositoryUrl();
+    Meta meta();
+
+    record Meta(String tag, String url) {}
 }

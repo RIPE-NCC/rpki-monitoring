@@ -2,13 +2,14 @@ package net.ripe.rpki.monitor.expiration.fetchers;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.MonitorProperties;
 import net.ripe.rpki.monitor.RrdpConfig;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
+import net.ripe.rpki.monitor.util.Http;
 import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.web.client.RestTemplate;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -29,27 +30,28 @@ import static com.google.common.base.Verify.verifyNotNull;
 @Getter
 public class RrdpFetcher implements RepoFetcher {
 
-    private final RestTemplate restTemplate;
     private final RrdpConfig.RrdpRepositoryConfig config;
+    private final Http http;
+
     private String lastSnapshotUrl;
 
-    public RrdpFetcher(RrdpConfig.RrdpRepositoryConfig config, RestTemplate restTemplate) {
+    public RrdpFetcher(RrdpConfig.RrdpRepositoryConfig config, MonitorProperties properties) {
         this.config = config;
-        this.restTemplate = restTemplate;
+        this.http = new Http(String.format("rpki-monitor %s", properties.getVersion()), config.getConnectTo());
 
         log.info("RrdpFetcher({}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostname());
     }
 
     @Override
-    public String repositoryUrl() {
-        return config.getNotificationUrl();
+    public Meta meta() {
+        return new Meta(config.getName(), config.getNotificationUrl());
     }
 
     public Map<String, RpkiObject> fetchObjects() throws SnapshotNotModifiedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
-            final String notificationXml = restTemplate.getForObject(config.getNotificationUrl(), String.class);
+            final String notificationXml = http.fetch(config.getNotificationUrl());
             verifyNotNull(notificationXml);
             final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
 
@@ -59,14 +61,14 @@ public class RrdpFetcher implements RepoFetcher {
 
             verifyNotNull(snapshotUrl);
             if (snapshotUrl.equals(lastSnapshotUrl)) {
-                log.debug("not updating: snapshot url {} is the same as during the last check.", snapshotUrl);
+                log.debug("not updating: {} snapshot url {} is the same as during the last check.", config.getName(), snapshotUrl);
                 throw new SnapshotNotModifiedException(snapshotUrl);
             }
             lastSnapshotUrl = snapshotUrl;
 
-            log.info("loading RRDP snapshot from {}", snapshotUrl);
+            log.info("loading {} RRDP snapshot from {}", config.getName(), snapshotUrl);
 
-            final String snapshotXml = restTemplate.getForObject(snapshotUrl, String.class);
+            final String snapshotXml = http.fetch(snapshotUrl);
             assert snapshotXml != null;
             final byte[] bytes = snapshotXml.getBytes();
 

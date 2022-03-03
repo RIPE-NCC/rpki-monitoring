@@ -8,7 +8,6 @@ import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
 import net.ripe.rpki.commons.crypto.crl.X509Crl;
-import net.ripe.rpki.commons.crypto.x509cert.X509CertificateParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationResult;
@@ -79,13 +78,13 @@ public class ObjectAndDateCollector {
                 return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
             }).flatMap(Optional::stream);
 
-            repositoriesState.updateByUrl(repoFetcher.repositoryUrl(), Instant.now(), expirationSummary.map(RepositoryEntry::from));
+            repositoriesState.updateByTag(repoFetcher.meta().tag(), Instant.now(), expirationSummary.map(RepositoryEntry::from));
 
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
         } catch (SnapshotNotModifiedException e) {
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.repositoryUrl());
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url());
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.repositoryUrl()).objectCount(passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
             throw e;
         }
     }
@@ -142,13 +141,13 @@ public class ObjectAndDateCollector {
                             ghostbusterCms.getNotValidAfter().toDate()
                     );
                 default:
-                    maybeLogObject(String.format("%s-%s-unknown", repoFetcher.repositoryUrl(), objectUri),
-                                   "[{}] Object at {} is unknown.", repoFetcher.repositoryUrl(), objectUri);
+                    maybeLogObject(String.format("%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri),
+                                   "[{}-{}] Object at {} is unknown.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri);
                     return Pair.of(UNKNOWN, Optional.empty());
             }
         } catch (Exception e) {
-            maybeLogObject(String.format("%s-%s-rejected", repoFetcher.repositoryUrl(), objectUri),
-                           "[{}] Object at {} rejected: {}.", repoFetcher.repositoryUrl(), objectUri, e.getMessage());
+            maybeLogObject(String.format("%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri),
+                           "[{}-{}] Object at {} rejected: {}.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, e.getMessage());
             return Pair.of(REJECTED, Optional.empty());
         }
     }
@@ -166,10 +165,6 @@ public class ObjectAndDateCollector {
             log.info(message, arguments);
             loggedObjects.put(key);
         }
-    }
-
-    public String repositoryUrl() {
-        return repoFetcher.repositoryUrl();
     }
 
     public enum ObjectStatus {

@@ -1,6 +1,8 @@
 package net.ripe.rpki.monitor;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -8,6 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -29,6 +32,7 @@ public class RrdpConfig {
          * [0]: https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config.typesafe-configuration-properties.constructor-binding
          */
         private String overrideHostname = null;
+        private Map<String, String> connectTo = Map.of();
 
         /**
          * Override the hostname in the given URL according to this config.

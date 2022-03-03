@@ -45,10 +45,6 @@ public class RsyncFetcher implements RepoFetcher {
     /** The URI that objects "appear" to be from. */
     private final String mainUrl;
 
-    public RsyncFetcher(RsyncConfig rsyncConfig, String rsyncUrl) {
-        this(rsyncConfig, rsyncUrl, rsyncUrl);
-    }
-
     @SneakyThrows
     public RsyncFetcher(RsyncConfig rsyncConfig, String name, String rsyncUrl) {
         this.name = name;
@@ -69,12 +65,12 @@ public class RsyncFetcher implements RepoFetcher {
         Verify.verify(targetPath.normalize().startsWith(basePath), String.format("Directory traversal detected - %s is not below %s", targetPath, basePath));
 
         Files.createDirectories(targetPath);
-        log.info("RsyncFetcher({}, {}) -> {}", name, rsyncUrl, targetPath.toString());
+        log.info("RsyncFetcher({}, {}) -> {}", name, rsyncUrl, targetPath);
     }
 
     @Override
-    public String repositoryUrl() {
-        return rsyncUrl;
+    public Meta meta() {
+        return new Meta(name, rsyncUrl);
     }
 
     private void rsyncPathFromRepository(String url, Path localPath) throws FetcherException {
