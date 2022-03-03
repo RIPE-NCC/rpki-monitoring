@@ -5,11 +5,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -111,15 +107,10 @@ public class RepositoryTracker {
      * of scope from this view. Objects that are now gone from the repository
      * are not brought back.
      */
-    public static class View {
-        private final Map<String, Pair<RepositoryEntry, Instant>> objects;
-        private final Instant time;
-
-        private View(Map<String, Pair<RepositoryEntry, Instant>> objects, Instant time) {
-            this.objects = objects;
-            this.time = time;
-        }
-
+    public record View(
+            Map<String, Pair<RepositoryEntry, Instant>> objects,
+            Instant time
+    ) {
         /**
          * Get the repository entry with the given hash, or nothing if the repository
          * does not have such object.
