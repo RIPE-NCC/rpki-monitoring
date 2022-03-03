@@ -8,7 +8,6 @@ import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Triple;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,17 +15,17 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
 
 import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
+
+import static java.util.stream.Collectors.toSet;
 
 
 @Slf4j
 @ConfigurationPropertiesScan("net.ripe.rpki.monitor")
 @SpringBootApplication
 public class Application {
-    @Autowired
-    private MonitorProperties properties;
-
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
@@ -43,10 +42,13 @@ public class Application {
         repos.addAll(
                 config.getRrdpConfig().getTargets().stream()
                         .map(repo -> Triple.of(repo.getName(), repo.getNotificationUrl(), RepositoryTracker.Type.RRDP))
-                        .collect(Collectors.toSet())
+                        .collect(toSet())
         );
-        repos.add(Triple.of("rsync", config.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC));
-        repos.addAll(toTriplets(config.getRsyncConfig().getOtherUrls(), RepositoryTracker.Type.RSYNC));
+        repos.addAll(
+                config.getRsyncConfig().getTargets().stream()
+                         .map(target -> Triple.of(target.name(), target.url(), RepositoryTracker.Type.RSYNC))
+                         .collect(toSet())
+        );
 
         var state = RepositoriesState.init(repos, publishedObjectsSummary.maxThreshold());
         state.addHook(tracker -> publishedObjectsSummary.updateSize(Instant.now(), tracker));
@@ -75,10 +77,10 @@ public class Application {
      * Tags need to be unique, both within, and between sources.
      */
     private void checkOverlappingRepositoryKeys(AppConfig config) {
-        var builtinKeys = Set.of("core", "rsync");
+        var builtinKeys = Set.of("core");
 
-        var rrdpKeys = config.getRrdpConfig().getTargets().stream().map(RrdpConfig.RrdpRepositoryConfig::getName).collect(Collectors.toSet());
-        var rsyncKeys = config.getRsyncConfig().getOtherUrls().keySet();
+        var rrdpKeys = config.getRrdpConfig().getTargets().stream().map(RrdpConfig.RrdpRepositoryConfig::getName).collect(toSet());
+        var rsyncKeys = config.getRsyncConfig().getTargets().stream().map(RsyncConfig.RsyncTarget::name).collect(toSet());
 
         // Check for overlap within-source
         Validate.isTrue(
@@ -86,7 +88,7 @@ public class Application {
                 "There are duplicate keys in the `name` of the rrdp targets."
         );
         Validate.isTrue(
-                rsyncKeys.size() == config.getRsyncConfig().getOtherUrls().size(),
+                rsyncKeys.size() == config.getRsyncConfig().getTargets().size(),
                 "There are duplicate keys in the rsync targets."
         );
 
@@ -103,12 +105,6 @@ public class Application {
                 Collections.disjoint(rrdpKeys, rsyncKeys),
                 "RRDP and rsync other-urls keys overlap"
         );
-    }
-
-    private <K, V, Z> List<Triple<K, V, Z>> toTriplets(Map<K, V> m, Z z) {
-        return m.entrySet().stream()
-                .map(x -> Triple.of(x.getKey(), x.getValue(), z))
-                .collect(Collectors.toList());
     }
 
     @Bean

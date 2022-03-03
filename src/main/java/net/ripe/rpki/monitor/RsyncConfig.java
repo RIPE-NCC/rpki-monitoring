@@ -6,8 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 @Component
 @ConfigurationProperties("rsync")
@@ -18,10 +17,12 @@ public class RsyncConfig {
     /**
      * URI of the main rsync repository.
      *
-     * Will be used to override the URIs of objects from other repositories.
+     * Is not fetched by itself (without it also being in the targets), but will be used
+     * to override the URIs of objects from other repositories.
      */
-    private String mainUrl;
-    private Map<String, String> otherUrls = Collections.emptyMap();
-
     private Path baseDirectory;
+    private String repositoryUrl;
+    private List<RsyncTarget> targets = List.of();
+
+    public record RsyncTarget(String name, String url) {}
 }

@@ -17,12 +17,13 @@ rrdp:
       notification-url: https://rrdp.ripe.net/notification.xml
 
 rsync:
-  # *without* the trailing slash
-  main-url: rsync://rpki.prepdev.ripe.net
+  repository-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 5M
   base-directory: /tmp/rsync/
-  other-urls: []
+  targets:
+    - name: rsync
+      url: rsync://rpki.prepdev.ripe.net
 
 server:
   port: 9090
@@ -99,12 +100,13 @@ rrdp:
         rrdp.prepdev.ripe.net: rrdp.prepdev.ripe.net.cdn.cloudflare.net
 
 rsync:
-  # *without* a trailing slash
-  main-url: rsync://rpki.prepdev.ripe.net
+  repository-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 5M
   base-directory: /tmp/rsync/
-  other-urls: []
+  targets:
+    - name: rsync
+      url: rsync://rpki.prepdev.ripe.net
 
 core:
   url: https://ba-apps.prepdev.ripe.net/certification/
@@ -130,12 +132,13 @@ rrdp:
         rrdp.ripe.net: rrdp.ripe.net.cdn.cloudflare.net
 
 rsync:
-  # *without* the trailing slash
-  main-url: rsync://rpki.ripe.net
+  repository-url: rsync://rpki.ripe.net
   base-directory: /tmp/rsync/
   timeout: 30
   interval: 5M
-  other-urls: []
+  targets:
+    - name: rsync
+      url: rsync://rpki.ripe.net
 
 core:
   url: https://ba-apps.ripe.net/certification/
