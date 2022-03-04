@@ -50,6 +50,30 @@ class RepositoryTrackerTest {
         }
 
         @Test
+        public void test_disposal() {
+            var obj1 = new RepositoryEntry(
+                    "rsync://example.com/repository/DEFAULT/xyz.cer",
+                    "a6c0ffd45b7a799fbd1a303cb4322a1387e74cb22b80c9c54ed4378f22a81f0f",
+                    Optional.of(t),
+                    Optional.empty()
+            );
+            var obj2 = new RepositoryEntry(
+                    "rsync://example.com/repository/DEFAULT/xyz.cer",
+                    "45cdf3f6082774e19fecf80817863c39e29a5a3646746125c55ed3209d3508ea",
+                    Optional.of(t),
+                    Optional.empty()
+            );
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t.minusSeconds(300), Stream.of(obj1, obj2));
+
+            repo.update(t, Stream.of(obj1, obj2));
+            repo.update(t.plusSeconds(300), Stream.of(obj2));
+
+            assertThat(repo.view(t.minusSeconds(300)).size()).isEqualTo(2);
+            assertThat(repo.view(t).size()).isEqualTo(2);
+            assertThat(repo.view(t.plusSeconds(300)).size()).isOne();
+        }
+
+        @Test
         public void test_get_object() {
             var object = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
@@ -163,6 +187,16 @@ class RepositoryTrackerTest {
             var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(rrdpObject));
 
             assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();
+        }
+
+        @Test
+        public void test_object_disposed_after_threshold() {
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject));
+            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(oldObject));
+
+            core.update(t.plusSeconds(1) , Stream.of(newObject));
+
+            assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();;
         }
     }
 }
