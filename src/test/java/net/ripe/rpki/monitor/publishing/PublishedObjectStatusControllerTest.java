@@ -23,7 +23,7 @@ class PublishedObjectStatusControllerTest {
             Triple.of("core", "https://ba-apps.ripe.net/certification", RepositoryTracker.Type.CORE),
             Triple.of("rsync", "rsync://rpki.ripe.net", RepositoryTracker.Type.RSYNC),
             Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)
-    ));
+    ), 3600);
     private final PublishedObjectStatusController subject = new PublishedObjectStatusController(publishedObjectsSummary, repositories);
 
     @Test

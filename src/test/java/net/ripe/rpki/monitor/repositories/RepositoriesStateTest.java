@@ -14,7 +14,7 @@ class RepositoriesStateTest {
     private final RepositoriesState state = RepositoriesState.init(List.of(
             Triple.of("rrdp.ripe.net", "https://rrdp.ripe.net/", RepositoryTracker.Type.RRDP),
             Triple.of("rpki.ripe.net", "rsync://rpki.ripe.net/", RepositoryTracker.Type.RSYNC)
-    ));
+    ), 3600);
 
     @Test
     public void test_state_update() {

@@ -25,7 +25,7 @@ class RepositoryTrackerTest {
                     Optional.of(t),
                     Optional.empty()
             );
-            var repo = RepositoryTracker.empty("tag", "https://example.com", RepositoryTracker.Type.CORE);
+            var repo = RepositoryTracker.empty("tag", "https://example.com", RepositoryTracker.Type.CORE, 3600);
             repo.update(t, Stream.of(object));
 
             assertThat(repo.view(t.minusSeconds(1)).size()).isZero();
@@ -40,7 +40,7 @@ class RepositoryTrackerTest {
                     Optional.of(t),
                     Optional.empty()
             );
-            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t.minusSeconds(300), Stream.of(object));
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t.minusSeconds(300), Stream.of(object), 3600);
 
             repo.update(t, Stream.of(object));
 
@@ -63,7 +63,7 @@ class RepositoryTrackerTest {
                     Optional.of(t),
                     Optional.empty()
             );
-            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t.minusSeconds(300), Stream.of(obj1, obj2));
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t.minusSeconds(300), Stream.of(obj1, obj2), 3600);
 
             repo.update(t, Stream.of(obj1, obj2));
             repo.update(t.plusSeconds(300), Stream.of(obj2));
@@ -81,7 +81,7 @@ class RepositoryTrackerTest {
                     Optional.of(t),
                     Optional.empty()
             );
-            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object));
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object), 3600);
             var view = repo.view(t);
 
             assertThat(view.getObject(object.getSha256())).isEqualTo(Optional.of(object));
@@ -97,7 +97,7 @@ class RepositoryTrackerTest {
                     Optional.of(t.plusSeconds(3600))
             );
             var noTimestamps = new RepositoryEntry(object.getUri(), object.getSha256(), Optional.empty(), Optional.empty());
-            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object));
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object), 3600);
             var view = repo.view(t);
 
             assertThat(view.hasObject(object)).isTrue();
@@ -123,7 +123,7 @@ class RepositoryTrackerTest {
 
         @Test
         public void test_open_ended_objects_dont_expire() {
-            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(openEnded));
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(openEnded), 3600);
 
             var result = repo.view(t).expiration(t.plusSeconds(3600 * 24));
             assertThat(result).hasSize(0);
@@ -131,7 +131,7 @@ class RepositoryTrackerTest {
 
         @Test
         public void test_fixed_ended_object_expiration() {
-            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(expiresInOneHour));
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(expiresInOneHour), 3600);
 
             var result = repo.view(t).expiration(t.plusSeconds(3600 * 24));
             assertThat(result).isEqualTo(Set.of(expiresInOneHour));
@@ -155,23 +155,23 @@ class RepositoryTrackerTest {
 
         @Test
         public void test_same_repo() {
-            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(newObject));
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(newObject), 3600);
 
             assertThat(core.difference(core, t, Duration.ofSeconds(0))).isEmpty();
         }
 
         @Test
         public void test_different_object_hash() {
-            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject, newObject));
-            var rsync = RepositoryTracker.with("rsync", "rsync://example.com", RepositoryTracker.Type.RSYNC, t, Stream.of(oldObject));
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject, newObject), 3600);
+            var rsync = RepositoryTracker.with("rsync", "rsync://example.com", RepositoryTracker.Type.RSYNC, t, Stream.of(oldObject), 3600);
 
             assertThat(core.difference(rsync, t, Duration.ofSeconds(0))).isEqualTo(Set.of(newObject));
         }
 
         @Test
         public void test_threshold() {
-            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t.minusSeconds(300), Stream.of(oldObject));
-            var rsync = RepositoryTracker.with("rsync", "rsync://example.com", RepositoryTracker.Type.RSYNC, t, Stream.of(oldObject));
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t.minusSeconds(300), Stream.of(oldObject), 3600);
+            var rsync = RepositoryTracker.with("rsync", "rsync://example.com", RepositoryTracker.Type.RSYNC, t, Stream.of(oldObject), 3600);
 
             core.update(t, Stream.of(oldObject, newObject));
 
@@ -183,20 +183,32 @@ class RepositoryTrackerTest {
         public void test_ignore_object_timestamps() {
             var coreObject = new RepositoryEntry(newObject.getUri(), newObject.getSha256(),Optional.empty(), Optional.empty());
             var rrdpObject = new RepositoryEntry(newObject.getUri(), newObject.getSha256(), Optional.of(t), Optional.of(t.plusSeconds(3600 * 8)));
-            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(coreObject));
-            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(rrdpObject));
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(coreObject), 3600);
+            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(rrdpObject), 3600);
 
             assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();
         }
 
         @Test
-        public void test_object_disposed_after_threshold() {
-            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject));
-            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(oldObject));
+        public void test_object_disposed_after_timestamp() {
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject), 3600);
+            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(oldObject), 3600);
 
             core.update(t.plusSeconds(1) , Stream.of(newObject));
 
-            assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();;
+            assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();
+            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ofSeconds(0))).hasSize(1);
+        }
+
+        @Test
+        public void test_object_disposed_and_deleted() {
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject), 0);
+            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(oldObject), 0);
+
+            core.update(t.plusSeconds(1) , Stream.of(newObject)); // first-seen of newObject, oldObject disposed
+            core.update(t.plusSeconds(2) , Stream.of(newObject)); // delete disposed oldObject
+
+            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ofSeconds(0))).hasSize(1);;
         }
     }
 }

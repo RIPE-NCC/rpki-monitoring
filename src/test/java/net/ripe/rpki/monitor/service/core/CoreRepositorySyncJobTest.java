@@ -17,7 +17,7 @@ class CoreRepositorySyncJobTest {
     private final CoreClient coreClientStub = mock(CoreClient.class);
     private final RepositoriesState state = RepositoriesState.init(List.of(
             Triple.of("core", "https://ba-apps.ripe.net/certification/", RepositoryTracker.Type.CORE)
-    ));
+    ), 3600);
 
     @Test
     public void test_update_state_of_core() throws Exception {

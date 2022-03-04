@@ -32,7 +32,7 @@ public class RepositoryTracker {
     private final Type type;
 
     // Time in seconds to keep disposed objects around
-    private final int deleteOlderThan = 3600;
+    private final int deleteOlderThan;
 
     public enum Type {
         CORE, RRDP, RSYNC
@@ -54,23 +54,24 @@ public class RepositoryTracker {
     /**
      * Get an empty repository.
      */
-    public static RepositoryTracker empty(String tag, String url, Type type) {
-        return new RepositoryTracker(tag, url, type);
+    public static RepositoryTracker empty(String tag, String url, Type type, int deleteOlderThan) {
+        return new RepositoryTracker(tag, url, type, deleteOlderThan);
     }
 
     /**
      * Create a repository with the given entries and time <i>t</i>.
      */
-    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries) {
-        var repo = RepositoryTracker.empty(tag, url, type);
+    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries, int deleteOlderThan) {
+        var repo = RepositoryTracker.empty(tag, url, type, deleteOlderThan);
         repo.update(t, entries);
         return repo;
     }
 
-    private RepositoryTracker(String tag, String url, Type type) {
+    private RepositoryTracker(String tag, String url, Type type, int deleteOlderThan) {
         this.tag = tag;
         this.url = url;
         this.type = type;
+        this.deleteOlderThan = deleteOlderThan;
         this.objects = new AtomicReference<>(emptyMap());
     }
 

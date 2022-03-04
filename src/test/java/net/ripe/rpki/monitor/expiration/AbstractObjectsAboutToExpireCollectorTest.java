@@ -25,7 +25,7 @@ import static org.mockito.Mockito.mock;
 class AbstractObjectsAboutToExpireCollectorTest {
     public static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 
-    private final RepositoriesState state = RepositoriesState.init(List.of(Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)));
+    private final RepositoriesState state = RepositoriesState.init(List.of(Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)), 3600);
 
     ObjectAndDateCollector collector = new ObjectAndDateCollector(
             new NoopRepoFetcher("noop", "https://rrdp.ripe.net"),

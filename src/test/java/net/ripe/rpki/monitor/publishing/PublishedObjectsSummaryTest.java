@@ -36,9 +36,9 @@ public class PublishedObjectsSummaryTest {
         meterRegistry = new SimpleMeterRegistry();
         subject = new PublishedObjectsSummaryService(meterRegistry);
 
-        core = RepositoryTracker.empty("core", "https://ba-apps.ripe.net/certification/", RepositoryTracker.Type.CORE);
-        rrdp = RepositoryTracker.empty("rrdp", "https://rrdp.ripe.net/", RepositoryTracker.Type.RRDP);
-        rsync = RepositoryTracker.empty("rsync", "rsync://rpki.ripe.net/", RepositoryTracker.Type.RSYNC);
+        core = RepositoryTracker.empty("core", "https://ba-apps.ripe.net/certification/", RepositoryTracker.Type.CORE, 3600);
+        rrdp = RepositoryTracker.empty("rrdp", "https://rrdp.ripe.net/", RepositoryTracker.Type.RRDP, 3600);
+        rsync = RepositoryTracker.empty("rsync", "rsync://rpki.ripe.net/", RepositoryTracker.Type.RSYNC, 3600);
     }
 
     @Test
