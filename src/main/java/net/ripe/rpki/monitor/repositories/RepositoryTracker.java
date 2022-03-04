@@ -90,8 +90,8 @@ public class RepositoryTracker {
                 .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), t)))
                 .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), Function.identity()));
         var disposed = this.objects.get().values().stream()
-                .filter(x -> ! objects.containsKey(x.entry.getSha256()))
                 .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(t.minusSeconds(deleteOlderThan))).orElse(true))
+                .filter(x -> ! objects.containsKey(x.entry.getSha256()))
                 .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), x -> x.dispose(t)));
 
         var newState = new HashMap<>(objects);
