@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -34,7 +35,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         var rsyncFetcher = new RsyncFetcher(config, "rsync", config.getMainUrl());
         var collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
-        repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getMainUrl(), RepositoryTracker.Type.RSYNC)), 3600);
+        repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getMainUrl(), RepositoryTracker.Type.RSYNC)), Duration.ZERO);
         subject = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositories);
     }
 

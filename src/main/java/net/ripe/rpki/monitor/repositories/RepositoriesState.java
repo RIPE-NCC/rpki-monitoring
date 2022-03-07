@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.repositories;
 
 import org.apache.commons.lang3.tuple.Triple;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -24,8 +25,8 @@ public class RepositoriesState {
      * Create the initial state from the given repository config. The config
      * defines the repositories as a pair of tag and url, respectively.
      */
-    public static RepositoriesState init(Collection<Triple<String, String, RepositoryTracker.Type>> config, int deleteOlderThan) {
-        var repos = config.stream().map(x -> RepositoryTracker.empty(x.getLeft(), x.getMiddle(), x.getRight(), deleteOlderThan)).collect(Collectors.toList());
+    public static RepositoriesState init(Collection<Triple<String, String, RepositoryTracker.Type>> config, Duration gracePeriod) {
+        var repos = config.stream().map(x -> RepositoryTracker.empty(x.getLeft(), x.getMiddle(), x.getRight(), gracePeriod)).collect(Collectors.toList());
 
         return new RepositoriesState(repos);
     }

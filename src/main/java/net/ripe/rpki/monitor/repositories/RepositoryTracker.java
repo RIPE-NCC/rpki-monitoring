@@ -31,8 +31,8 @@ public class RepositoryTracker {
     @Getter
     private final Type type;
 
-    // Time in seconds to keep disposed objects around
-    private final int deleteOlderThan;
+    // Time to keep disposed objects around
+    private final Duration gracePeriod;
 
     public enum Type {
         CORE, RRDP, RSYNC
@@ -54,24 +54,24 @@ public class RepositoryTracker {
     /**
      * Get an empty repository.
      */
-    public static RepositoryTracker empty(String tag, String url, Type type, int deleteOlderThan) {
-        return new RepositoryTracker(tag, url, type, deleteOlderThan);
+    public static RepositoryTracker empty(String tag, String url, Type type, Duration gracePeriod) {
+        return new RepositoryTracker(tag, url, type, gracePeriod);
     }
 
     /**
      * Create a repository with the given entries and time <i>t</i>.
      */
-    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries, int deleteOlderThan) {
-        var repo = RepositoryTracker.empty(tag, url, type, deleteOlderThan);
+    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries, Duration gracePersiod) {
+        var repo = RepositoryTracker.empty(tag, url, type, gracePersiod);
         repo.update(t, entries);
         return repo;
     }
 
-    private RepositoryTracker(String tag, String url, Type type, int deleteOlderThan) {
+    private RepositoryTracker(String tag, String url, Type type, Duration gracePeriod) {
         this.tag = tag;
         this.url = url;
         this.type = type;
-        this.deleteOlderThan = deleteOlderThan;
+        this.gracePeriod = gracePeriod;
         this.objects = new AtomicReference<>(emptyMap());
     }
 
@@ -90,7 +90,7 @@ public class RepositoryTracker {
                 .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), t)))
                 .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), Function.identity()));
         var disposed = this.objects.get().values().stream()
-                .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(t.minusSeconds(deleteOlderThan))).orElse(true))
+                .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(t.minus(gracePeriod))).orElse(true))
                 .filter(x -> ! objects.containsKey(x.entry.getSha256()))
                 .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), x -> x.dispose(t)));
 
