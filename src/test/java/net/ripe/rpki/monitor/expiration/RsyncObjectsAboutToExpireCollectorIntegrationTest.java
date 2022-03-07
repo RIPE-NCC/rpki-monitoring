@@ -28,14 +28,14 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     @BeforeEach
     public void beforeEach(@TempDir Path tempDirectory) throws Exception {
         var uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
-        config.setMainUrl(uri.getPath());
+        config.setRepositoryUrl(uri.getPath());
         config.setBaseDirectory(tempDirectory);
 
         var meterRegistry = new SimpleMeterRegistry();
-        var rsyncFetcher = new RsyncFetcher(config, "rsync", config.getMainUrl());
+        var rsyncFetcher = new RsyncFetcher(config, "rsync", config.getRepositoryUrl());
         var collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
-        repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getMainUrl(), RepositoryTracker.Type.RSYNC)), Duration.ZERO);
+        repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getRepositoryUrl(), RepositoryTracker.Type.RSYNC)), Duration.ZERO);
         subject = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositories);
     }
 

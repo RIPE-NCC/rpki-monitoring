@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.commons.lang3.StringUtils.removeEnd;
+
 @Slf4j
 @Setter
 public class RsyncFetcher implements RepoFetcher {
@@ -43,15 +45,15 @@ public class RsyncFetcher implements RepoFetcher {
     private final String rsyncUrl;
 
     /** The URI that objects "appear" to be from. */
-    private final String mainUrl;
+    private final String repositoryUrl;
 
     @SneakyThrows
     public RsyncFetcher(RsyncConfig rsyncConfig, String name, String rsyncUrl) {
         this.name = name;
-        this.rsyncUrl = rsyncUrl;
+        this.rsyncUrl = removeEnd(rsyncUrl, "/");
 
         this.rsyncTimeout = rsyncConfig.getTimeout();
-        this.mainUrl = rsyncConfig.getMainUrl();
+        this.repositoryUrl = removeEnd(rsyncConfig.getRepositoryUrl(), "/");
 
         URI uri = URI.create(rsyncUrl);
 
@@ -104,7 +106,7 @@ public class RsyncFetcher implements RepoFetcher {
                     .map(f -> {
                         // Object "appear" to be in the main repository, otherwise they will always
                         // mismatch because of their URL.
-                        final String objectUri = f.toString().replace(targetPath.toString(), mainUrl);
+                        final String objectUri = f.toString().replace(targetPath.toString(), repositoryUrl);
                         try {
                             return Pair.of(objectUri, new RpkiObject(Files.readAllBytes(f)));
                         } catch (IOException e) {

@@ -11,9 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
@@ -37,27 +34,19 @@ public class Collectors {
     // The "main" one is the the on-premise repository. On top of it, we
     // can have potentially arbitrary number of cloud-hosted repositories.
     public List<ObjectAndDateCollector> getRsyncCollectors() {
-        return Stream.concat(
-            Stream.of(createDefaultRsyncCollector()),
-            createOtherUrlsCollectors(config.getRsyncConfig().getOtherUrls(), this::createRsyncFetcher)
+        return config.getRsyncConfig().getTargets().stream().map(
+                target -> makeCollector(createRsyncFetcher(target.name(), target.url()))
         ).collect(toList());
     }
 
     public List<ObjectAndDateCollector> getRrdpCollectors() {
         return config.getRrdpConfig().getTargets().stream().map(
-                rrdpTarget -> new ObjectAndDateCollector(createRrdpFetcher(rrdpTarget), metrics, repositoriesState)
+                rrdpTarget -> makeCollector(createRrdpFetcher(rrdpTarget))
         ).collect(toList());
     }
 
-    private Stream<ObjectAndDateCollector> createOtherUrlsCollectors(final Map<String, String> otherUrls, BiFunction<String, String, RepoFetcher> creator) {
-        return otherUrls.entrySet()
-            .stream()
-            .map(e ->
-                new ObjectAndDateCollector(
-                    creator.apply(e.getKey(), e.getValue()),
-                    metrics,
-                    repositoriesState)
-            );
+    private ObjectAndDateCollector makeCollector(RepoFetcher fetcher) {
+        return new ObjectAndDateCollector(fetcher, metrics, repositoriesState);
     }
 
     private RepoFetcher createRsyncFetcher(String name, String url) {
@@ -67,13 +56,4 @@ public class Collectors {
     private RrdpFetcher createRrdpFetcher(RrdpConfig.RrdpRepositoryConfig rrdpTarget) {
         return new RrdpFetcher(rrdpTarget, config.getProperties());
     }
-
-    ObjectAndDateCollector createDefaultRsyncCollector() {
-        return new ObjectAndDateCollector(
-            createRsyncFetcher("rsync", config.getRsyncConfig().getMainUrl()),
-            metrics,
-            repositoriesState
-        );
-    }
-
 }

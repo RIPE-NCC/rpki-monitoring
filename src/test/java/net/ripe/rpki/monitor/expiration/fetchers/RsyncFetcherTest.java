@@ -15,7 +15,7 @@ public class RsyncFetcherTest {
     public void itShouldNotBeVulnerableToPathTraversalInHost(@TempDir Path tempDirectory) {
         var config = new RsyncConfig();
         config.setBaseDirectory(tempDirectory);
-        config.setMainUrl("rsync://rsync.example.org");
+        config.setRepositoryUrl("rsync://rsync.example.org");
 
         var fetcher = new RsyncFetcher(config, "rsync", "rsync://../../../../../../../");
         then(fetcher.getTargetPath()).startsWith(tempDirectory);
@@ -25,7 +25,7 @@ public class RsyncFetcherTest {
     public void itShouldCreateADirectoryPerHost(@TempDir Path tempDirectory) {
         var config = new RsyncConfig();
         config.setBaseDirectory(tempDirectory);
-        config.setMainUrl("rsync://rsync.example.org");
+        config.setRepositoryUrl("rsync://rsync.example.org");
 
         var rsync1Fetcher = new RsyncFetcher(config, "rsync", "rsync://rsync1.example.org");
         var rsync2Fetcher = new RsyncFetcher(config, "rsync","rsync://rsync2.example.org");
