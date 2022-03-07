@@ -100,6 +100,15 @@ public class PublishedObjectsSummaryService {
         return diffs;
     }
 
+    /**
+     * Expose the max threshold so we can setup the {@link RepositoryTracker}
+     * to keep discarded objects around long enough.
+     */
+    public Duration maxThreshold() {
+        return THRESHOLDS.stream().max(Duration::compareTo)
+                .orElseThrow(() -> new IllegalStateException("PublishedObjectsSummaryService.THRESHOLDS is empty"));
+    }
+
     private Map<String, Set<RepositoryEntry>> collectPublishedObjectDifferencesAndUpdateCounters(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
         var diffCounter = getOrCreateDiffCounter(lhs, rhs, threshold);
         var diffCounterInv = getOrCreateDiffCounter(rhs, lhs, threshold);

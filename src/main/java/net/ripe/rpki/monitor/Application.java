@@ -48,7 +48,7 @@ public class Application {
         repos.add(Triple.of("rsync", config.getRsyncConfig().getMainUrl(), RepositoryTracker.Type.RSYNC));
         repos.addAll(toTriplets(config.getRsyncConfig().getOtherUrls(), RepositoryTracker.Type.RSYNC));
 
-        var state = RepositoriesState.init(repos);
+        var state = RepositoriesState.init(repos, publishedObjectsSummary.maxThreshold());
         state.addHook(tracker -> publishedObjectsSummary.updateSize(Instant.now(), tracker));
         state.addHook(tracker -> {
             var now = Instant.now();

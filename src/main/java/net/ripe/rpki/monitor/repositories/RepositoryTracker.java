@@ -1,20 +1,17 @@
 package net.ripe.rpki.monitor.repositories;
 
 import lombok.Getter;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.Collections.emptyMap;
 
 /**
  * Track lifetime of objects in a single repository.
@@ -34,48 +31,72 @@ public class RepositoryTracker {
     @Getter
     private final Type type;
 
+    // Time to keep disposed objects around
+    private final Duration gracePeriod;
+
     public enum Type {
         CORE, RRDP, RSYNC
     }
 
+    record TrackedObject(RepositoryEntry entry, Instant firstSeen, Optional<Instant> disposedAt) {
+        public static TrackedObject of(RepositoryEntry entry, Instant firstSeen) {
+            return new TrackedObject(entry, firstSeen, Optional.empty());
+        }
+
+        public TrackedObject dispose(Instant t) {
+            return new TrackedObject(entry, firstSeen, Optional.of(t));
+        }
+    }
+
     // Stores the repository objects index by their sha256 hash
-    private final AtomicReference<Map<String, Pair<RepositoryEntry, Instant>>> objects;
+    private final AtomicReference<Map<String, TrackedObject>> objects;
 
     /**
      * Get an empty repository.
      */
-    public static RepositoryTracker empty(String tag, String url, Type type) {
-        return new RepositoryTracker(tag, url, type, Collections.emptyMap());
+    public static RepositoryTracker empty(String tag, String url, Type type, Duration gracePeriod) {
+        return new RepositoryTracker(tag, url, type, gracePeriod);
     }
 
     /**
      * Create a repository with the given entries and time <i>t</i>.
      */
-    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries) {
-        var repo = RepositoryTracker.empty(tag, url, type);
+    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries, Duration gracePersiod) {
+        var repo = RepositoryTracker.empty(tag, url, type, gracePersiod);
         repo.update(t, entries);
         return repo;
     }
 
-    private RepositoryTracker(String tag, String url, Type type, Map<String, Pair<RepositoryEntry, Instant>> objects) {
+    private RepositoryTracker(String tag, String url, Type type, Duration gracePeriod) {
         this.tag = tag;
         this.url = url;
         this.type = type;
-        this.objects = new AtomicReference<>(objects);
+        this.gracePeriod = gracePeriod;
+        this.objects = new AtomicReference<>(emptyMap());
     }
 
     /**
      * Update this repository with the given entries at time <i>t</i>.
      * <p>
      * The repository's objects are <b>replaced</b> by the entries. Any objects
-     * no longer present in the <code>entries</code> set are discarded from the
-     * repository.
+     * no longer present in the <code>entries</code> set are considered to be
+     * discarded from the repository. Discarded objects are kept around until
+     * a next update where <code>last-seen < t-gc</code>.
+     * <p>
+     * Time of updates on the repository must be strictly increasing.
      */
     public void update(Instant t, Stream<RepositoryEntry> entries) {
-        var newObjects = entries
-                .map(x -> Pair.of(x, firstSeenAt(x.getSha256(), t)))
-                .collect(Collectors.toUnmodifiableMap(x -> x.getLeft().getSha256(), Function.identity()));
-        objects.set(newObjects);
+        var objects = entries
+                .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), t)))
+                .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), Function.identity()));
+        var disposed = this.objects.get().values().stream()
+                .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(t.minus(gracePeriod))).orElse(true))
+                .filter(x -> ! objects.containsKey(x.entry.getSha256()))
+                .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), x -> x.dispose(t)));
+
+        var newState = new HashMap<>(objects);
+        newState.putAll(disposed);
+        this.objects.set(newState);
     }
 
     /**
@@ -101,7 +122,7 @@ public class RepositoryTracker {
 
     private Instant firstSeenAt(String sha256, Instant now) {
         var previous = objects.get().get(sha256);
-        return previous != null ? previous.getRight() : now;
+        return previous != null ? previous.firstSeen() : now;
     }
 
     /**
@@ -111,15 +132,10 @@ public class RepositoryTracker {
      * of scope from this view. Objects that are now gone from the repository
      * are not brought back.
      */
-    public static class View {
-        private final Map<String, Pair<RepositoryEntry, Instant>> objects;
-        private final Instant time;
-
-        private View(Map<String, Pair<RepositoryEntry, Instant>> objects, Instant time) {
-            this.objects = objects;
-            this.time = time;
-        }
-
+    public record View(
+            Map<String, TrackedObject> objects,
+            Instant time
+    ) {
         /**
          * Get the repository entry with the given hash, or nothing if the repository
          * does not have such object.
@@ -127,7 +143,7 @@ public class RepositoryTracker {
         public Optional<RepositoryEntry> getObject(String sha256) {
             return Optional.ofNullable(objects.get(sha256))
                     .filter(this::inScope)
-                    .map(Pair::getLeft);
+                    .map(TrackedObject::entry);
         }
 
         /**
@@ -161,11 +177,12 @@ public class RepositoryTracker {
         public Stream<RepositoryEntry> entries() {
             return objects.values().stream()
                     .filter(this::inScope)
-                    .map(Pair::getLeft);
+                    .map(TrackedObject::entry);
         }
 
-        private boolean inScope(Pair<RepositoryEntry, Instant> x) {
-            return x.getRight().compareTo(time) <= 0;
+        private boolean inScope(TrackedObject x) {
+            return x.firstSeen.compareTo(time) <= 0
+                && x.disposedAt.map(disposed -> disposed.compareTo(time) > 0).orElse(true);
         }
     }
 }

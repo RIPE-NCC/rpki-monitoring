@@ -3,6 +3,7 @@ package net.ripe.rpki.monitor.repositories;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,7 +15,7 @@ class RepositoriesStateTest {
     private final RepositoriesState state = RepositoriesState.init(List.of(
             Triple.of("rrdp.ripe.net", "https://rrdp.ripe.net/", RepositoryTracker.Type.RRDP),
             Triple.of("rpki.ripe.net", "rsync://rpki.ripe.net/", RepositoryTracker.Type.RSYNC)
-    ));
+    ), Duration.ZERO);
 
     @Test
     public void test_state_update() {

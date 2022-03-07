@@ -7,6 +7,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
 import org.quartz.JobExecutionContext;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -17,7 +18,7 @@ class CoreRepositorySyncJobTest {
     private final CoreClient coreClientStub = mock(CoreClient.class);
     private final RepositoriesState state = RepositoriesState.init(List.of(
             Triple.of("core", "https://ba-apps.ripe.net/certification/", RepositoryTracker.Type.CORE)
-    ));
+    ), Duration.ZERO);
 
     @Test
     public void test_update_state_of_core() throws Exception {
