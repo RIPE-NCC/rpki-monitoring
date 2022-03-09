@@ -104,7 +104,8 @@ public class RepositoryTracker {
      * at time <i>t</i>, not exceeding threshold.
      */
     public Set<RepositoryEntry> difference(RepositoryTracker other, Instant t, Duration threshold) {
-        var rhs = other.view(t);
+        var rhsScope = Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t.minus(threshold)));
+        var rhs = new View(other.objects.get(), rhsScope);
         return view(t.minus(threshold)).entries()
                 .filter(Predicate.not(rhs::hasObject))
                 .collect(Collectors.toSet());
@@ -113,11 +114,11 @@ public class RepositoryTracker {
     /**
      * Get a view on the repository objects present at time <i>t</i>.
      *
-     * Presence is defined as objects first seen before (or at) a given time.
-     * I.e. any objects first seen after <i>t</i> are considered not present.
-     */
+     * Presence of an object is defined as first-seen before (or at) time <i>t</i> and
+     * not disposed or disposed after time <i>t</i>.
+`     */
     public View view(Instant t) {
-        return new View(objects.get(), t);
+        return new View(objects.get(), Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t)));
     }
 
     private Instant firstSeenAt(String sha256, Instant now) {
@@ -134,7 +135,7 @@ public class RepositoryTracker {
      */
     public record View(
             Map<String, TrackedObject> objects,
-            Instant time
+            Predicate<TrackedObject> filter
     ) {
         /**
          * Get the repository entry with the given hash, or nothing if the repository
@@ -142,7 +143,7 @@ public class RepositoryTracker {
          */
         public Optional<RepositoryEntry> getObject(String sha256) {
             return Optional.ofNullable(objects.get(sha256))
-                    .filter(this::inScope)
+                    .filter(filter)
                     .map(TrackedObject::entry);
         }
 
@@ -150,7 +151,7 @@ public class RepositoryTracker {
          * Test if the repository has an object with the given object's hash and URI.
          *
          * Semantically objects in a repository would be present by just verifying
-         * their hash. However, semantics are not checked here. Hence for the purpose
+         * their hash. However, semantics are not checked here. Hence, for the purpose
          * of monitoring, two identical objects are considered different when at
          * different paths in the repository.
          */
@@ -176,13 +177,34 @@ public class RepositoryTracker {
 
         public Stream<RepositoryEntry> entries() {
             return objects.values().stream()
-                    .filter(this::inScope)
+                    .filter(filter)
                     .map(TrackedObject::entry);
         }
+    }
+    /**
+     * Standard predicates on <code>TrackedObject</code>s.
+     */
+    public interface Predicates {
+        /**
+         * Matches objects first seen before ar at time <i>t</i>.
+         */
+        static Predicate<TrackedObject> firstSeenBefore(Instant t) {
+            return x -> x.firstSeen.compareTo(t) <= 0;
+        }
 
-        private boolean inScope(TrackedObject x) {
-            return x.firstSeen.compareTo(time) <= 0
-                && x.disposedAt.map(disposed -> disposed.compareTo(time) > 0).orElse(true);
+        /**
+         * Matches objects disposed before ar at time <i>t</i>. Objects not
+         * disposed don't match.
+         */
+        static Predicate<TrackedObject> disposedBefore(Instant t) {
+            return x -> x.disposedAt.map(y -> y.compareTo(t) <= 0).orElse(false);
+        }
+
+        /**
+         * Negation of <code>disposedBefore</code>.
+         */
+        static Predicate<TrackedObject> notDisposedAt(Instant t) {
+            return disposedBefore(t).negate();
         }
     }
 }

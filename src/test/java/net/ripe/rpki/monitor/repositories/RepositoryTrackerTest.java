@@ -201,6 +201,17 @@ class RepositoryTrackerTest {
         }
 
         @Test
+        public void test_include_disposed_objects_with_threshold() {
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject), Duration.ofSeconds(3600));
+            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(oldObject), Duration.ofSeconds(3600));
+
+            core.update(t.plusSeconds(300) , Stream.of(newObject));
+
+            assertThat(core.difference(rrdp, t.plusSeconds(300), Duration.ofSeconds(1))).isEmpty();
+            assertThat(rrdp.difference(core, t.plusSeconds(300), Duration.ofSeconds(1))).isEmpty();
+        }
+
+        @Test
         public void test_object_disposed_and_deleted() {
             var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject), Duration.ZERO);
             var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(oldObject), Duration.ZERO);
