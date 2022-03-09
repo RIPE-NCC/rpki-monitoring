@@ -157,7 +157,7 @@ class RepositoryTrackerTest {
         public void test_same_repo() {
             var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(newObject), Duration.ofSeconds(3600));
 
-            assertThat(core.difference(core, t, Duration.ofSeconds(0))).isEmpty();
+            assertThat(core.difference(core, t, Duration.ZERO)).isEmpty();
         }
 
         @Test
@@ -165,7 +165,7 @@ class RepositoryTrackerTest {
             var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject, newObject), Duration.ofSeconds(3600));
             var rsync = RepositoryTracker.with("rsync", "rsync://example.com", RepositoryTracker.Type.RSYNC, t, Stream.of(oldObject), Duration.ofSeconds(3600));
 
-            assertThat(core.difference(rsync, t, Duration.ofSeconds(0))).isEqualTo(Set.of(newObject));
+            assertThat(core.difference(rsync, t, Duration.ZERO)).isEqualTo(Set.of(newObject));
         }
 
         @Test
@@ -176,7 +176,7 @@ class RepositoryTrackerTest {
             core.update(t, Stream.of(oldObject, newObject));
 
             assertThat(core.difference(rsync, t, Duration.ofSeconds(300))).isEmpty();
-            assertThat(core.difference(rsync, t, Duration.ofSeconds(0))).isEqualTo(Set.of(newObject));
+            assertThat(core.difference(rsync, t, Duration.ZERO)).isEqualTo(Set.of(newObject));
         }
 
         @Test
@@ -186,7 +186,7 @@ class RepositoryTrackerTest {
             var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(coreObject), Duration.ofSeconds(3600));
             var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(rrdpObject), Duration.ofSeconds(3600));
 
-            assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();
+            assertThat(core.difference(rrdp, t, Duration.ZERO)).isEmpty();
         }
 
         @Test
@@ -196,8 +196,8 @@ class RepositoryTrackerTest {
 
             core.update(t.plusSeconds(1) , Stream.of(newObject));
 
-            assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();
-            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ofSeconds(0))).hasSize(1);
+            assertThat(core.difference(rrdp, t, Duration.ZERO)).isEmpty();
+            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ZERO)).hasSize(1);
         }
 
         @Test
@@ -208,7 +208,7 @@ class RepositoryTrackerTest {
             core.update(t.plusSeconds(1) , Stream.of(newObject)); // first-seen of newObject, oldObject disposed
             core.update(t.plusSeconds(2) , Stream.of(newObject)); // delete disposed oldObject
 
-            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ofSeconds(0))).hasSize(1);;
+            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ZERO)).hasSize(1);;
         }
     }
 }
