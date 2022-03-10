@@ -84,8 +84,9 @@ class RepositoryTrackerTest {
             var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object), Duration.ofSeconds(3600));
             var view = repo.view(t);
 
-            assertThat(view.getObject(object.getSha256())).isEqualTo(Optional.of(object));
-            assertThat(view.getObject("unknown")).isEmpty();
+            assertThat(view.getObject(object.getSha256(), object.getUri())).isEqualTo(Optional.of(object));
+            assertThat(view.getObject(object.getSha256(), "rsync://example.com/repository/path/to/xyz.cer")).isEmpty();
+            assertThat(view.getObject("unknown", object.getUri())).isEmpty();
         }
 
         @Test
@@ -220,6 +221,34 @@ class RepositoryTrackerTest {
             core.update(t.plusSeconds(2) , Stream.of(newObject)); // delete disposed oldObject
 
             assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ZERO)).hasSize(1);;
+        }
+    }
+
+    @Nested
+    class Uniqueness {
+        @Test
+        public void test_unique_by_sha256_and_uri() {
+            var object = new RepositoryEntry(
+                    "rsync://example.com/repository/DEFAULT/xyz.cer",
+                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    Optional.of(t),
+                    Optional.of(t.plusSeconds(3600))
+            );
+            var objectAtDiffPath = new RepositoryEntry(
+                    "rsync://example.com/repository/data/xyz.cer",
+                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    Optional.of(t),
+                    Optional.of(t.plusSeconds(3600))
+            );
+
+            var repo = RepositoryTracker.with("repo", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object, objectAtDiffPath), Duration.ZERO);
+            var view = repo.view(t);
+
+            assertThat(view.size()).isEqualTo(2);
+            assertThat(view.hasObject(object)).isTrue();
+            assertThat(view.getObject(object.getSha256(), object.getUri())).hasValue(object);
+            assertThat(view.hasObject(objectAtDiffPath)).isTrue();
+            assertThat(view.getObject(objectAtDiffPath.getSha256(), objectAtDiffPath.getUri())).hasValue(objectAtDiffPath);
         }
     }
 }

@@ -4,14 +4,16 @@ import lombok.Getter;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.*;
 
 /**
  * Track lifetime of objects in a single repository.
@@ -34,6 +36,9 @@ public class RepositoryTracker {
     // Time to keep disposed objects around
     private final Duration gracePeriod;
 
+    // Stores the repository objects index by their key (sha256 * uri)
+    private final AtomicReference<Map<Long, TrackedObject>> objects;
+
     public enum Type {
         CORE, RRDP, RSYNC
     }
@@ -43,13 +48,18 @@ public class RepositoryTracker {
             return new TrackedObject(entry, firstSeen, Optional.empty());
         }
 
+        public static long key(String sha256, String uri) {
+            return (long) sha256.hashCode() * (long) uri.hashCode();
+        }
+
         public TrackedObject dispose(Instant t) {
             return new TrackedObject(entry, firstSeen, Optional.of(t));
         }
-    }
 
-    // Stores the repository objects index by their sha256 hash
-    private final AtomicReference<Map<String, TrackedObject>> objects;
+        public long key() {
+            return key(entry.getSha256(), entry.getUri());
+        }
+    }
 
     /**
      * Get an empty repository.
@@ -86,17 +96,17 @@ public class RepositoryTracker {
      * Time of updates on the repository must be strictly increasing.
      */
     public void update(Instant t, Stream<RepositoryEntry> entries) {
-        var objects = entries
-                .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), t)))
-                .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), Function.identity()));
+        var newObjects = entries
+                .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), x.getUri(), t)))
+                .collect(toMap(TrackedObject::key, Function.identity()));
         var disposed = this.objects.get().values().stream()
                 .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(t.minus(gracePeriod))).orElse(true))
-                .filter(x -> ! objects.containsKey(x.entry.getSha256()))
-                .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), x -> x.dispose(t)));
+                .filter(x -> ! newObjects.containsKey(x.key()))
+                .map(x -> x.dispose(t))
+                .collect(toUnmodifiableMap(TrackedObject::key, Function.identity()));
 
-        var newState = new HashMap<>(objects);
-        newState.putAll(disposed);
-        this.objects.set(newState);
+        newObjects.putAll(disposed);
+        this.objects.set(newObjects);
     }
 
     /**
@@ -108,7 +118,7 @@ public class RepositoryTracker {
         var rhs = new View(other.objects.get(), rhsScope);
         return view(t.minus(threshold)).entries()
                 .filter(Predicate.not(rhs::hasObject))
-                .collect(Collectors.toSet());
+                .collect(toSet());
     }
 
     /**
@@ -121,8 +131,8 @@ public class RepositoryTracker {
         return new View(objects.get(), Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t)));
     }
 
-    private Instant firstSeenAt(String sha256, Instant now) {
-        var previous = objects.get().get(sha256);
+    private Instant firstSeenAt(String sha256, String uri, Instant now) {
+        var previous = objects.get().get(TrackedObject.key(sha256, uri));
         return previous != null ? previous.firstSeen() : now;
     }
 
@@ -134,15 +144,15 @@ public class RepositoryTracker {
      * are not brought back.
      */
     public record View(
-            Map<String, TrackedObject> objects,
+            Map<Long, TrackedObject> objects,
             Predicate<TrackedObject> filter
     ) {
         /**
          * Get the repository entry with the given hash, or nothing if the repository
          * does not have such object.
          */
-        public Optional<RepositoryEntry> getObject(String sha256) {
-            return Optional.ofNullable(objects.get(sha256))
+        public Optional<RepositoryEntry> getObject(String sha256, String uri) {
+            return Optional.ofNullable(objects.get(TrackedObject.key(sha256, uri)))
                     .filter(filter)
                     .map(TrackedObject::entry);
         }
@@ -156,9 +166,7 @@ public class RepositoryTracker {
          * different paths in the repository.
          */
         public boolean hasObject(RepositoryEntry object) {
-            return getObject(object.getSha256())
-                    .map(x -> Objects.equals(x.getUri(), object.getUri()))
-                    .orElse(false);
+            return getObject(object.getSha256(), object.getUri()).isPresent();
         }
 
         /**
@@ -168,7 +176,7 @@ public class RepositoryTracker {
         public Set<RepositoryEntry> expiration(Instant t) {
             return entries()
                     .filter(x -> x.getExpiration().map(expiration -> expiration.compareTo(t) < 0).orElse(false))
-                    .collect(Collectors.toSet());
+                    .collect(toSet());
         }
 
         public long size() {
