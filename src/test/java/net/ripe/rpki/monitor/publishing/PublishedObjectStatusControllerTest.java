@@ -40,6 +40,12 @@ class PublishedObjectStatusControllerTest {
     }
 
     @Test
+    public void test_get_repository_diff() {
+        var diff = subject.diff("core", "rsync", 0);
+        assertThat(diff.size()).isZero();
+    }
+
+    @Test
     public void test_get_rsync_diff() {
         var diff = anyDiff();
         when(publishedObjectsSummary.getDiff(
