@@ -6,8 +6,10 @@ import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +24,18 @@ public class PublishedObjectStatusController {
     public Map<String, Set<RepositoryEntry>> publishedObjectDiffs() {
         var now = Instant.now();
         return publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(now, repositories.allTrackers());
+    }
+
+    @GetMapping("/diff")
+    public Set<RepositoryEntry> diff(
+            @RequestParam("lhs") String lhs,
+            @RequestParam("rhs") String rhs,
+            @RequestParam(name = "threshold", defaultValue = "300") int threshold
+    ) {
+        var lhsTracker = repositories.getTrackerByTag(lhs).orElseThrow(() -> new IllegalArgumentException("No such repository tracker: " + lhs));
+        var rhsTracker = repositories.getTrackerByTag(rhs).orElseThrow(() -> new IllegalArgumentException("No such repository tracker: " + lhs));
+
+        return lhsTracker.difference(rhsTracker, Instant.now(), Duration.ofSeconds(threshold));
     }
 
     @GetMapping("/rsync-diffs")
