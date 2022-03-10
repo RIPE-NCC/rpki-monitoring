@@ -47,6 +47,7 @@ public class RrdpFetcher implements RepoFetcher {
         return new Meta(config.getName(), config.getNotificationUrl());
     }
 
+    @Override
     public Map<String, RpkiObject> fetchObjects() throws SnapshotNotModifiedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();

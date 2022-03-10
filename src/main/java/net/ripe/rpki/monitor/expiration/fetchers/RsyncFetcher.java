@@ -93,7 +93,7 @@ public class RsyncFetcher implements RepoFetcher {
         log.info("rsync  {} to {} finished in {} seconds.", url, localPath.toString(), rsync.elapsedTime() / 1000.0);
     }
 
-
+    @Override
     public Map<String, RpkiObject> fetchObjects() throws FetcherException {
         try {
             rsyncPathFromRepository(rsyncUrl + "/ta", targetPath.resolve("ta"));
