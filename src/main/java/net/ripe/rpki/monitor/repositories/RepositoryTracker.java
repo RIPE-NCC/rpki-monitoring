@@ -110,13 +110,18 @@ public class RepositoryTracker {
     }
 
     /**
-     * Get the (non-associative) difference between this and the other repository
+     * Get the (non-commutative) difference between this and the other repository
      * at time <i>t</i>, not exceeding threshold.
+     *
+     * For all non-disposed objects first seen before or at time <i>t - threshold</i>
+     * in this repository, the other repository is expected to have the same object
+     * first seen before or at time <i>t</i> or have the object disposed before
+     * time <i>t - threshold</i>.
      */
     public Set<RepositoryEntry> difference(RepositoryTracker other, Instant t, Duration threshold) {
-        var rhsScope = Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t.minus(threshold)));
-        var rhs = new View(other.objects.get(), rhsScope);
-        return view(t.minus(threshold)).entries()
+        var lhs = new View(objects.get(), Predicates.firstSeenBefore(t.minus(threshold)).and(Predicates.nonDisposed()));
+        var rhs = new View(other.objects.get(), Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t.minus(threshold))));
+        return lhs.entries()
                 .filter(Predicate.not(rhs::hasObject))
                 .collect(toSet());
     }
@@ -213,6 +218,14 @@ public class RepositoryTracker {
          */
         static Predicate<TrackedObject> notDisposedAt(Instant t) {
             return disposedBefore(t).negate();
+        }
+
+        /**
+         * Matches objects that are not disposed, regardless of the
+         * time of disposal.
+         */
+        static Predicate<TrackedObject> nonDisposed() {
+            return x -> x.disposedAt.isEmpty();
         }
     }
 }

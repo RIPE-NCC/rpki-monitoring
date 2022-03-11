@@ -222,6 +222,16 @@ class RepositoryTrackerTest {
 
             assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ZERO)).hasSize(1);;
         }
+
+        @Test
+        public void test_ignore_disposed_objects_on_lhs() {
+            var core = RepositoryTracker.with("core", "rsync://example.com", RepositoryTracker.Type.CORE, t, Stream.of(newObject), Duration.ofSeconds(3600));
+            var rsync = RepositoryTracker.with("rsync", "rsync://example.com", RepositoryTracker.Type.RSYNC, t, Stream.of(oldObject, newObject), Duration.ofSeconds(3600));
+
+            rsync.update(t.plusSeconds(300), Stream.of(newObject));
+
+            assertThat(rsync.difference(core, t.plusSeconds(300), Duration.ofSeconds(300))).hasSize(0);;
+        }
     }
 
     @Nested
