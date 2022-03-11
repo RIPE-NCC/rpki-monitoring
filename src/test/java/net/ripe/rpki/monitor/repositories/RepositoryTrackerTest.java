@@ -105,6 +105,20 @@ class RepositoryTrackerTest {
             assertThat(view.hasObject(noTimestamps)).isTrue();
             assertThat(view.hasObject(RepositoryEntry.builder().sha256("unknown").uri(object.getUri()).build())).isFalse();
         }
+
+        @Test
+        public void test_inspect_object() {
+            var object = new RepositoryEntry(
+                    "rsync://example.com/repository/DEFAULT/xyz.cer",
+                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    Optional.of(t),
+                    Optional.of(t.plusSeconds(3600))
+            );
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object), Duration.ofSeconds(3600));
+
+            assertThat(repo.inspect(object.getUri())).isEqualTo(Set.of(RepositoryTracker.TrackedObject.of(object, t)));
+            assertThat(repo.inspect("rsync://example.com/repository/non-existent")).isEqualTo(Set.of());
+        }
     }
 
     @Nested

@@ -5,6 +5,7 @@ import lombok.Getter;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,7 +44,7 @@ public class RepositoryTracker {
         CORE, RRDP, RSYNC
     }
 
-    record TrackedObject(RepositoryEntry entry, Instant firstSeen, Optional<Instant> disposedAt) {
+    public record TrackedObject(RepositoryEntry entry, Instant firstSeen, Optional<Instant> disposedAt) {
         public static TrackedObject of(RepositoryEntry entry, Instant firstSeen) {
             return new TrackedObject(entry, firstSeen, Optional.empty());
         }
@@ -134,6 +135,18 @@ public class RepositoryTracker {
 `     */
     public View view(Instant t) {
         return new View(objects.get(), Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t)));
+    }
+
+    /**
+     * Inspect <i>all</i> objects at the given uri. The objects may not match the
+     *
+     * Returning <code>TrackedObject</code> allows to inspect timings as well
+     * as the object data.
+     */
+    public Set<TrackedObject> inspect(String uri) {
+        return objects.get().values().stream()
+                .filter(x -> Objects.equals(uri, x.entry.getUri()))
+                .collect(toSet());
     }
 
     private Instant firstSeenAt(String sha256, String uri, Instant now) {
