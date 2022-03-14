@@ -234,8 +234,7 @@ public class RepositoryTracker {
         }
 
         /**
-         * Matches objects that are not disposed, regardless of the
-         * time of disposal.
+         * Matches objects that are not at all disposed.
          */
         static Predicate<TrackedObject> nonDisposed() {
             return x -> x.disposedAt.isEmpty();
