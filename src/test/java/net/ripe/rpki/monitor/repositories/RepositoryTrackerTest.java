@@ -84,8 +84,9 @@ class RepositoryTrackerTest {
             var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object), Duration.ofSeconds(3600));
             var view = repo.view(t);
 
-            assertThat(view.getObject(object.getSha256())).isEqualTo(Optional.of(object));
-            assertThat(view.getObject("unknown")).isEmpty();
+            assertThat(view.getObject(object.getSha256(), object.getUri())).isEqualTo(Optional.of(object));
+            assertThat(view.getObject(object.getSha256(), "rsync://example.com/repository/path/to/xyz.cer")).isEmpty();
+            assertThat(view.getObject("unknown", object.getUri())).isEmpty();
         }
 
         @Test
@@ -103,6 +104,20 @@ class RepositoryTrackerTest {
             assertThat(view.hasObject(object)).isTrue();
             assertThat(view.hasObject(noTimestamps)).isTrue();
             assertThat(view.hasObject(RepositoryEntry.builder().sha256("unknown").uri(object.getUri()).build())).isFalse();
+        }
+
+        @Test
+        public void test_inspect_object() {
+            var object = new RepositoryEntry(
+                    "rsync://example.com/repository/DEFAULT/xyz.cer",
+                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    Optional.of(t),
+                    Optional.of(t.plusSeconds(3600))
+            );
+            var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object), Duration.ofSeconds(3600));
+
+            assertThat(repo.inspect(object.getUri())).isEqualTo(Set.of(RepositoryTracker.TrackedObject.of(object, t)));
+            assertThat(repo.inspect("rsync://example.com/repository/non-existent")).isEqualTo(Set.of());
         }
     }
 
@@ -157,7 +172,7 @@ class RepositoryTrackerTest {
         public void test_same_repo() {
             var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(newObject), Duration.ofSeconds(3600));
 
-            assertThat(core.difference(core, t, Duration.ofSeconds(0))).isEmpty();
+            assertThat(core.difference(core, t, Duration.ZERO)).isEmpty();
         }
 
         @Test
@@ -165,7 +180,7 @@ class RepositoryTrackerTest {
             var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject, newObject), Duration.ofSeconds(3600));
             var rsync = RepositoryTracker.with("rsync", "rsync://example.com", RepositoryTracker.Type.RSYNC, t, Stream.of(oldObject), Duration.ofSeconds(3600));
 
-            assertThat(core.difference(rsync, t, Duration.ofSeconds(0))).isEqualTo(Set.of(newObject));
+            assertThat(core.difference(rsync, t, Duration.ZERO)).isEqualTo(Set.of(newObject));
         }
 
         @Test
@@ -176,7 +191,7 @@ class RepositoryTrackerTest {
             core.update(t, Stream.of(oldObject, newObject));
 
             assertThat(core.difference(rsync, t, Duration.ofSeconds(300))).isEmpty();
-            assertThat(core.difference(rsync, t, Duration.ofSeconds(0))).isEqualTo(Set.of(newObject));
+            assertThat(core.difference(rsync, t, Duration.ZERO)).isEqualTo(Set.of(newObject));
         }
 
         @Test
@@ -186,7 +201,7 @@ class RepositoryTrackerTest {
             var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(coreObject), Duration.ofSeconds(3600));
             var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(rrdpObject), Duration.ofSeconds(3600));
 
-            assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();
+            assertThat(core.difference(rrdp, t, Duration.ZERO)).isEmpty();
         }
 
         @Test
@@ -196,8 +211,19 @@ class RepositoryTrackerTest {
 
             core.update(t.plusSeconds(1) , Stream.of(newObject));
 
-            assertThat(core.difference(rrdp, t, Duration.ofSeconds(0))).isEmpty();
-            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ofSeconds(0))).hasSize(1);
+            assertThat(core.difference(rrdp, t, Duration.ZERO)).isEmpty();
+            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ZERO)).hasSize(1);
+        }
+
+        @Test
+        public void test_include_disposed_objects_with_threshold() {
+            var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(oldObject), Duration.ofSeconds(3600));
+            var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(oldObject), Duration.ofSeconds(3600));
+
+            core.update(t.plusSeconds(300) , Stream.of(newObject));
+
+            assertThat(core.difference(rrdp, t.plusSeconds(300), Duration.ofSeconds(1))).isEmpty();
+            assertThat(rrdp.difference(core, t.plusSeconds(300), Duration.ofSeconds(1))).isEmpty();
         }
 
         @Test
@@ -208,7 +234,45 @@ class RepositoryTrackerTest {
             core.update(t.plusSeconds(1) , Stream.of(newObject)); // first-seen of newObject, oldObject disposed
             core.update(t.plusSeconds(2) , Stream.of(newObject)); // delete disposed oldObject
 
-            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ofSeconds(0))).hasSize(1);;
+            assertThat(core.difference(rrdp, t.plusSeconds(1), Duration.ZERO)).hasSize(1);;
+        }
+
+        @Test
+        public void test_ignore_disposed_objects_on_lhs() {
+            var core = RepositoryTracker.with("core", "rsync://example.com", RepositoryTracker.Type.CORE, t, Stream.of(newObject), Duration.ofSeconds(3600));
+            var rsync = RepositoryTracker.with("rsync", "rsync://example.com", RepositoryTracker.Type.RSYNC, t, Stream.of(oldObject, newObject), Duration.ofSeconds(3600));
+
+            rsync.update(t.plusSeconds(300), Stream.of(newObject));
+
+            assertThat(rsync.difference(core, t.plusSeconds(300), Duration.ofSeconds(300))).hasSize(0);;
+        }
+    }
+
+    @Nested
+    class Uniqueness {
+        @Test
+        public void test_unique_by_sha256_and_uri() {
+            var object = new RepositoryEntry(
+                    "rsync://example.com/repository/DEFAULT/xyz.cer",
+                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    Optional.of(t),
+                    Optional.of(t.plusSeconds(3600))
+            );
+            var objectAtDiffPath = new RepositoryEntry(
+                    "rsync://example.com/repository/data/xyz.cer",
+                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    Optional.of(t),
+                    Optional.of(t.plusSeconds(3600))
+            );
+
+            var repo = RepositoryTracker.with("repo", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object, objectAtDiffPath), Duration.ZERO);
+            var view = repo.view(t);
+
+            assertThat(view.size()).isEqualTo(2);
+            assertThat(view.hasObject(object)).isTrue();
+            assertThat(view.getObject(object.getSha256(), object.getUri())).hasValue(object);
+            assertThat(view.hasObject(objectAtDiffPath)).isTrue();
+            assertThat(view.getObject(objectAtDiffPath.getSha256(), objectAtDiffPath.getUri())).hasValue(objectAtDiffPath);
         }
     }
 }

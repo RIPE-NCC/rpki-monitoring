@@ -14,7 +14,7 @@ rrdp:
   interval: 5M
   targets:
     - name: main
-      notification-url: https://rrdp.ripe.net/notification.xml
+      notification-url: https://rrdp.prepdev.ripe.net/notification.xml
 
 rsync:
   repository-url: rsync://rpki.prepdev.ripe.net

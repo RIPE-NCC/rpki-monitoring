@@ -4,14 +4,17 @@ import lombok.Getter;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.*;
 
 /**
  * Track lifetime of objects in a single repository.
@@ -34,22 +37,30 @@ public class RepositoryTracker {
     // Time to keep disposed objects around
     private final Duration gracePeriod;
 
+    // Stores the repository objects index by their key (sha256 * uri)
+    private final AtomicReference<Map<Long, TrackedObject>> objects;
+
     public enum Type {
         CORE, RRDP, RSYNC
     }
 
-    record TrackedObject(RepositoryEntry entry, Instant firstSeen, Optional<Instant> disposedAt) {
+    public record TrackedObject(RepositoryEntry entry, Instant firstSeen, Optional<Instant> disposedAt) {
         public static TrackedObject of(RepositoryEntry entry, Instant firstSeen) {
             return new TrackedObject(entry, firstSeen, Optional.empty());
+        }
+
+        public static long key(String sha256, String uri) {
+            return (long) sha256.hashCode() * (long) uri.hashCode();
         }
 
         public TrackedObject dispose(Instant t) {
             return new TrackedObject(entry, firstSeen, Optional.of(t));
         }
-    }
 
-    // Stores the repository objects index by their sha256 hash
-    private final AtomicReference<Map<String, TrackedObject>> objects;
+        public long key() {
+            return key(entry.getSha256(), entry.getUri());
+        }
+    }
 
     /**
      * Get an empty repository.
@@ -86,42 +97,60 @@ public class RepositoryTracker {
      * Time of updates on the repository must be strictly increasing.
      */
     public void update(Instant t, Stream<RepositoryEntry> entries) {
-        var objects = entries
-                .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), t)))
-                .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), Function.identity()));
+        var newObjects = entries
+                .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), x.getUri(), t)))
+                .collect(toMap(TrackedObject::key, Function.identity()));
         var disposed = this.objects.get().values().stream()
                 .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(t.minus(gracePeriod))).orElse(true))
-                .filter(x -> ! objects.containsKey(x.entry.getSha256()))
-                .collect(Collectors.toUnmodifiableMap(x -> x.entry.getSha256(), x -> x.dispose(t)));
+                .filter(x -> ! newObjects.containsKey(x.key()))
+                .map(x -> x.dispose(t))
+                .collect(toUnmodifiableMap(TrackedObject::key, Function.identity()));
 
-        var newState = new HashMap<>(objects);
-        newState.putAll(disposed);
-        this.objects.set(newState);
+        newObjects.putAll(disposed);
+        this.objects.set(newObjects);
     }
 
     /**
-     * Get the (non-associative) difference between this and the other repository
+     * Get the (non-commutative) difference between this and the other repository
      * at time <i>t</i>, not exceeding threshold.
+     *
+     * For all non-disposed objects first seen before or at time <i>t - threshold</i>
+     * in this repository, the other repository is expected to have the same object
+     * first seen before or at time <i>t</i> or have the object disposed before
+     * time <i>t - threshold</i>.
      */
     public Set<RepositoryEntry> difference(RepositoryTracker other, Instant t, Duration threshold) {
-        var rhs = other.view(t);
-        return view(t.minus(threshold)).entries()
+        var lhs = new View(objects.get(), Predicates.firstSeenBefore(t.minus(threshold)).and(Predicates.nonDisposed()));
+        var rhs = new View(other.objects.get(), Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t.minus(threshold))));
+        return lhs.entries()
                 .filter(Predicate.not(rhs::hasObject))
-                .collect(Collectors.toSet());
+                .collect(toSet());
     }
 
     /**
      * Get a view on the repository objects present at time <i>t</i>.
      *
-     * Presence is defined as objects first seen before (or at) a given time.
-     * I.e. any objects first seen after <i>t</i> are considered not present.
-     */
+     * Presence of an object is defined as first-seen before (or at) time <i>t</i> and
+     * not disposed or disposed after time <i>t</i>.
+`     */
     public View view(Instant t) {
-        return new View(objects.get(), t);
+        return new View(objects.get(), Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t)));
     }
 
-    private Instant firstSeenAt(String sha256, Instant now) {
-        var previous = objects.get().get(sha256);
+    /**
+     * Inspect <i>all</i> objects at the given uri. The objects may not match the
+     *
+     * Returning <code>TrackedObject</code> allows to inspect timings as well
+     * as the object data.
+     */
+    public Set<TrackedObject> inspect(String uri) {
+        return objects.get().values().stream()
+                .filter(x -> Objects.equals(uri, x.entry.getUri()))
+                .collect(toSet());
+    }
+
+    private Instant firstSeenAt(String sha256, String uri, Instant now) {
+        var previous = objects.get().get(TrackedObject.key(sha256, uri));
         return previous != null ? previous.firstSeen() : now;
     }
 
@@ -133,16 +162,16 @@ public class RepositoryTracker {
      * are not brought back.
      */
     public record View(
-            Map<String, TrackedObject> objects,
-            Instant time
+            Map<Long, TrackedObject> objects,
+            Predicate<TrackedObject> filter
     ) {
         /**
          * Get the repository entry with the given hash, or nothing if the repository
          * does not have such object.
          */
-        public Optional<RepositoryEntry> getObject(String sha256) {
-            return Optional.ofNullable(objects.get(sha256))
-                    .filter(this::inScope)
+        public Optional<RepositoryEntry> getObject(String sha256, String uri) {
+            return Optional.ofNullable(objects.get(TrackedObject.key(sha256, uri)))
+                    .filter(filter)
                     .map(TrackedObject::entry);
         }
 
@@ -150,14 +179,12 @@ public class RepositoryTracker {
          * Test if the repository has an object with the given object's hash and URI.
          *
          * Semantically objects in a repository would be present by just verifying
-         * their hash. However, semantics are not checked here. Hence for the purpose
+         * their hash. However, semantics are not checked here. Hence, for the purpose
          * of monitoring, two identical objects are considered different when at
          * different paths in the repository.
          */
         public boolean hasObject(RepositoryEntry object) {
-            return getObject(object.getSha256())
-                    .map(x -> Objects.equals(x.getUri(), object.getUri()))
-                    .orElse(false);
+            return getObject(object.getSha256(), object.getUri()).isPresent();
         }
 
         /**
@@ -167,7 +194,7 @@ public class RepositoryTracker {
         public Set<RepositoryEntry> expiration(Instant t) {
             return entries()
                     .filter(x -> x.getExpiration().map(expiration -> expiration.compareTo(t) < 0).orElse(false))
-                    .collect(Collectors.toSet());
+                    .collect(toSet());
         }
 
         public long size() {
@@ -176,13 +203,41 @@ public class RepositoryTracker {
 
         public Stream<RepositoryEntry> entries() {
             return objects.values().stream()
-                    .filter(this::inScope)
+                    .filter(filter)
                     .map(TrackedObject::entry);
         }
+    }
+    /**
+     * Standard predicates on <code>TrackedObject</code>s.
+     */
+    public interface Predicates {
+        /**
+         * Matches objects first seen before ar at time <i>t</i>.
+         */
+        static Predicate<TrackedObject> firstSeenBefore(Instant t) {
+            return x -> x.firstSeen.compareTo(t) <= 0;
+        }
 
-        private boolean inScope(TrackedObject x) {
-            return x.firstSeen.compareTo(time) <= 0
-                && x.disposedAt.map(disposed -> disposed.compareTo(time) > 0).orElse(true);
+        /**
+         * Matches objects disposed before ar at time <i>t</i>. Objects not
+         * disposed don't match.
+         */
+        static Predicate<TrackedObject> disposedBefore(Instant t) {
+            return x -> x.disposedAt.map(y -> y.compareTo(t) <= 0).orElse(false);
+        }
+
+        /**
+         * Negation of <code>disposedBefore</code>.
+         */
+        static Predicate<TrackedObject> notDisposedAt(Instant t) {
+            return disposedBefore(t).negate();
+        }
+
+        /**
+         * Matches objects that are not at all disposed.
+         */
+        static Predicate<TrackedObject> nonDisposed() {
+            return x -> x.disposedAt.isEmpty();
         }
     }
 }
