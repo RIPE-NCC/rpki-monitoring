@@ -34,7 +34,7 @@ rpkimonitor:
   internal-api-key-header: "ncc-internal-api-key"
 
 core:
-  url: https://ba-apps.prepdev.ripe.net/certification/
+  url: https://core.rpki.prepdev.ripe.net/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
   interval: 1m
   initial-delay: 10s
@@ -109,7 +109,7 @@ rsync:
       url: rsync://rpki.prepdev.ripe.net
 
 core:
-  url: https://ba-apps.prepdev.ripe.net/certification/
+  url: https://core.rpki.prepdev.ripe.net/certification/
 
 ---
 spring:
@@ -141,4 +141,4 @@ rsync:
       url: rsync://rpki.ripe.net
 
 core:
-  url: https://ba-apps.ripe.net/certification/
+  url: https://core.rpki.ripe.net/certification/
