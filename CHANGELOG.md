@@ -1,5 +1,20 @@
 ## HEAD
 
+## v0.6.0
+  * Introduce `connect-to` configuration for testing alternative RRDP locations
+    (i.e. inactive CDNs) including TLS handshakes.
+  * Monitor repository on Cloudflare CDN
+  * Track disposed objects in repositories so that resigned objects from core
+    are not reported as false differences.
+  * Add endpoints to view repository information:
+    - `/diff?lhs=<repo1>&rhs=<repo2>&threshold=0`
+    - `/<repo>/info?theshold=0`
+    - `/<repo>/inspect?uri=<uri>`
+    - `/<repo>/objects?uri=<uri>&threshold=0`
+  * Change rsync target configuration to make it similar to rrdp.
+  * Enable RenovateBot and apply updates
+  * Build and run on java 17
+
 ## v0.5.5
   * Monitor i3d test endpoint
 
