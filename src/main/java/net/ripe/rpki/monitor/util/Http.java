@@ -40,7 +40,10 @@ public class Http {
 
     public String fetch(String url) throws IOException {
         var requestConfig = RequestConfig.custom()
-                .setConnectTimeout(Timeout.ofSeconds(10))
+                .setConnectionKeepAlive(TimeValue.ofSeconds(60))
+                .setConnectTimeout(Timeout.ofSeconds(3))
+                .setResponseTimeout(Timeout.ofSeconds(10))
+                .setContentCompressionEnabled(true)
                 .setRedirectsEnabled(false)
                 .build();
         try (var client = createHttpClient()) {
