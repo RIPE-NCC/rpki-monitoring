@@ -1,5 +1,12 @@
 ## HEAD
 
+## v0.6.1
+
+  * Use stricter timeouts for RRDP repositories
+  * Spring boot: 2.6.4 -> 2.6.5
+  * Spring4Shell mitigation
+  * Gradle plugin updates for: jib, git-version
+
 ## v0.6.0
   * Introduce `connect-to` configuration for testing alternative RRDP locations
     (i.e. inactive CDNs) including TLS handshakes.
