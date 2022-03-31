@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.6.2
+
+  * Spring framework: forse use of 5.3.18
+
 ## v0.6.1
 
   * Use stricter timeouts for RRDP repositories
