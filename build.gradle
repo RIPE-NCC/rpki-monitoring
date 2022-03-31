@@ -3,7 +3,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '6.4.1'
-    id 'org.springframework.boot' version '2.6.4'
+    id 'org.springframework.boot' version '2.6.5'
     id 'com.palantir.git-version' version '0.13.0'
     id 'jacoco'
     id 'org.sonarqube' version '3.3'
