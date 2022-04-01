@@ -16,8 +16,6 @@ apply plugin: 'io.spring.dependency-management'
 group = 'net.ripe.rpki'
 version = '0.6.3-SNAPSHOT'
 
-ext['spring-framework.version'] = '5.3.18'
-
 repositories {
     mavenCentral()
     maven {
