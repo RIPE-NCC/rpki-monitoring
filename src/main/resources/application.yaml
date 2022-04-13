@@ -92,8 +92,9 @@ rrdp:
     - name: publish
       notification-url: https://publish.rpki.prepdev.ripe.net/notification.xml
     - name: i3d
-      notification-url: https://ripe-test.cdn.i3d.net/notification.xml
-      override-hostname: ripe-test.cdn.i3d.net
+      notification-url: https://rrdp.prepdev.ripe.net/notification.xml
+      connect-to:
+        rrdp.prepdev.ripe.net: ripe-test.cdn.i3d.net
     - name: cloudflare
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
       connect-to:
@@ -124,8 +125,9 @@ rrdp:
       notification-url: https://rrdp.int.ripe.net/notification.xml
       override-hostname: rrdp.int.ripe.net
     - name: i3d
-      notification-url: https://ripe.cdn.i3d.net/notification.xml
-      override-hostname: ripe.cdn.i3d.net
+      notification-url: https://rrdp.ripe.net/notification.xml
+      connect-to:
+        rrdp.prepdev.ripe.net: override-hostname: ripe.cdn.i3d.net
     - name: cloudflare
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
