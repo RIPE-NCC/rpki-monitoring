@@ -130,6 +130,10 @@ rrdp:
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
         rrdp.ripe.net: rrdp.ripe.net.cdn.cloudflare.net
+    - name: beanstalk
+      notification-url: http://rrdp.ripe.net/notification.xml
+      connect-to:
+        rrdp.ripe.net: publicationserver-prod-1.eu-west-1.elasticbeanstalk.com
 
 rsync:
   repository-url: rsync://rpki.ripe.net
