@@ -127,7 +127,7 @@ rrdp:
     - name: i3d
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
-        rrdp.prepdev.ripe.net: override-hostname: ripe.cdn.i3d.net
+        rrdp.prepdev.ripe.net: ripe.cdn.i3d.net
     - name: cloudflare
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
