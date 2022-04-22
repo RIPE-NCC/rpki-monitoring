@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import lombok.Getter;
 import net.ripe.rpki.monitor.AppConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpFetcher;
@@ -19,7 +20,9 @@ public class Collectors {
     private final CollectorUpdateMetrics metrics;
     private final RepositoriesState repositoriesState;
 
+    @Getter
     private final List<ObjectAndDateCollector> rrdpCollectors;
+    @Getter
     private final List<ObjectAndDateCollector> rsyncCollectors;
 
     @Autowired
@@ -35,14 +38,6 @@ public class Collectors {
         this.rsyncCollectors = config.getRsyncConfig().getTargets().stream().map(
                 target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url()))
         ).collect(toList());
-    }
-
-    public List<ObjectAndDateCollector> getRsyncCollectors() {
-        return this.rsyncCollectors;
-    }
-
-    public List<ObjectAndDateCollector> getRrdpCollectors() {
-        return this.rrdpCollectors;
     }
 
     private ObjectAndDateCollector makeCollector(RepoFetcher fetcher) {
