@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.7.0
+
+  * Prevent overlapping runs of collectors
+
 ## v0.6.3
 
   * Spring boot: 2.6.5 -> 2.6.6
@@ -7,7 +11,7 @@
 
 ## v0.6.2
 
-  * Spring framework: forse use of 5.3.18
+  * Spring framework: force use of 5.3.18
 
 ## v0.6.1
 
