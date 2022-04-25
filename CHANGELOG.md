@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.7.1
+
+  * Fix AWS Beanstalk RRDP repository configuration
+
 ## v0.7.0
 
   * Prevent overlapping runs of collectors
