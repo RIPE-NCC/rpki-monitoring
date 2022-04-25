@@ -25,6 +25,7 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
@@ -45,6 +46,8 @@ public class ObjectAndDateCollector {
     private final BloomFilter<String> loggedObjects = BloomFilter.create((from, into) -> into.putString(from, Charset.defaultCharset()), 100_000, 0.5);
     private final RepositoriesState repositoriesState;
 
+    private final AtomicBoolean running = new AtomicBoolean(false);
+
     public ObjectAndDateCollector(
         @NonNull final RepoFetcher repoFetcher,
         @NonNull CollectorUpdateMetrics metrics,
@@ -55,6 +58,11 @@ public class ObjectAndDateCollector {
     }
 
     public void run() throws FetcherException {
+        if (!running.compareAndSet(false, true)) {
+            log.warn("Skipping updates of repository '{}' ({}) because a previous update is still running.", repoFetcher.meta().tag(), repoFetcher.meta().url());
+            return;
+        }
+
         final var passedObjects = new AtomicInteger();
         final var unknownObjects = new AtomicInteger();
         final var rejectedObjects = new AtomicInteger();
@@ -86,6 +94,8 @@ public class ObjectAndDateCollector {
         } catch (Exception e) {
             collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
             throw e;
+        } finally {
+            running.set(false);
         }
     }
 

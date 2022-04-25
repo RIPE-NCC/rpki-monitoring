@@ -1,7 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
+import lombok.Getter;
 import net.ripe.rpki.monitor.AppConfig;
-import net.ripe.rpki.monitor.RrdpConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
@@ -18,8 +18,12 @@ import static java.util.stream.Collectors.toList;
 public class Collectors {
 
     private final CollectorUpdateMetrics metrics;
-    private final AppConfig config;
     private final RepositoriesState repositoriesState;
+
+    @Getter
+    private final List<ObjectAndDateCollector> rrdpCollectors;
+    @Getter
+    private final List<ObjectAndDateCollector> rsyncCollectors;
 
     @Autowired
     public Collectors(CollectorUpdateMetrics metrics,
@@ -27,33 +31,16 @@ public class Collectors {
                       AppConfig config) {
         this.metrics = metrics;
         this.repositoriesState = repositoriesState;
-        this.config = config;
-    }
 
-    // Create fetcher for all rsync repositories that are in the config.
-    // The "main" one is the the on-premise repository. On top of it, we
-    // can have potentially arbitrary number of cloud-hosted repositories.
-    public List<ObjectAndDateCollector> getRsyncCollectors() {
-        return config.getRsyncConfig().getTargets().stream().map(
-                target -> makeCollector(createRsyncFetcher(target.name(), target.url()))
+        this.rrdpCollectors = config.getRrdpConfig().getTargets().stream().map(
+                target -> makeCollector(new RrdpFetcher(target, config.getProperties()))
         ).collect(toList());
-    }
-
-    public List<ObjectAndDateCollector> getRrdpCollectors() {
-        return config.getRrdpConfig().getTargets().stream().map(
-                rrdpTarget -> makeCollector(createRrdpFetcher(rrdpTarget))
+        this.rsyncCollectors = config.getRsyncConfig().getTargets().stream().map(
+                target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url()))
         ).collect(toList());
     }
 
     private ObjectAndDateCollector makeCollector(RepoFetcher fetcher) {
         return new ObjectAndDateCollector(fetcher, metrics, repositoriesState);
-    }
-
-    private RepoFetcher createRsyncFetcher(String name, String url) {
-        return new RsyncFetcher(config.getRsyncConfig(), name, url);
-    }
-
-    private RrdpFetcher createRrdpFetcher(RrdpConfig.RrdpRepositoryConfig rrdpTarget) {
-        return new RrdpFetcher(rrdpTarget, config.getProperties());
     }
 }
