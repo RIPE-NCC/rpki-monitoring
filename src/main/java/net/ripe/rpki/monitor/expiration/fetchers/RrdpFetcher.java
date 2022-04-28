@@ -1,9 +1,11 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import com.google.common.base.Strings;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.MonitorProperties;
 import net.ripe.rpki.monitor.RrdpConfig;
+import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.util.Http;
 import net.ripe.rpki.monitor.util.Sha256;
@@ -32,12 +34,17 @@ public class RrdpFetcher implements RepoFetcher {
 
     private final RrdpConfig.RrdpRepositoryConfig config;
     private final Http http;
+    private final FetcherMetrics.RRDPFetcherMetrics metrics;
 
     private String lastSnapshotUrl;
 
-    public RrdpFetcher(RrdpConfig.RrdpRepositoryConfig config, MonitorProperties properties) {
+    public RrdpFetcher(RrdpConfig.RrdpRepositoryConfig config, MonitorProperties properties, FetcherMetrics fetcherMetrics) {
         this.config = config;
         this.http = new Http(String.format("rpki-monitor %s", properties.getVersion()), config.getConnectTo());
+        this.metrics = fetcherMetrics.rrdp(
+                Strings.isNullOrEmpty(config.getOverrideHostname()) ?
+                        config.getNotificationUrl() :
+                        String.format("%s@%s", config.getNotificationUrl(), config.getOverrideHostname()));
 
         log.info("RrdpFetcher({}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostname());
     }
@@ -55,6 +62,8 @@ public class RrdpFetcher implements RepoFetcher {
             final String notificationXml = http.fetch(config.getNotificationUrl());
             verifyNotNull(notificationXml);
             final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
+
+            final int serial = Integer.parseInt(notificationXmlDoc.getDocumentElement().getAttribute("serial"));
 
             final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
             final String snapshotUrl = config.overrideHostname(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
@@ -81,7 +90,7 @@ public class RrdpFetcher implements RepoFetcher {
             final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(bytes));
             final NodeList publishedObjects = snapshotXmlDoc.getDocumentElement().getElementsByTagName("publish");
 
-            return IntStream
+            var objects = IntStream
                 .range(0, publishedObjects.getLength())
                 .mapToObj(publishedObjects::item)
                 .map(item -> {
@@ -94,7 +103,10 @@ public class RrdpFetcher implements RepoFetcher {
                 })
                 .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
-        } catch (ParserConfigurationException | SAXException | IOException | SnapshotWrongHashException e) {
+            metrics.success(serial);
+            return objects;
+        } catch (ParserConfigurationException | SAXException | IOException | NumberFormatException | SnapshotWrongHashException e) {
+            metrics.failure();
             throw new FetcherException(e);
         }
     }
