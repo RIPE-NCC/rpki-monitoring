@@ -106,7 +106,7 @@ public class RsyncFetcher implements RepoFetcher {
 
             // Gather all objects in path
             try (Stream<Path> paths = Files.walk(targetPath)) {
-                return paths.filter(Files::isRegularFile)
+                var res = paths.filter(Files::isRegularFile)
                     .parallel()
                     .map(f -> {
                         // Object "appear" to be in the main repository, otherwise they will always
@@ -118,9 +118,12 @@ public class RsyncFetcher implements RepoFetcher {
                             throw new RuntimeException(e);
                         }
                     }).collect(Collectors.toConcurrentMap(Pair::getKey, Pair::getValue));
+                metrics.success();
+                return res;
             }
         } catch (IOException | RuntimeException e) {
             log.error("Rsync fetch failed", e);
+            metrics.failure();
             throw new FetcherException(e);
         }
     }
