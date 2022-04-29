@@ -28,33 +28,39 @@ public class FetcherMetrics {
         return rrdpMetrics.computeIfAbsent(url, repoUrl -> new RRDPFetcherMetrics(repoUrl, registry));
     }
 
-    private static Counter buildCounter(String url, String statusTag, MeterRegistry registry) {
-        return Counter.builder("rpkimonitoring.fetcher.updated")
-                .description("Number of fetches from the given URL")
-                .tag("status", statusTag)
-                .tag("url", url)
-                .register(registry);
-    }
+    private static sealed class BaseFetcherMetrics {
+        final Counter successfulUpdates;
+        private final Counter failedUpdates;
 
-    public record RsyncFetcherMetrics(Counter successfulUpdates, Counter failedUpdates) {
-        public RsyncFetcherMetrics(final String url, MeterRegistry meterRegistry) {
-            this(
-                    buildCounter(url, "success", meterRegistry),
-                    buildCounter(url, "failed", meterRegistry)
-            );
+        BaseFetcherMetrics(final String url, MeterRegistry meterRegistry) {
+            successfulUpdates = buildCounter(url, "success", meterRegistry);
+            failedUpdates = buildCounter(url, "failed", meterRegistry);
+        }
+
+        private static Counter buildCounter(String url, String statusTag, MeterRegistry registry) {
+            return Counter.builder("rpkimonitoring.fetcher.updated")
+                    .description("Number of fetches from the given URL")
+                    .tag("status", statusTag)
+                    .tag("url", url)
+                    .register(registry);
         }
 
         public void failure() { this.failedUpdates.increment(); }
+    }
+
+    public static final class RsyncFetcherMetrics extends BaseFetcherMetrics {
+        private RsyncFetcherMetrics(String url, MeterRegistry meterRegistry) {
+            super(url, meterRegistry);
+        }
+
         public void success() { this.successfulUpdates.increment(); }
     }
 
-    public record RRDPFetcherMetrics(Counter succesfulUpdates, Counter failedUpdates, AtomicInteger rrdpSerial) {
-        public RRDPFetcherMetrics(final String url, MeterRegistry meterRegistry) {
-            this(
-                    buildCounter(url, "success", meterRegistry),
-                    buildCounter(url, "failed", meterRegistry),
-                    new AtomicInteger()
-            );
+    public static final class RRDPFetcherMetrics extends BaseFetcherMetrics {
+        final AtomicInteger rrdpSerial = new AtomicInteger();
+
+        private RRDPFetcherMetrics(final String url, MeterRegistry meterRegistry) {
+            super(url, meterRegistry);
 
             Gauge.builder("rpkimonitoring.fetcher.rrdp.serial", rrdpSerial::get)
                     .description("Serial of the RRDP notification.xml at the given URL")
@@ -62,10 +68,9 @@ public class FetcherMetrics {
                     .register(meterRegistry);
         }
 
-        public void failure() { this.failedUpdates.increment(); }
-
+        /** RRDP variant only can track a succesful update if it also provides a serial. */
         public void success(int serial) {
-            this.succesfulUpdates.increment();
+            this.successfulUpdates.increment();
             this.rrdpSerial.set(serial);
         }
     }
