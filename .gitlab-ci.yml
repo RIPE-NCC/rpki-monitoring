@@ -173,15 +173,6 @@ build:production:
             }]
             "
 
-deploy:dev:
-  <<: *deploy_template
-  needs: ["build:dev"]
-  environment:
-    name: dev
-    url: http://uncore-1.rpki.dev.ripe.net:9090
-  rules:
-    - when: manual
-
 deploy:prepdev:
   <<: *deploy_template
   stage: deploy
