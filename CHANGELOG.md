@@ -1,5 +1,11 @@
 ## HEAD
 
+## v0.7.2
+
+  * Remove dev environment
+  * Add metrics for fetcher updates + RRDP serial
+  * Intern strings in an attempt to save memory.
+
 ## v0.7.1
 
   * Fix AWS Beanstalk RRDP repository configuration
