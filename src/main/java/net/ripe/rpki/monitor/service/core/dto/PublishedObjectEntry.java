@@ -12,4 +12,10 @@ public class PublishedObjectEntry implements HasHashAndUri {
     String uri;
     String sha256;
     Instant updatedAt;
+
+    PublishedObjectEntry(String uri, String sha256, Instant updatedAt) {
+        this.uri = uri.intern();
+        this.sha256 = sha256.intern();
+        this.updatedAt = updatedAt;
+    }
 }
