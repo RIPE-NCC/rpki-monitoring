@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.monitor.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.tuple.Triple;
@@ -32,7 +33,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         config.setBaseDirectory(tempDirectory);
 
         var meterRegistry = new SimpleMeterRegistry();
-        var rsyncFetcher = new RsyncFetcher(config, "rsync", config.getRepositoryUrl());
+        var rsyncFetcher = new RsyncFetcher(config, "rsync", config.getRepositoryUrl(), new FetcherMetrics(new SimpleMeterRegistry()));
         var collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
         repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getRepositoryUrl(), RepositoryTracker.Type.RSYNC)), Duration.ZERO);

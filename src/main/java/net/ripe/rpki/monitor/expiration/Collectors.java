@@ -1,11 +1,13 @@
 package net.ripe.rpki.monitor.expiration;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import net.ripe.rpki.monitor.AppConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -28,15 +30,16 @@ public class Collectors {
     @Autowired
     public Collectors(CollectorUpdateMetrics metrics,
                       RepositoriesState repositoriesState,
-                      AppConfig config) {
+                      AppConfig config,
+                      FetcherMetrics fetcherMetrics) {
         this.metrics = metrics;
         this.repositoriesState = repositoriesState;
 
         this.rrdpCollectors = config.getRrdpConfig().getTargets().stream().map(
-                target -> makeCollector(new RrdpFetcher(target, config.getProperties()))
+                target -> makeCollector(new RrdpFetcher(target, config.getProperties(), fetcherMetrics))
         ).collect(toList());
         this.rsyncCollectors = config.getRsyncConfig().getTargets().stream().map(
-                target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url()))
+                target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url(), fetcherMetrics))
         ).collect(toList());
     }
 

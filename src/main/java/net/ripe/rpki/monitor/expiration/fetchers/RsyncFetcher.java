@@ -8,6 +8,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.rsync.Rsync;
 import net.ripe.rpki.monitor.RsyncConfig;
+import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -47,13 +48,17 @@ public class RsyncFetcher implements RepoFetcher {
     /** The URI that objects "appear" to be from. */
     private final String repositoryUrl;
 
+    private final FetcherMetrics.RsyncFetcherMetrics metrics;
+
     @SneakyThrows
-    public RsyncFetcher(RsyncConfig rsyncConfig, String name, String rsyncUrl) {
+    public RsyncFetcher(RsyncConfig rsyncConfig, String name, String rsyncUrl, FetcherMetrics fetcherMetrics) {
         this.name = name;
         this.rsyncUrl = removeEnd(rsyncUrl, "/");
 
         this.rsyncTimeout = rsyncConfig.getTimeout();
         this.repositoryUrl = removeEnd(rsyncConfig.getRepositoryUrl(), "/");
+
+        this.metrics = fetcherMetrics.rsync(this.rsyncUrl);
 
         URI uri = URI.create(rsyncUrl);
 
@@ -101,7 +106,7 @@ public class RsyncFetcher implements RepoFetcher {
 
             // Gather all objects in path
             try (Stream<Path> paths = Files.walk(targetPath)) {
-                return paths.filter(Files::isRegularFile)
+                var res = paths.filter(Files::isRegularFile)
                     .parallel()
                     .map(f -> {
                         // Object "appear" to be in the main repository, otherwise they will always
@@ -113,9 +118,12 @@ public class RsyncFetcher implements RepoFetcher {
                             throw new RuntimeException(e);
                         }
                     }).collect(Collectors.toConcurrentMap(Pair::getKey, Pair::getValue));
+                metrics.success();
+                return res;
             }
         } catch (IOException | RuntimeException e) {
             log.error("Rsync fetch failed", e);
+            metrics.failure();
             throw new FetcherException(e);
         }
     }
