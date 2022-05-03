@@ -94,12 +94,13 @@ public class RepositoryTracker {
      * Time of updates on the repository must be strictly increasing.
      */
     public void update(Instant t, Stream<RepositoryEntry> entries) {
+        var threshold = t.minus(gracePeriod);
         this.objects.getAndUpdate((objects) -> {
             var newObjects = entries
                     .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), x.getUri(), t)))
                     .collect(toMap(TrackedObject::key, Function.identity()));
             var disposed = objects.values().stream()
-                    .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(t.minus(gracePeriod))).orElse(true))
+                    .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(threshold)).orElse(true))
                     .filter(x -> ! newObjects.containsKey(x.key()))
                     .map(x -> x.dispose(t))
                     .collect(toUnmodifiableMap(TrackedObject::key, Function.identity()));
