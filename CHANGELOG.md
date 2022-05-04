@@ -1,5 +1,11 @@
 ## HEAD
 
+## v0.7.3
+
+  * Prevent object re-creation when repeatedly disposing the same object.
+  * Atomically update object map
+  * Run tests in parallel
+
 ## v0.7.2
 
   * Remove dev environment
