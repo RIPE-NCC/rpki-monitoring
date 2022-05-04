@@ -51,7 +51,7 @@ public class RepositoryTracker {
         }
 
         public TrackedObject dispose(Instant t) {
-            return new TrackedObject(entry, firstSeen, Optional.of(t));
+            return this.disposedAt.isPresent() ? this : new TrackedObject(entry, firstSeen, Optional.of(t));
         }
 
         public long key() {
