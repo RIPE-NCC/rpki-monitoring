@@ -103,8 +103,8 @@ public class RepositoryTracker {
                     .map(x -> TrackedObject.of(x, firstSeenAt(objects, x.getSha256(), x.getUri(), t)))
                     .collect(toMap(TrackedObject::key, Function.identity()));
             var disposed = objects.values().stream()
-                    .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(threshold)).orElse(true))
                     .filter(x -> ! newObjects.containsKey(x.key()))
+                    .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(threshold)).orElse(true))
                     .map(x -> x.dispose(t))
                     .collect(toUnmodifiableMap(TrackedObject::key, Function.identity()));
 
