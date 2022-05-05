@@ -97,7 +97,7 @@ public class RepositoryTracker {
         var threshold = t.minus(gracePeriod);
         this.objects.getAndUpdate((objects) -> {
             var newObjects = entries
-                    .map(x -> TrackedObject.of(x, firstSeenAt(x.getSha256(), x.getUri(), t)))
+                    .map(x -> TrackedObject.of(x, firstSeenAt(objects, x.getSha256(), x.getUri(), t)))
                     .collect(toMap(TrackedObject::key, Function.identity()));
             var disposed = objects.values().stream()
                     .filter(x -> x.disposedAt.map(disposedAt -> disposedAt.isAfter(threshold)).orElse(true))
@@ -149,8 +149,8 @@ public class RepositoryTracker {
                 .collect(toSet());
     }
 
-    private Instant firstSeenAt(String sha256, String uri, Instant now) {
-        var previous = objects.get().get(TrackedObject.key(sha256, uri));
+    private static Instant firstSeenAt(Map<Long, TrackedObject> objects, String sha256, String uri, Instant now) {
+        var previous = objects.get(TrackedObject.key(sha256, uri));
         return previous != null ? previous.firstSeen() : now;
     }
 
