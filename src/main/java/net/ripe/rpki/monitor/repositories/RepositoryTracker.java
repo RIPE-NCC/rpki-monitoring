@@ -34,27 +34,30 @@ public class RepositoryTracker {
     // Time to keep disposed objects around
     private final Duration gracePeriod;
 
-    // Stores the repository objects index by their key (sha256 * uri)
-    private final AtomicReference<Map<Long, TrackedObject>> objects;
+    // Stores the repository objects index by their key (sha256 and uri)
+    private final AtomicReference<Map<TrackedObject.Key, TrackedObject>> objects;
 
     public enum Type {
         CORE, RRDP, RSYNC
     }
 
     public record TrackedObject(RepositoryEntry entry, Instant firstSeen, Optional<Instant> disposedAt) {
+        public record Key(String sha256, String uri) {
+        }
+
         public static TrackedObject of(RepositoryEntry entry, Instant firstSeen) {
             return new TrackedObject(entry, firstSeen, Optional.empty());
         }
 
-        public static long key(String sha256, String uri) {
-            return (long) sha256.hashCode() * (long) uri.hashCode();
+        public static Key key(String sha256, String uri) {
+            return new Key(sha256, uri);
         }
 
         public TrackedObject dispose(Instant t) {
             return this.disposedAt.isPresent() ? this : new TrackedObject(entry, firstSeen, Optional.of(t));
         }
 
-        public long key() {
+        public Key key() {
             return key(entry.getSha256(), entry.getUri());
         }
     }
@@ -149,7 +152,7 @@ public class RepositoryTracker {
                 .collect(toSet());
     }
 
-    private static Instant firstSeenAt(Map<Long, TrackedObject> objects, String sha256, String uri, Instant now) {
+    private static Instant firstSeenAt(Map<TrackedObject.Key, TrackedObject> objects, String sha256, String uri, Instant now) {
         var previous = objects.get(TrackedObject.key(sha256, uri));
         return previous != null ? previous.firstSeen() : now;
     }
@@ -162,7 +165,7 @@ public class RepositoryTracker {
      * are not brought back.
      */
     public record View(
-            Map<Long, TrackedObject> objects,
+            Map<TrackedObject.Key, TrackedObject> objects,
             Predicate<TrackedObject> filter
     ) {
         /**
