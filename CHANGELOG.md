@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.7.4
+
+  * Performance improvements
+
 ## v0.7.3
 
   * Prevent object re-creation when repeatedly disposing the same object.
