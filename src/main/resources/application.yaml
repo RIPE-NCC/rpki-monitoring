@@ -90,7 +90,8 @@ rrdp:
     - name: main
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
     - name: publish
-      notification-url: https://publish.rpki.prepdev.ripe.net/notification.xml
+      notification-url: https://rrdp.int.prepdev.ripe.net/notification.xml
+      override-hostname: rrdp.int.prepdev.ripe.net
     - name: i3d
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
       connect-to:
