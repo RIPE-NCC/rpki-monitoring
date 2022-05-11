@@ -33,7 +33,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    implementation 'net.ripe.rpki:rpki-commons:1.29'
+    implementation 'net.ripe.rpki:rpki-commons:1.30'
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.1.3'
 
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
