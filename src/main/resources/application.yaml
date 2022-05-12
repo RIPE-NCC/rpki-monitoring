@@ -122,9 +122,10 @@ rrdp:
   targets:
     - name: main
       notification-url: https://rrdp.ripe.net/notification.xml
-    - name: publish
-      notification-url: https://rrdp.int.ripe.net/notification.xml
-      override-hostname: rrdp.int.ripe.net
+    # FIXME: Enable when uncore-1.rpki.prepdev has network access
+    # - name: publish
+    #   notification-url: https://rrdp.int.ripe.net/notification.xml
+    #   override-hostname: rrdp.int.ripe.net
     - name: i3d
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
