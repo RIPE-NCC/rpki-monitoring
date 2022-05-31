@@ -39,7 +39,7 @@ dependencies {
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
-    testImplementation('org.assertj:assertj-core:3.22.0')
+    testImplementation('org.assertj:assertj-core:3.23.1')
 }
 
 // Replace the application version in resources. But not in test resources.
