@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -73,6 +74,11 @@ public class PublishedObjectStatusController {
     ) {
         return repositories.getTrackerByTag(repository)
                 .map(repo -> repo.inspect(uri));
+    }
+
+    @GetMapping("/repositories")
+    public List<RepositoryTracker> repositories() {
+        return repositories.allTrackers();
     }
 
     @GetMapping("/rsync-diffs")

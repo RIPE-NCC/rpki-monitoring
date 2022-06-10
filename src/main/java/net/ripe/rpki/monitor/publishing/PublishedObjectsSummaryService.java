@@ -3,6 +3,7 @@ package net.ripe.rpki.monitor.publishing;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
@@ -13,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +39,8 @@ public class PublishedObjectsSummaryService {
     private final MeterRegistry registry;
     private final Map<String, AtomicLong> counters = new ConcurrentHashMap<>();
 
+    private final Map<String, AtomicLong> counters1 = new ConcurrentHashMap<>();
+
     @Autowired
     public PublishedObjectsSummaryService(MeterRegistry registry) {
         this.registry = registry;
@@ -54,6 +58,25 @@ public class PublishedObjectsSummaryService {
     }
 
     /**
+     * Update the repository size counters per object type.
+     */
+    public void updateSizes(Instant now, RepositoryTracker repository) {
+        for (var objectType : RepositoryObjectType.values()) {
+            var type = objectType.name().toLowerCase(Locale.ROOT);
+            final String perTypeTag = perTypeTag(repository.getTag(), type);
+            final AtomicLong counter = counters.computeIfAbsent(perTypeTag, tag -> {
+                var sizeCount = new AtomicLong(0);
+                Metrics.buildObjectCountGauge(registry, sizeCount, tag, type);
+                return sizeCount;
+            });
+            counter.set(repository.view(now)
+                .stream()
+                .filter(RepositoryTracker.Predicates.ofType(objectType))
+                .count());
+        }
+    }
+
+    /**
      * Diff all repositories on the left-hand side with those on the right-hand
      * side and update the difference counters.
      */
@@ -63,7 +86,9 @@ public class PublishedObjectsSummaryService {
         var diffs = new HashMap<String, Set<RepositoryEntry>>();
         for (var lhs : lhss) {
             for (var rhs : rhss) {
-                diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, t, threshold));
+                for (var objectType: RepositoryObjectType.values()) {
+                    diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, t, threshold, objectType));
+                }
             }
         }
         return diffs;
@@ -94,7 +119,9 @@ public class PublishedObjectsSummaryService {
         final Map<String, Set<RepositoryEntry>> diffs = new HashMap<>();
         for (var rhs : rhss) {
             for (var threshold : THRESHOLDS) {
-                diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, now, threshold));
+                for (var objectType: RepositoryObjectType.values()) {
+                    diffs.putAll(collectPublishedObjectDifferencesAndUpdateCounters(lhs, rhs, now, threshold, objectType));
+                }
             }
         }
         return diffs;
@@ -109,32 +136,45 @@ public class PublishedObjectsSummaryService {
                 .orElseThrow(() -> new IllegalStateException("PublishedObjectsSummaryService.THRESHOLDS is empty"));
     }
 
-    private Map<String, Set<RepositoryEntry>> collectPublishedObjectDifferencesAndUpdateCounters(RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold) {
-        var diffCounter = getOrCreateDiffCounter(lhs, rhs, threshold);
-        var diffCounterInv = getOrCreateDiffCounter(rhs, lhs, threshold);
+    private Map<String, Set<RepositoryEntry>> collectPublishedObjectDifferencesAndUpdateCounters(
+        RepositoryTracker lhs, RepositoryTracker rhs, Instant now, Duration threshold, RepositoryObjectType objectType) {
 
-        var diff = lhs.difference(rhs, now, threshold);
-        var diffInv = rhs.difference(lhs, now, threshold);
+        var type = asString(objectType);
+
+        var diffCounter = getOrCreateDiffCounter(lhs, rhs, threshold, objectType);
+        var diffCounterInv = getOrCreateDiffCounter(rhs, lhs, threshold, objectType);
+
+        var diff = lhs.difference(rhs, now, threshold, objectType);
+        var diffInv = rhs.difference(lhs, now, threshold, objectType);
 
         diffCounter.set(diff.size());
         diffCounterInv.set(diffInv.size());
 
         return Map.of(
-                diffTag(lhs.getUrl(), rhs.getUrl(), threshold), diff,
-                diffTag(rhs.getUrl(), lhs.getUrl(), threshold), diffInv
+            perTypeDiffTag(lhs.getUrl(), rhs.getUrl(), threshold, type), diff,
+            perTypeDiffTag(rhs.getUrl(), lhs.getUrl(), threshold, type), diffInv
         );
     }
 
-    private AtomicLong getOrCreateDiffCounter(RepositoryTracker lhs, RepositoryTracker rhs, Duration threshold) {
-        final String tag = diffTag(lhs.getTag(), rhs.getTag(), threshold);
+    private AtomicLong getOrCreateDiffCounter(RepositoryTracker lhs, RepositoryTracker rhs, Duration threshold, RepositoryObjectType objectType) {
+        var s = asString(objectType);
+        final String tag = perTypeDiffTag(lhs.getTag(), rhs.getTag(), threshold, s);
         return counters.computeIfAbsent(tag, newTag -> {
             final var diffCount = new AtomicLong(0);
-            Metrics.buildObjectDiffGauge(registry, diffCount, lhs.getTag(), lhs.getUrl(), rhs.getTag(), rhs.getUrl(), threshold);
+            Metrics.buildObjectDiffGauge(registry, diffCount, lhs.getTag(), lhs.getUrl(), rhs.getTag(), rhs.getUrl(), threshold, s);
             return diffCount;
         });
     }
 
-    private static String diffTag(String lhs, String rhs, Duration threshold) {
-        return String.format("%s-diff-%s-%d", lhs, rhs, threshold.getSeconds());
+    private static String perTypeTag(String tag, String objectType) {
+        return String.format("%s-per-type-%s", tag, objectType);
+    }
+
+    private static String perTypeDiffTag(String lhs, String rhs, Duration threshold, String objectType) {
+        return String.format("%s-diff-%s-%d-%s", lhs, rhs, threshold.getSeconds(), objectType);
+    }
+
+    private static String asString(RepositoryObjectType objectType) {
+        return objectType.name().toLowerCase(Locale.ROOT);
     }
 }

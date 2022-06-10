@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.repositories;
 
 import lombok.Getter;
+import net.ripe.rpki.commons.util.RepositoryObjectType;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -60,6 +61,10 @@ public class RepositoryTracker {
         public Key key() {
             return key(entry.getSha256(), entry.getUri());
         }
+
+        public RepositoryObjectType getObjectType() {
+            return RepositoryObjectType.parse(entry.getUri());
+        }
     }
 
     /**
@@ -72,8 +77,8 @@ public class RepositoryTracker {
     /**
      * Create a repository with the given entries and time <i>t</i>.
      */
-    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries, Duration gracePersiod) {
-        var repo = RepositoryTracker.empty(tag, url, type, gracePersiod);
+    public static RepositoryTracker with(String tag, String url, Type type, Instant t, Stream<RepositoryEntry> entries, Duration gracePeriod) {
+        var repo = RepositoryTracker.empty(tag, url, type, gracePeriod);
         repo.update(t, entries);
         return repo;
     }
@@ -125,6 +130,25 @@ public class RepositoryTracker {
     public Set<RepositoryEntry> difference(RepositoryTracker other, Instant t, Duration threshold) {
         var lhs = new View(objects.get(), Predicates.firstSeenBefore(t.minus(threshold)).and(Predicates.nonDisposed()));
         var rhs = new View(other.objects.get(), Predicates.firstSeenBefore(t).and(Predicates.notDisposedAt(t.minus(threshold))));
+        return lhs.entries()
+                .filter(Predicate.not(rhs::hasObject))
+                .collect(toSet());
+    }
+
+    /**
+     * Same as @difference but also filters by the object type.
+     */
+    public Set<RepositoryEntry> difference(RepositoryTracker other, Instant t, Duration threshold, RepositoryObjectType objectType) {
+        var lhs = new View(objects.get(), Predicates
+                .firstSeenBefore(t.minus(threshold))
+                .and(Predicates.nonDisposed())
+                .and(Predicates.ofType(objectType)));
+
+        var rhs = new View(other.objects.get(), Predicates
+                .firstSeenBefore(t)
+                .and(Predicates.notDisposedAt(t.minus(threshold)))
+                .and(Predicates.ofType(objectType)));
+
         return lhs.entries()
                 .filter(Predicate.not(rhs::hasObject))
                 .collect(toSet());
@@ -205,9 +229,11 @@ public class RepositoryTracker {
         }
 
         public Stream<RepositoryEntry> entries() {
-            return objects.values().stream()
-                    .filter(filter)
-                    .map(TrackedObject::entry);
+            return stream().map(TrackedObject::entry);
+        }
+
+        public Stream<TrackedObject> stream() {
+            return objects.values().stream().filter(filter);
         }
     }
     /**
@@ -241,6 +267,11 @@ public class RepositoryTracker {
          */
         static Predicate<TrackedObject> nonDisposed() {
             return x -> x.disposedAt.isEmpty();
+        }
+
+
+        static Predicate<TrackedObject> ofType(RepositoryObjectType t) {
+            return x -> x.getObjectType() == t;
         }
     }
 }
