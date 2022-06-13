@@ -21,25 +21,6 @@ public class Metrics {
             String lhsSource,
             String rhs,
             String rhsSource,
-            Duration threshold
-    ) {
-        Gauge.builder(PUBLISHED_OBJECT_DIFF, counter::get)
-                .description(PUBLISHED_OBJECT_DIFF_DESCRIPTION)
-                .tag("lhs", lhs)
-                .tag("lhs-src", lhsSource)
-                .tag("rhs", rhs)
-                .tag("rhs-src", rhsSource)
-                .tag("threshold", String.valueOf(threshold.getSeconds()))
-                .register(registry);
-    }
-
-    public static void buildObjectDiffGauge(
-            MeterRegistry registry,
-            AtomicLong counter,
-            String lhs,
-            String lhsSource,
-            String rhs,
-            String rhsSource,
             Duration threshold,
             String objectType
     ) {

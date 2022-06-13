@@ -47,20 +47,16 @@ public class PublishedObjectsSummaryService {
     }
 
     /**
-     * Update the repository size counter.
+     * Update the repository size counters per object type.
      */
-    public void updateSize(Instant now, RepositoryTracker repository) {
+    public void updateSizes(Instant now, RepositoryTracker repository) {
+
         counters.computeIfAbsent(repository.getTag(), tag -> {
             var sizeCount = new AtomicLong(0);
             Metrics.buildObjectCountGauge(registry, sizeCount, tag);
             return sizeCount;
         }).set(repository.view(now).size());
-    }
 
-    /**
-     * Update the repository size counters per object type.
-     */
-    public void updateSizes(Instant now, RepositoryTracker repository) {
         for (var objectType : RepositoryObjectType.values()) {
             var type = objectType.name().toLowerCase(Locale.ROOT);
             final String perTypeTag = perTypeTag(repository.getTag(), type);
@@ -69,10 +65,11 @@ public class PublishedObjectsSummaryService {
                 Metrics.buildObjectCountGauge(registry, sizeCount, tag, type);
                 return sizeCount;
             });
-            counter.set(repository.view(now)
+            final long count = repository.view(now)
                 .stream()
                 .filter(RepositoryTracker.Predicates.ofType(objectType))
-                .count());
+                .count();
+            counter.set(count);
         }
     }
 
@@ -167,7 +164,7 @@ public class PublishedObjectsSummaryService {
     }
 
     private static String perTypeTag(String tag, String objectType) {
-        return String.format("%s-per-type-%s", tag, objectType);
+        return String.format("%s-%s", tag, objectType);
     }
 
     private static String perTypeDiffTag(String lhs, String rhs, Duration threshold, String objectType) {

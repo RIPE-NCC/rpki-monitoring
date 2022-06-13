@@ -48,14 +48,23 @@ public class PublishedObjectsSummaryTest {
                 RepositoryEntry.builder()
                     .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
                     .sha256("a9d505c70f1fc166062d1c16f7f200df2d2f89a8377593b5a408daa376de9fe2")
-                    .build()
+                    .build(),
+            RepositoryEntry.builder()
+                .uri("rsync://rpki.ripe.net/repository/DEFAULT/123.roa")
+                .sha256("a9d625c70f1fc166062d1c16f7f200df2d2f19a8377593b5a408daa376de9fe2")
+                .build()
         );
         rrdp.update(now, objects);
 
-        subject.updateSize(now, rrdp);
+        subject.updateSizes(now, rrdp);
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rrdp").gauge().value()).isEqualTo(1);
+                .tags("source", "rrdp").gauge().value()).isEqualTo(2);
+
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "rrdp-certificate").gauge().value()).isEqualTo(1);
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+                .tags("source", "rrdp-roa").gauge().value()).isEqualTo(1);
     }
 
     @Test
