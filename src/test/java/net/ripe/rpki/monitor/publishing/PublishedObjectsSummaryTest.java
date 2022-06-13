@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.publishing;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.monitor.metrics.Metrics;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
@@ -84,13 +85,13 @@ public class PublishedObjectsSummaryTest {
         );
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "core", "threshold", String.valueOf(minThreshold.getSeconds())).gauges())
+                .tags("lhs", "core", "threshold", String.valueOf(minThreshold.getSeconds()), "type", "unknown").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
         PublishedObjectsSummaryService.THRESHOLDS.stream()
                 .filter(x -> x.compareTo(minThreshold) > 0)
                 .forEach(threshold ->
                     then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                            .tags("lhs", "core", "threshold", String.valueOf(threshold.getSeconds())).gauges())
+                            .tags("lhs", "core", "threshold", String.valueOf(threshold.getSeconds()), "type", "certificate").gauges())
                             .allMatch(gauge -> gauge.value() == 0.0)
                 );
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
@@ -123,7 +124,7 @@ public class PublishedObjectsSummaryTest {
                 .tags("lhs", "rsync").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "rrdp").gauges())
+                .tags("lhs", "rrdp", "type", "certificate").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
     }
 
@@ -146,13 +147,13 @@ public class PublishedObjectsSummaryTest {
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                .tags("lhs", "rsync", "threshold", String.valueOf(minThreshold.getSeconds())).gauges())
+                .tags("lhs", "rsync", "threshold", String.valueOf(minThreshold.getSeconds()), "type", "certificate").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
         PublishedObjectsSummaryService.THRESHOLDS.stream()
                 .filter(x -> x.compareTo(minThreshold) > 0)
                 .forEach(threshold ->
                     then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
-                            .tags("lhs", "rsync", "threshold", String.valueOf(threshold.getSeconds())).gauges())
+                            .tags("lhs", "rsync", "threshold", String.valueOf(threshold.getSeconds()), "type", "certificate").gauges())
                             .allMatch(gauge -> gauge.value() == 0.0)
                 );
 
@@ -164,8 +165,8 @@ public class PublishedObjectsSummaryTest {
     @Test
     public void itShouldDoRsyncDiff() {
         var now = Instant.now();
-        var obj1 = RepositoryEntry.builder().uri("url1").sha256("hash1").expiration(Optional.of(now)).build();
-        var obj2 = RepositoryEntry.builder().uri("url2").sha256("hash2").expiration(Optional.of(now)).build();
+        var obj1 = RepositoryEntry.builder().uri("url1.cer").sha256("hash1").expiration(Optional.of(now)).build();
+        var obj2 = RepositoryEntry.builder().uri("url2.roa").sha256("hash2").expiration(Optional.of(now)).build();
 
         var beforeThreshold = now.minus(minThreshold);
 
@@ -173,12 +174,12 @@ public class PublishedObjectsSummaryTest {
         rsync.update(beforeThreshold, Stream.of(obj1));
 
         var res = subject.getDiff(now, List.of(core), List.of(rsync));
-        assertThat(res).hasSize(2);
-        var fileEntries1 = res.get(core.getUrl() + "-diff-" + rsync.getUrl() + "-" + minThreshold.getSeconds());
+        assertThat(res).hasSize(2 * RepositoryObjectType.values().length);
+        var fileEntries1 = res.get(core.getUrl() + "-diff-" + rsync.getUrl() + "-" + minThreshold.getSeconds() + "-roa");
         assertThat(fileEntries1).isNotEmpty();
         var fileEntry = fileEntries1.iterator().next();
-        assertThat(fileEntry.getUri()).isEqualTo("url2");
-        var fileEntries2 = res.get(rsync.getUrl() + "-diff-" + core.getUrl() + "-" + minThreshold.getSeconds());
-        assertThat(fileEntries2).isEmpty();
+        assertThat(fileEntry.getUri()).isEqualTo("url2.roa");
+        assertThat(res.get(rsync.getUrl() + "-diff-" + core.getUrl() + "-" + minThreshold.getSeconds() + "-roa")).isEmpty();
+        assertThat(res.get(rsync.getUrl() + "-diff-" + core.getUrl() + "-" + minThreshold.getSeconds() + "-certificate")).isEmpty();
     }
 }
