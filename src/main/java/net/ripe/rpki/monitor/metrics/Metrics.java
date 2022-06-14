@@ -12,7 +12,9 @@ public class Metrics {
     public static final String PUBLISHED_OBJECT_DIFF_DESCRIPTION = "Number of objects in <lhs> that are not in <rhs>";
     public static final String PUBLISHED_OBJECT_DIFF = "rpkimonitoring.published.objects.diff";
     public static final String PUBLISHED_OBJECT_COUNT_DESCRIPTION = "Number of published objects";
+    public static final String PUBLISHED_OBJECT_PER_TYPE_COUNT_DESCRIPTION = "Number of published objects of each type";
     public static final String PUBLISHED_OBJECT_COUNT = "rpkimonitoring.published.objects.count";
+    public static final String PUBLISHED_OBJECT_PER_TYPE_COUNT = "rpkimonitoring.published.per.type.objects.count";
 
     public static void buildObjectDiffGauge(
             MeterRegistry registry,
@@ -43,7 +45,7 @@ public class Metrics {
     }
 
     public static void buildObjectCountGauge(MeterRegistry registry, AtomicLong gauge, String source, String objectType) {
-        Gauge.builder(PUBLISHED_OBJECT_COUNT, gauge::get)
+        Gauge.builder(PUBLISHED_OBJECT_PER_TYPE_COUNT, gauge::get)
                 .description(PUBLISHED_OBJECT_COUNT_DESCRIPTION)
                 .tag("source", source)
                 .tag("type", objectType)

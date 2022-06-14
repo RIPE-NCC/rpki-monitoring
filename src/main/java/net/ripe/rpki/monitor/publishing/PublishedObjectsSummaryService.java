@@ -62,7 +62,7 @@ public class PublishedObjectsSummaryService {
             final String perTypeTag = perTypeTag(repository.getTag(), type);
             final AtomicLong counter = counters.computeIfAbsent(perTypeTag, tag -> {
                 var sizeCount = new AtomicLong(0);
-                Metrics.buildObjectCountGauge(registry, sizeCount, tag, type);
+                Metrics.buildObjectCountGauge(registry, sizeCount, repository.getTag(), type);
                 return sizeCount;
             });
             final long count = repository.view(now)
