@@ -61,10 +61,10 @@ public class PublishedObjectsSummaryTest {
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "rrdp").gauge().value()).isEqualTo(2);
 
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rrdp-certificate").gauge().value()).isEqualTo(1);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rrdp-roa").gauge().value()).isEqualTo(1);
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
+                .tags("source", "rrdp", "type", "certificate").gauge().value()).isEqualTo(1);
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
+                .tags("source", "rrdp", "type", "roa").gauge().value()).isEqualTo(1);
     }
 
     @Test
