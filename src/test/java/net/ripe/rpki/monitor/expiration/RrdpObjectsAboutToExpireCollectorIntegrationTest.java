@@ -2,13 +2,22 @@ package net.ripe.rpki.monitor.expiration;
 
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
-import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.Method;
+import org.apache.hc.core5.http.MethodNotSupportedException;
 import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
 import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.protocol.HttpContext;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest(properties = {
+        "spring.profiles.active=test",
         "rrdp.targets[0].name=main",
         "rrdp.targets[0].notification-url=http://rrdp.ripe.net:" + RrdpObjectsAboutToExpireCollectorIntegrationTest.TEST_SERVER_PORT + "/notification.xml",
         "rrdp.targets[0].connect-to[rrdp.ripe.net]=localhost",
@@ -38,7 +48,6 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     private RepositoriesState repositoriesState;
     @Autowired
     private Collectors collectors;
-
     private ObjectAndDateCollector subject;
 
 

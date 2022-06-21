@@ -170,10 +170,7 @@ rrdp:
       notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
       connect-to:
         rrdp.paas.rpki.prepdev.ripe.net: rrdp.paas.rpki.prepdev.ripe.net.cdn.cloudflare.net
-    - name: i3d
-      notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
-      connect-to:
-         rrdp.paas.rpki.prepdev.ripe.net: rrdp.paas.rpki.prepdev.ripe.net.cdn.i3d.net
+
 rsync:
   repository-url: rsync://rsync.paas.rpki.prepdev.ripe.net
   base-directory: /tmp/rsync/
@@ -202,10 +199,7 @@ rrdp:
       notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
       connect-to:
         rrdp.paas.rpki.ripe.net: rrdp.paas.rpki.ripe.net.cdn.cloudflare.net
-    - name: i3d
-      notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
-      connect-to:
-        rrdp.paas.rpki.ripe.net: rrdp.paas.rpki.ripe.net.cdn.i3d.net
+
 rsync:
   repository-url: rsync://rsync.paas.rpki.ripe.net
   base-directory: /tmp/rsync/
