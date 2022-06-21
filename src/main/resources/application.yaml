@@ -150,3 +150,67 @@ rsync:
 
 core:
   url: https://core.rpki.ripe.net/certification/
+
+---
+spring:
+  profiles: paas-prepdev
+
+rrdp:
+  interval: 5M
+  targets:
+    - name: main
+      notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
+    - name: krill-sync
+      notification-url: https://rrdp.int.paas.rpki.prepdev.ripe.net/notification.xml
+      override-hostname: rrdp.int.paas.rpki.prepdev.ripe.net
+    - name: krill-internal
+      notification-url: https://internal.paas.rpki.prepdev.ripe.net/notification.xml
+      override-hostname: internal.paas.rpki.prepdev.ripe.net
+    - name: cloudflare
+      notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
+      connect-to:
+        rrdp.paas.rpki.prepdev.ripe.net: rrdp.paas.rpki.prepdev.ripe.net.cdn.cloudflare.net
+    - name: i3d
+      notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
+      connect-to:
+         rrdp.paas.rpki.prepdev.ripe.net: rrdp.paas.rpki.prepdev.ripe.net.cdn.i3d.net
+rsync:
+  repository-url: rsync://rsync.paas.rpki.prepdev.ripe.net
+  base-directory: /tmp/rsync/
+  timeout: 30
+  interval: 5M
+  targets:
+    - name: rsync
+      url: rsync://rsync.paas.rpki.prepdev.ripe.net
+
+---
+spring:
+  profiles: paas-production
+
+rrdp:
+  interval: 5M
+  targets:
+    - name: main
+      notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
+    - name: krill-sync
+      notification-url: https://rrdp.int.paas.rpki.ripe.net/notification.xml
+      override-hostname: rrdp.int.paas.rpki.ripe.net
+    - name: krill-internal
+      notification-url: https://internal.paas.rpki.ripe.net/notification.xml
+      override-hostname: internal.paas.rpki.ripe.net
+    - name: cloudflare
+      notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
+      connect-to:
+        rrdp.paas.rpki.ripe.net: rrdp.paas.rpki.ripe.net.cdn.cloudflare.net
+    - name: i3d
+      notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
+      connect-to:
+        rrdp.paas.rpki.ripe.net: rrdp.paas.rpki.ripe.net.cdn.i3d.net
+rsync:
+  repository-url: rsync://rsync.paas.rpki.ripe.net
+  base-directory: /tmp/rsync/
+  timeout: 30
+  interval: 5M
+  targets:
+    - name: rsync
+      url: rsync://rsync.paas.rpki.ripe.net
