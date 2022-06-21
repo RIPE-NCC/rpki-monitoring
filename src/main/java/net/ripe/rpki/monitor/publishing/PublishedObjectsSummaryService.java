@@ -57,20 +57,20 @@ public class PublishedObjectsSummaryService {
             return sizeCount;
         }).set(repository.view(now).size());
 
-        for (var objectType : RepositoryObjectType.values()) {
-            var type = objectType.name().toLowerCase(Locale.ROOT);
-            final String perTypeTag = perTypeTag(repository.getTag(), type);
-            final AtomicLong counter = counters.computeIfAbsent(perTypeTag, tag -> {
-                var sizeCount = new AtomicLong(0);
-                Metrics.buildObjectCountGauge(registry, sizeCount, repository.getTag(), type);
-                return sizeCount;
+        repository
+            .view(now)
+            .stream()
+            .collect(Collectors.groupingBy(o -> o.getObjectType()))
+            .forEach((objectType, value) -> {
+                var type = objectType.name().toLowerCase(Locale.ROOT);
+                final String perTypeTag = perTypeTag(repository.getTag(), type);
+                final AtomicLong counter = counters.computeIfAbsent(perTypeTag, tag -> {
+                    var sizeCount = new AtomicLong(0);
+                    Metrics.buildObjectCountGauge(registry, sizeCount, repository.getTag(), type);
+                    return sizeCount;
+                });
+                counter.set(value.size());
             });
-            final long count = repository.view(now)
-                .stream()
-                .filter(RepositoryTracker.Predicates.ofType(objectType))
-                .count();
-            counter.set(count);
-        }
     }
 
     /**
