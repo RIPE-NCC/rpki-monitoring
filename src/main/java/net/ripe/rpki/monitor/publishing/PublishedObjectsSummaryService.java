@@ -62,7 +62,7 @@ public class PublishedObjectsSummaryService {
             .stream()
             .collect(Collectors.groupingBy(o -> o.getObjectType()))
             .forEach((objectType, value) -> {
-                var type = objectType.name().toLowerCase(Locale.ROOT);
+                var type = asString(objectType);
                 final String perTypeTag = perTypeTag(repository.getTag(), type);
                 final AtomicLong counter = counters.computeIfAbsent(perTypeTag, tag -> {
                     var sizeCount = new AtomicLong(0);
