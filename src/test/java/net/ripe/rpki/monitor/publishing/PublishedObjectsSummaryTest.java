@@ -52,6 +52,10 @@ public class PublishedObjectsSummaryTest {
             RepositoryEntry.builder()
                 .uri("rsync://rpki.ripe.net/repository/DEFAULT/123.roa")
                 .sha256("a9d625c70f1fc166062d1c16f7f200df2d2f19a8377593b5a408daa376de9fe2")
+                .build(),
+            RepositoryEntry.builder()
+                .uri("rsync://rpki.ripe.net/repository/DEFAULT/abc.mft")
+                .sha256("6af51abb58e3d7d01f9e32ef62dbcb8ac13d91ef31194e20aabae796cf40c0d3")
                 .build()
         );
         rrdp.update(now, objects);
@@ -59,12 +63,14 @@ public class PublishedObjectsSummaryTest {
         subject.updateSizes(now, rrdp);
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
-                .tags("source", "rrdp").gauge().value()).isEqualTo(2);
+                .tags("source", "rrdp").gauge().value()).isEqualTo(3);
 
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
                 .tags("source", "rrdp", "type", "certificate").gauge().value()).isEqualTo(1);
         then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
                 .tags("source", "rrdp", "type", "roa").gauge().value()).isEqualTo(1);
+        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
+                .tags("source", "rrdp", "type", "manifest").gauge().value()).isEqualTo(1);
     }
 
     @Test
