@@ -51,7 +51,7 @@ public class Application {
         );
 
         var state = RepositoriesState.init(repos, publishedObjectsSummary.maxThreshold());
-        state.addHook(tracker -> publishedObjectsSummary.updateSize(Instant.now(), tracker));
+        state.addHook(tracker -> publishedObjectsSummary.updateSizes(Instant.now(), tracker));
         state.addHook(tracker -> {
             var now = Instant.now();
             var others = state.otherTrackers(tracker);
