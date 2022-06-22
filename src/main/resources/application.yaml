@@ -155,6 +155,9 @@ core:
 spring:
   profiles: paas-prepdev
 
+core:
+  included: false
+
 rrdp:
   interval: 5M
   targets:
@@ -166,14 +169,11 @@ rrdp:
     - name: krill-internal
       notification-url: https://internal.paas.rpki.prepdev.ripe.net/notification.xml
       override-hostname: internal.paas.rpki.prepdev.ripe.net
-    - name: cloudflare
-      notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
-      connect-to:
-        rrdp.paas.rpki.prepdev.ripe.net: rrdp.paas.rpki.prepdev.ripe.net.cdn.cloudflare.net
 
 rsync:
   repository-url: rsync://rsync.paas.rpki.prepdev.ripe.net
   base-directory: /tmp/rsync/
+  fetch-ta: false
   timeout: 30
   interval: 5M
   targets:
@@ -183,6 +183,9 @@ rsync:
 ---
 spring:
   profiles: paas-production
+
+core:
+  included: false
 
 rrdp:
   interval: 5M
@@ -203,6 +206,7 @@ rrdp:
 rsync:
   repository-url: rsync://rsync.paas.rpki.ripe.net
   base-directory: /tmp/rsync/
+  fetch-ta: false
   timeout: 30
   interval: 5M
   targets:

@@ -8,7 +8,6 @@ import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Triple;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -31,9 +30,6 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    @Value("${spring.profiles.active}")
-    private String activeProfile;
-
     @Bean
     public RepositoriesState repositoriesState(
             final AppConfig config,
@@ -43,7 +39,7 @@ public class Application {
         checkOverlappingRepositoryKeys(config);
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
 
-        if(!activeProfile.startsWith("paas-")) {
+        if(config.isCoreIncluded()) {
             repos.add(Triple.of("core", config.getCoreUrl(), RepositoryTracker.Type.CORE));
         }
         repos.addAll(

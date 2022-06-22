@@ -11,8 +11,8 @@ import org.quartz.TriggerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +24,7 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
 @Component
 @AllArgsConstructor(onConstructor_ = {@Autowired})
-@Profile("!paas-prepdev & !paas-production")
+@ConditionalOnProperty(value = "core.included", havingValue = "true")
 public class CoreRepositorySyncJob extends QuartzJobBean {
     private final RepositoriesState state;
     private final CoreClient coreClient;

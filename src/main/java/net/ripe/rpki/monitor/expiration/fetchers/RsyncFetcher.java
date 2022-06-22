@@ -48,6 +48,8 @@ public class RsyncFetcher implements RepoFetcher {
     /** The URI that objects "appear" to be from. */
     private final String repositoryUrl;
 
+    private final boolean fetchTA;
+
     private final FetcherMetrics.RsyncFetcherMetrics metrics;
 
     @SneakyThrows
@@ -57,7 +59,7 @@ public class RsyncFetcher implements RepoFetcher {
 
         this.rsyncTimeout = rsyncConfig.getTimeout();
         this.repositoryUrl = removeEnd(rsyncConfig.getRepositoryUrl(), "/");
-
+        this.fetchTA = rsyncConfig.isFetchTa();
         this.metrics = fetcherMetrics.rsync(this.rsyncUrl);
 
         URI uri = URI.create(rsyncUrl);
@@ -101,7 +103,9 @@ public class RsyncFetcher implements RepoFetcher {
     @Override
     public Map<String, RpkiObject> fetchObjects() throws FetcherException {
         try {
-            rsyncPathFromRepository(rsyncUrl + "/ta", targetPath.resolve("ta"));
+            if(fetchTA) {
+                rsyncPathFromRepository(rsyncUrl + "/ta", targetPath.resolve("ta"));
+            }
             rsyncPathFromRepository(rsyncUrl + "/repository", targetPath.resolve("repository"));
 
             // Gather all objects in path
