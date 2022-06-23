@@ -23,6 +23,6 @@ public class AppConfig {
     @Value("${core.url}")
     private String coreUrl;
 
-    @Value("${core.included}")
+    @Value("${core.included:true}")
     private boolean coreIncluded;
 }
