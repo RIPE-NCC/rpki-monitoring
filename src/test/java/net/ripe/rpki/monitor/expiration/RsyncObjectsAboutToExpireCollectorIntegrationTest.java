@@ -31,6 +31,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         var uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
         config.setRepositoryUrl(uri.getPath());
         config.setBaseDirectory(tempDirectory);
+        config.setFetchTa(true);
 
         var meterRegistry = new SimpleMeterRegistry();
         var rsyncFetcher = new RsyncFetcher(config, "rsync", config.getRepositoryUrl(), new FetcherMetrics(new SimpleMeterRegistry()));
