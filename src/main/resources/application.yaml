@@ -20,6 +20,7 @@ rsync:
   repository-url: rsync://rpki.prepdev.ripe.net
   timeout: 30
   interval: 5M
+  fetch-ta: true
   base-directory: /tmp/rsync/
   targets:
     - name: rsync
@@ -34,6 +35,7 @@ rpkimonitor:
   internal-api-key-header: "ncc-internal-api-key"
 
 core:
+  included: true
   url: https://core.rpki.prepdev.ripe.net/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
   interval: 1m
