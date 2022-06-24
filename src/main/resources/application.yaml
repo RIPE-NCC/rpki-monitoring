@@ -35,7 +35,7 @@ rpkimonitor:
   internal-api-key-header: "ncc-internal-api-key"
 
 core:
-  included: true
+  enable: true
   url: https://core.rpki.prepdev.ripe.net/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
   interval: 1m
@@ -79,6 +79,7 @@ rsync:
   interval: 5M
 
 core:
+  enable: true
   url: http://localhost:8080/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
@@ -114,6 +115,7 @@ rsync:
       url: rsync://rpki.prepdev.ripe.net
 
 core:
+  enable: true
   url: https://core.rpki.prepdev.ripe.net/certification/
 
 ---
@@ -151,14 +153,12 @@ rsync:
       url: rsync://rpki.ripe.net
 
 core:
+  enable: true
   url: https://core.rpki.ripe.net/certification/
 
 ---
 spring:
   profiles: paas-prepdev
-
-core:
-  included: false
 
 rrdp:
   interval: 5M
@@ -182,12 +182,12 @@ rsync:
     - name: rsync
       url: rsync://rsync.paas.rpki.prepdev.ripe.net
 
+core:
+  enable: false
+
 ---
 spring:
   profiles: paas-production
-
-core:
-  included: false
 
 rrdp:
   interval: 5M
@@ -214,3 +214,6 @@ rsync:
   targets:
     - name: rsync
       url: rsync://rsync.paas.rpki.ripe.net
+
+core:
+  enable: false

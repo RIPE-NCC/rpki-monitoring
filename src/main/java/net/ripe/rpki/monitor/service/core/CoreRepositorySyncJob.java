@@ -1,22 +1,17 @@
 package net.ripe.rpki.monitor.service.core;
 
 import lombok.AllArgsConstructor;
+import net.ripe.rpki.monitor.CoreConfig;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
-import org.quartz.JobBuilder;
-import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
-import org.quartz.Trigger;
-import org.quartz.TriggerBuilder;
+import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
@@ -49,15 +44,14 @@ public class CoreRepositorySyncJob extends QuartzJobBean {
     }
 
     @Bean("CoreRepositorySyncTrigger")
-    public Trigger trigger(@Value("${core.interval}") Duration interval,
-                           @Value("${core.initial-delay}") Duration initialDelay,
+    public Trigger trigger(CoreConfig coreConfig,
                            @Qualifier("CoreRepositorySyncJob") JobDetail job) {
-        var start = Instant.now().plus(initialDelay);
+        var start = Instant.now().plus(coreConfig.getInterval());
 
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity(job.getKey().getName() + "_Trigger")
                 .withDescription(job.getDescription())
-                .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int)interval.toSeconds()))
+                .withSchedule(simpleSchedule().repeatForever().withIntervalInSeconds((int) coreConfig.getInterval ().toSeconds()))
                 .startAt(Date.from(start))
                 .build();
     }

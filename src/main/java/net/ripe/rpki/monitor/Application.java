@@ -39,8 +39,8 @@ public class Application {
         checkOverlappingRepositoryKeys(config);
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
 
-        if(config.isCoreIncluded()) {
-            repos.add(Triple.of("core", config.getCoreUrl(), RepositoryTracker.Type.CORE));
+        if (config.getCoreConfig().isEnable()) {
+            repos.add(Triple.of("core", config.getCoreConfig().getUrl(), RepositoryTracker.Type.CORE));
         }
         repos.addAll(
                 config.getRrdpConfig().getTargets().stream()

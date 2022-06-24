@@ -20,9 +20,6 @@ public class AppConfig {
     @Autowired
     private RsyncConfig rsyncConfig;
 
-    @Value("${core.url}")
-    private String coreUrl;
-
-    @Value("${core.included:true}")
-    private boolean coreIncluded;
+    @Autowired
+    private CoreConfig coreConfig;
 }
