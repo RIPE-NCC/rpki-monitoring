@@ -18,6 +18,9 @@ rrdp:
 
 rsync:
   repository-url: rsync://rpki.prepdev.ripe.net
+  directories:
+    - ta
+    - repository
   timeout: 30
   interval: 5M
   fetch-ta: true
@@ -75,6 +78,9 @@ rrdp:
 rsync:
   # *without* the trailing slash
   main-url: rsync://localhost:10873
+  directories:
+    - ta
+    - repository
   timeout: 30
   interval: 5M
 
@@ -107,6 +113,9 @@ rrdp:
 
 rsync:
   repository-url: rsync://rpki.prepdev.ripe.net
+  directories:
+    - ta
+    - repository
   timeout: 30
   interval: 5M
   base-directory: /tmp/rsync/
@@ -145,6 +154,9 @@ rrdp:
 
 rsync:
   repository-url: rsync://rpki.ripe.net
+  directories:
+    - ta
+    - repository
   base-directory: /tmp/rsync/
   timeout: 30
   interval: 5M
@@ -174,6 +186,8 @@ rrdp:
 
 rsync:
   repository-url: rsync://rsync.paas.rpki.prepdev.ripe.net
+  directories:
+    - repository
   base-directory: /tmp/rsync/
   fetch-ta: false
   timeout: 30
@@ -207,6 +221,8 @@ rrdp:
 
 rsync:
   repository-url: rsync://rsync.paas.rpki.ripe.net
+  directories:
+    - repository
   base-directory: /tmp/rsync/
   fetch-ta: false
   timeout: 30

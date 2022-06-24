@@ -22,7 +22,7 @@ public class RsyncConfig {
      */
     private Path baseDirectory;
     private String repositoryUrl;
-    private boolean fetchTa;
+    private List<String> directories = List.of();
     private List<RsyncTarget> targets = List.of();
 
     public record RsyncTarget(String name, String url) {}
