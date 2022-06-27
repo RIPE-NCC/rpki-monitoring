@@ -18,8 +18,12 @@ rrdp:
 
 rsync:
   repository-url: rsync://rpki.prepdev.ripe.net
+  directories:
+    - ta
+    - repository
   timeout: 30
   interval: 5M
+  fetch-ta: true
   base-directory: /tmp/rsync/
   targets:
     - name: rsync
@@ -34,6 +38,7 @@ rpkimonitor:
   internal-api-key-header: "ncc-internal-api-key"
 
 core:
+  enable: true
   url: https://core.rpki.prepdev.ripe.net/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
   interval: 1m
@@ -73,10 +78,14 @@ rrdp:
 rsync:
   # *without* the trailing slash
   main-url: rsync://localhost:10873
+  directories:
+    - ta
+    - repository
   timeout: 30
   interval: 5M
 
 core:
+  enable: true
   url: http://localhost:8080/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
@@ -104,6 +113,9 @@ rrdp:
 
 rsync:
   repository-url: rsync://rpki.prepdev.ripe.net
+  directories:
+    - ta
+    - repository
   timeout: 30
   interval: 5M
   base-directory: /tmp/rsync/
@@ -112,6 +124,7 @@ rsync:
       url: rsync://rpki.prepdev.ripe.net
 
 core:
+  enable: true
   url: https://core.rpki.prepdev.ripe.net/certification/
 
 ---
@@ -141,6 +154,9 @@ rrdp:
 
 rsync:
   repository-url: rsync://rpki.ripe.net
+  directories:
+    - ta
+    - repository
   base-directory: /tmp/rsync/
   timeout: 30
   interval: 5M
@@ -149,4 +165,71 @@ rsync:
       url: rsync://rpki.ripe.net
 
 core:
+  enable: true
   url: https://core.rpki.ripe.net/certification/
+
+---
+spring:
+  profiles: paas-prepdev
+
+rrdp:
+  interval: 5M
+  targets:
+    - name: main
+      notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
+    - name: krill-sync
+      notification-url: https://rrdp.int.paas.rpki.prepdev.ripe.net/notification.xml
+      override-hostname: rrdp.int.paas.rpki.prepdev.ripe.net
+    - name: krill-internal
+      notification-url: https://internal.paas.rpki.prepdev.ripe.net/notification.xml
+      override-hostname: internal.paas.rpki.prepdev.ripe.net
+
+rsync:
+  repository-url: rsync://rsync.paas.rpki.prepdev.ripe.net
+  directories:
+    - repository
+  base-directory: /tmp/rsync/
+  fetch-ta: false
+  timeout: 30
+  interval: 5M
+  targets:
+    - name: rsync
+      url: rsync://rsync.paas.rpki.prepdev.ripe.net
+
+core:
+  enable: false
+
+---
+spring:
+  profiles: paas-production
+
+rrdp:
+  interval: 5M
+  targets:
+    - name: main
+      notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
+    - name: krill-sync
+      notification-url: https://rrdp.int.paas.rpki.ripe.net/notification.xml
+      override-hostname: rrdp.int.paas.rpki.ripe.net
+    - name: krill-internal
+      notification-url: https://internal.paas.rpki.ripe.net/notification.xml
+      override-hostname: internal.paas.rpki.ripe.net
+    - name: cloudflare
+      notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
+      connect-to:
+        rrdp.paas.rpki.ripe.net: rrdp.paas.rpki.ripe.net.cdn.cloudflare.net
+
+rsync:
+  repository-url: rsync://rsync.paas.rpki.ripe.net
+  directories:
+    - repository
+  base-directory: /tmp/rsync/
+  fetch-ta: false
+  timeout: 30
+  interval: 5M
+  targets:
+    - name: rsync
+      url: rsync://rsync.paas.rpki.ripe.net
+
+core:
+  enable: false

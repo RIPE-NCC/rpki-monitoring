@@ -30,6 +30,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
     public void beforeEach(@TempDir Path tempDirectory) throws Exception {
         var uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
         config.setRepositoryUrl(uri.getPath());
+        config.setDirectories(List.of("ta", "repository"));
         config.setBaseDirectory(tempDirectory);
 
         var meterRegistry = new SimpleMeterRegistry();

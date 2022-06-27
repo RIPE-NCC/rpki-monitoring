@@ -2,11 +2,11 @@ package net.ripe.rpki.monitor.service.core;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.ripe.rpki.monitor.CoreConfig;
 import net.ripe.rpki.monitor.MonitorProperties;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -24,16 +24,15 @@ public class CoreClient {
     private final CollectorUpdateMetrics collectorUpdateMetrics;
 
     @Autowired
-    public CoreClient(@Value("${core.url}") String url,
-                      @Value("${core.api-key}") String apikey,
+    public CoreClient(CoreConfig coreConfig,
                       RestTemplateBuilder builder,
                       MonitorProperties properties,
                       CollectorUpdateMetrics collectorUpdateMetrics) {
         this.collectorUpdateMetrics = collectorUpdateMetrics;
-        this.url = url;
+        this.url = coreConfig.getUrl();
         this.restTemplate = builder
                 .defaultHeader("user-agent", String.format("rpki-monitor %s", properties.getVersion()))
-                .defaultHeader(properties.getInternalApiKeyHeader(), apikey)
+                .defaultHeader(properties.getInternalApiKeyHeader(), coreConfig.getApikey())
                 .rootUri(url)
                 .build();
 

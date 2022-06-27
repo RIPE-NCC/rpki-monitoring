@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,6 +50,7 @@ public class RsyncFetcher implements RepoFetcher {
     private final String repositoryUrl;
 
     private final FetcherMetrics.RsyncFetcherMetrics metrics;
+    private final List<String> directories;
 
     @SneakyThrows
     public RsyncFetcher(RsyncConfig rsyncConfig, String name, String rsyncUrl, FetcherMetrics fetcherMetrics) {
@@ -57,7 +59,7 @@ public class RsyncFetcher implements RepoFetcher {
 
         this.rsyncTimeout = rsyncConfig.getTimeout();
         this.repositoryUrl = removeEnd(rsyncConfig.getRepositoryUrl(), "/");
-
+        this.directories = rsyncConfig.getDirectories();
         this.metrics = fetcherMetrics.rsync(this.rsyncUrl);
 
         URI uri = URI.create(rsyncUrl);
@@ -101,8 +103,9 @@ public class RsyncFetcher implements RepoFetcher {
     @Override
     public Map<String, RpkiObject> fetchObjects() throws FetcherException {
         try {
-            rsyncPathFromRepository(rsyncUrl + "/ta", targetPath.resolve("ta"));
-            rsyncPathFromRepository(rsyncUrl + "/repository", targetPath.resolve("repository"));
+            for (var directory : directories) {
+                rsyncPathFromRepository(rsyncUrl + "/" + directory, targetPath.resolve(directory));
+            }
 
             // Gather all objects in path
             try (Stream<Path> paths = Files.walk(targetPath)) {

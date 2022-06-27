@@ -20,6 +20,6 @@ public class AppConfig {
     @Autowired
     private RsyncConfig rsyncConfig;
 
-    @Value("${core.url}")
-    private String coreUrl;
+    @Autowired
+    private CoreConfig coreConfig;
 }
