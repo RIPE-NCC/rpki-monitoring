@@ -19,7 +19,7 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
 @Component
 @AllArgsConstructor(onConstructor_ = {@Autowired})
-@ConditionalOnProperty(value = "core.included", havingValue = "true")
+@ConditionalOnProperty(value = "core.enable", havingValue = "true")
 public class CoreRepositorySyncJob extends QuartzJobBean {
     private final RepositoriesState state;
     private final CoreClient coreClient;
