@@ -13,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Setter
 @Service
@@ -40,7 +41,9 @@ public class CoreClient {
 
     public List<PublishedObjectEntry> publishedObjects() {
         try {
-            final var res = restTemplate.getForObject("/api/published-objects", PublishedObjectEntry[].class);
+            var res = Optional.ofNullable(
+                restTemplate.getForObject("/api/published-objects", PublishedObjectEntry[].class)
+            ).orElse(new PublishedObjectEntry[0]);
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), name, "published-objects").objectCount(res.length, 0, 0);
             return Arrays.asList(res);
         } catch (Exception e) {
