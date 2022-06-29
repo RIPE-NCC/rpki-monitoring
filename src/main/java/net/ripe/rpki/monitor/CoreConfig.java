@@ -16,7 +16,7 @@ import java.time.temporal.ChronoUnit;
 public class CoreConfig {
     private boolean enable = false;
     private @NonNull String url;
-    private @NonNull String apikey;
+    private @NonNull String apiKey;
     private Duration interval = Duration.of(1, ChronoUnit.MINUTES);
     private Duration initialDelay = Duration.of(10, ChronoUnit.SECONDS);
 }

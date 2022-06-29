@@ -46,7 +46,7 @@ public class CoreRepositorySyncJob extends QuartzJobBean {
     @Bean("CoreRepositorySyncTrigger")
     public Trigger trigger(CoreConfig coreConfig,
                            @Qualifier("CoreRepositorySyncJob") JobDetail job) {
-        var start = Instant.now().plus(coreConfig.getInterval());
+        var start = Instant.now().plus(coreConfig.getInitialDelay());
 
         return TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity(job.getKey().getName() + "_Trigger")
