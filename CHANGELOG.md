@@ -1,5 +1,12 @@
 ## HEAD
 
+## v0.8.0
+
+  * rsync: move hard-coded directories to sync to configuration
+  * core: allow to enable/disable in configuration
+  * add PAAS environment configurations
+  * introduce metrics per object type
+
 ## v0.7.4
 
   * Performance improvements
