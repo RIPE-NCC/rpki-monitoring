@@ -33,7 +33,7 @@ public class CoreClient {
         this.url = coreConfig.getUrl();
         this.restTemplate = builder
                 .defaultHeader("user-agent", String.format("rpki-monitor %s", properties.getVersion()))
-                .defaultHeader(properties.getInternalApiKeyHeader(), coreConfig.getApikey())
+                .defaultHeader(properties.getInternalApiKeyHeader(), coreConfig.getApiKey())
                 .rootUri(url)
                 .build();
 
