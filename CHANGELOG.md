@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.8.1
+
+  * Fix enabling core repository synchronization
+
 ## v0.8.0
 
   * rsync: move hard-coded directories to sync to configuration
