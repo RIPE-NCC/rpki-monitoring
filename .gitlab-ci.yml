@@ -16,11 +16,14 @@ include:
   # Run pipeline on main branch, merge requests, tags.
   # this is equivalent to `workflow.rules:` that set this up.
   - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
-  # Use gitlab security scanning
+  # Use gitlab security scanning iff it is available.
   - template: Dependency-Scanning.gitlab-ci.yml
-  # Whitesource
+  # Mend
   - project: 'swe/gitlab-ci'
-    file: '/templates/whitesource-scanning.yml'
+    file: '/templates/mend-scanning.yml'
+  - project: 'swe/gitlab-ci'
+    file: '/templates/mend-generate-badge.yml'
+
 
 # Disable the Gradle daemon for Continuous Integration servers as correctness
 # is usually a priority over speed in CI environments. Using a fresh
