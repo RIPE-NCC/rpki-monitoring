@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.commons.lang3.StringUtils.appendIfMissing;
 import static org.apache.commons.lang3.StringUtils.removeEnd;
 
 @Slf4j
@@ -104,7 +105,7 @@ public class RsyncFetcher implements RepoFetcher {
     public Map<String, RpkiObject> fetchObjects() throws FetcherException {
         try {
             for (var directory : directories) {
-                rsyncPathFromRepository(rsyncUrl + "/" + directory, targetPath.resolve(directory));
+                rsyncPathFromRepository(rsyncUrl + "/" + appendIfMissing(directory, "/"), targetPath.resolve(directory));
             }
 
             // Gather all objects in path
