@@ -102,10 +102,6 @@ rrdp:
     # - name: publish
     #   notification-url: https://rrdp.int.prepdev.ripe.net/notification.xml
     #   override-hostname: rrdp.int.prepdev.ripe.net
-    - name: i3d
-      notification-url: https://rrdp.prepdev.ripe.net/notification.xml
-      connect-to:
-        rrdp.prepdev.ripe.net: ripe-test.cdn.i3d.net
     - name: cloudflare
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
       connect-to:
@@ -142,10 +138,6 @@ rrdp:
     - name: publish
       notification-url: https://rrdp.int.ripe.net/notification.xml
       override-hostname: rrdp.int.ripe.net
-    - name: i3d
-      notification-url: https://rrdp.ripe.net/notification.xml
-      connect-to:
-        rrdp.prepdev.ripe.net: ripe.cdn.i3d.net
     - name: cloudflare
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
