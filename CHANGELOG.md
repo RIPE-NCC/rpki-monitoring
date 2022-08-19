@@ -1,5 +1,16 @@
 ## HEAD
 
+## v0.8.3
+
+  * Fix rsync URLs so that they work with rsync 3.2.4
+  * Add Akamai test repository location
+  * Remove I3d repository locations
+  * Dependency updates
+
+## v0.8.2
+
+  * Fix core api-key config
+
 ## v0.8.1
 
   * Fix enabling core repository synchronization
