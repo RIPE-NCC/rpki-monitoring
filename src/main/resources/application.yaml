@@ -108,7 +108,8 @@ rrdp:
         rrdp.prepdev.ripe.net: rrdp.prepdev.ripe.net.cdn.cloudflare.net
     - name: akamai
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
-      override-hostname: rrdp.akamai.prepdev.ripe.net
+      connect-to:
+        rrdp.prepdev.ripe.net: rrdp.prepdev.ripe.net.akamaized.net
 
 rsync:
   repository-url: rsync://rpki.prepdev.ripe.net
