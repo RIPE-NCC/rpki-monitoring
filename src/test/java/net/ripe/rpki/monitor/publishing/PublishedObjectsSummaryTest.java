@@ -3,7 +3,7 @@ package net.ripe.rpki.monitor.publishing;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
-import net.ripe.rpki.monitor.metrics.Metrics;
+import net.ripe.rpki.monitor.metrics.PublishedObjectMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +35,7 @@ public class PublishedObjectsSummaryTest {
     @BeforeEach
     public void init() {
         meterRegistry = new SimpleMeterRegistry();
-        subject = new PublishedObjectsSummaryService(meterRegistry);
+        subject = new PublishedObjectsSummaryService(new PublishedObjectMetrics(meterRegistry));
 
         core = RepositoryTracker.empty("core", "https://ba-apps.ripe.net/certification/", RepositoryTracker.Type.CORE, Duration.ofSeconds(3600));
         rrdp = RepositoryTracker.empty("rrdp", "https://rrdp.ripe.net/", RepositoryTracker.Type.RRDP, Duration.ofSeconds(3600));
@@ -62,14 +62,14 @@ public class PublishedObjectsSummaryTest {
 
         subject.updateSizes(now, rrdp);
 
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_COUNT)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_COUNT)
                 .tags("source", "rrdp").gauge().value()).isEqualTo(3);
 
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
                 .tags("source", "rrdp", "type", "certificate").gauge().value()).isEqualTo(1);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
                 .tags("source", "rrdp", "type", "roa").gauge().value()).isEqualTo(1);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_PER_TYPE_COUNT)
                 .tags("source", "rrdp", "type", "manifest").gauge().value()).isEqualTo(1);
     }
 
@@ -81,7 +81,7 @@ public class PublishedObjectsSummaryTest {
         );
 
         then(res.values().stream()).allMatch(Collection::isEmpty);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF).gauges())
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF).gauges())
             .allMatch(gauge -> gauge.value() == 0.0);
     }
 
@@ -99,20 +99,20 @@ public class PublishedObjectsSummaryTest {
                 List.of(core, rrdp, rsync)
         );
 
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core", "threshold", String.valueOf(minThreshold.getSeconds()), "type", "unknown").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
         PublishedObjectsSummaryService.THRESHOLDS.stream()
                 .filter(x -> x.compareTo(minThreshold) > 0)
                 .forEach(threshold ->
-                    then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+                    then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                             .tags("lhs", "core", "threshold", String.valueOf(threshold.getSeconds()), "type", "certificate").gauges())
                             .allMatch(gauge -> gauge.value() == 0.0)
                 );
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rsync").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rrdp").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
     }
@@ -132,13 +132,13 @@ public class PublishedObjectsSummaryTest {
                 List.of(core, rrdp, rsync)
         );
 
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rsync").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rrdp", "type", "certificate").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
     }
@@ -158,21 +158,21 @@ public class PublishedObjectsSummaryTest {
                 List.of(core, rrdp, rsync)
         );
 
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "core").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rsync", "threshold", String.valueOf(minThreshold.getSeconds()), "type", "certificate").gauges())
                 .allMatch(gauge -> gauge.value() == 1.0);
         PublishedObjectsSummaryService.THRESHOLDS.stream()
                 .filter(x -> x.compareTo(minThreshold) > 0)
                 .forEach(threshold ->
-                    then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+                    then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                             .tags("lhs", "rsync", "threshold", String.valueOf(threshold.getSeconds()), "type", "certificate").gauges())
                             .allMatch(gauge -> gauge.value() == 0.0)
                 );
 
-        then(meterRegistry.get(Metrics.PUBLISHED_OBJECT_DIFF)
+        then(meterRegistry.get(PublishedObjectMetrics.PUBLISHED_OBJECT_DIFF)
                 .tags("lhs", "rrdp").gauges())
                 .allMatch(gauge -> gauge.value() == 0.0);
     }

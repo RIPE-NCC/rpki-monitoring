@@ -2,11 +2,11 @@ package net.ripe.rpki.monitor.publishing;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.Sets;
-import io.micrometer.core.instrument.MeterRegistry;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
-import net.ripe.rpki.monitor.metrics.Metrics;
+import net.ripe.rpki.monitor.metrics.PublishedObjectMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +15,13 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 
-@Setter
+@AllArgsConstructor
 @Service
 @Slf4j
 public class PublishedObjectsSummaryService {
@@ -35,50 +34,26 @@ public class PublishedObjectsSummaryService {
             Duration.of(3411, SECONDS)
     );
 
-    private final MeterRegistry registry;
-
-    private final Map<RepositoryKey, AtomicLong> count = new ConcurrentHashMap<>();
-    private final Map<RepositoryObjectTypeKey, AtomicLong> countByType = new ConcurrentHashMap<>();
-    private final Map<RepositoryDiffKey, AtomicLong> countDiff = new ConcurrentHashMap<>();
-
-    public record RepositoryKey(String tag, String url){
-        public RepositoryObjectTypeKey forType(RepositoryObjectType type) {
-            return new RepositoryObjectTypeKey(this, type);
-        }
-    }
-    public record RepositoryObjectTypeKey(RepositoryKey key, RepositoryObjectType type) {}
+    @Autowired
+    private final PublishedObjectMetrics publishedObjectMetrics;
+    public record RepositoryKey(String tag, String url){}
+    public record RepositoryObjectTypeKey(@Delegate RepositoryKey key, RepositoryObjectType type) {}
     public record RepositoryDiffKey (RepositoryKey lhs, RepositoryKey rhs, RepositoryObjectType type, Duration threshold) {}
     public record RepositoryDiff (RepositoryDiffKey key, Set<RepositoryEntry> entries) {}
-
-    @Autowired
-    public PublishedObjectsSummaryService(MeterRegistry registry) {
-        this.registry = registry;
-    }
 
     /**
      * Update the repository size counters per object type.
      */
     public void updateSizes(Instant now, RepositoryTracker repository) {
         var key = repository.key();
-        count.computeIfAbsent(key, k -> {
-            var sizeCount = new AtomicLong(0);
-            Metrics.buildObjectCountGauge(registry, sizeCount, k);
-            return sizeCount;
-        }).set(repository.view(now).size());
+        publishedObjectMetrics.trackObjectCount(key, repository.view(now));
 
         repository
             .view(now)
             .stream()
             .collect(Collectors.groupingBy(o -> o.getObjectType()))
             .forEach((objectType, value) -> {
-                var typeKey = new RepositoryObjectTypeKey(key, objectType);
-
-                final AtomicLong counter = countByType.computeIfAbsent(typeKey, tag -> {
-                    var sizeCount = new AtomicLong(0);
-                    Metrics.buildObjectCountGauge(registry, sizeCount, typeKey);
-                    return sizeCount;
-                });
-                counter.set(value.size());
+                publishedObjectMetrics.trackObjectTypeCount(key, objectType, value.size());
             });
     }
 
@@ -92,9 +67,9 @@ public class PublishedObjectsSummaryService {
 
         var diffs = new HashMap<RepositoryDiffKey, Set<RepositoryEntry>>();
         Sets.cartesianProduct(Set.copyOf(lhss), Set.copyOf(rhss)).stream().forEach((repoPair) -> {
-            Verify.verify(repoPair.size() == 2); // invariant
+            Verify.verify(repoPair.size() == 2, "invariant violated: not a tuple"); // invariant
             var lhs = repoPair.get(0); var rhs = repoPair.get(1);
-            var lhsKey = repoPair.get(0).key(); var rhsKey = repoPair.get(1).key();
+            var lhsKey = lhs.key(); var rhsKey = rhs.key();
 
             for (var objectType: RepositoryObjectType.values()) {
                 // lhs -> rhs, rhs -> lhs
@@ -111,11 +86,10 @@ public class PublishedObjectsSummaryService {
     public Map<RepositoryDiffKey, Set<RepositoryEntry>> updateAndGetPublishedObjectsDiff(Instant now, List<RepositoryTracker> repositories) {
         // n-choose-2 - for each unordered pair, calculate the difference in two directions
         return Sets.combinations(Set.copyOf(repositories), 2).stream().flatMap(repoSet -> {
-            // invariant
-            Verify.verify(repoSet.size() == 2);
-            var i = repoSet.iterator();
+            Verify.verify(repoSet.size() == 2, "invariant violated: not a tuple");
+            var it = repoSet.iterator();
 
-            return updateAndGetPublishedObjectsDiff(now, i.next(), i.next());
+            return updateAndGetPublishedObjectsDiff(now, it.next(), it.next());
         }).collect(Collectors.toMap(RepositoryDiff::key, RepositoryDiff::entries));
     }
 
@@ -160,17 +134,8 @@ public class PublishedObjectsSummaryService {
         var diffKey = new RepositoryDiffKey(lhsTracker.key(), rhsTracker.key(), objectType, threshold);
 
         var diff = lhsTracker.difference(rhsTracker, now, threshold, objectType);
-        var diffCounter = getOrCreateDiffCounter(diffKey);
-        diffCounter.set(diff.size());
+        publishedObjectMetrics.trackDiffSize(diffKey, diff.size());
 
         return new RepositoryDiff(diffKey, diff);
-    }
-
-    private AtomicLong getOrCreateDiffCounter(RepositoryDiffKey diffKey) {
-        return countDiff.computeIfAbsent(diffKey, newTag -> {
-            final var diffCount = new AtomicLong(0);
-            Metrics.buildObjectDiffGauge(registry, diffCount, diffKey);
-            return diffCount;
-        });
     }
 }
