@@ -58,7 +58,7 @@ public class Application {
         state.addHook(tracker -> {
             var now = Instant.now();
             var others = state.otherTrackers(tracker);
-            publishedObjectsSummary.updateAndGetPublishedObjectsDiff(now, tracker, others);
+            others.forEach(other -> publishedObjectsSummary.updateAndGetPublishedObjectsDiff(now, tracker, other));
         });
         state.addHook(tracker -> {
             if (tracker.getType() == RepositoryTracker.Type.RRDP || tracker.getType() == RepositoryTracker.Type.RSYNC) {

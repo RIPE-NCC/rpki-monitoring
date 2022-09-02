@@ -190,11 +190,12 @@ public class PublishedObjectsSummaryTest {
 
         var res = subject.getDiff(now, List.of(core), List.of(rsync));
         assertThat(res).hasSize(2 * RepositoryObjectType.values().length);
-        var fileEntries1 = res.get(core.getUrl() + "-diff-" + rsync.getUrl() + "-" + minThreshold.getSeconds() + "-roa");
+        var fileEntries1 = res.get(new PublishedObjectsSummaryService.RepositoryDiffKey(core.key(), rsync.key(), RepositoryObjectType.Roa, minThreshold));
         assertThat(fileEntries1).isNotEmpty();
         var fileEntry = fileEntries1.iterator().next();
         assertThat(fileEntry.getUri()).isEqualTo("url2.roa");
-        assertThat(res.get(rsync.getUrl() + "-diff-" + core.getUrl() + "-" + minThreshold.getSeconds() + "-roa")).isEmpty();
-        assertThat(res.get(rsync.getUrl() + "-diff-" + core.getUrl() + "-" + minThreshold.getSeconds() + "-certificate")).isEmpty();
+
+        assertThat(res.get(new PublishedObjectsSummaryService.RepositoryDiffKey(rsync.key(), core.key(), RepositoryObjectType.Roa, minThreshold))).isEmpty();
+        assertThat(res.get(new PublishedObjectsSummaryService.RepositoryDiffKey(rsync.key(), core.key(), RepositoryObjectType.Certificate, minThreshold))).isEmpty();
     }
 }
