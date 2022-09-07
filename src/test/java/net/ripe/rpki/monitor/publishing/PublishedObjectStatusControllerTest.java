@@ -37,9 +37,11 @@ class PublishedObjectStatusControllerTest {
 
     private final PublishedObjectStatusController subject = new PublishedObjectStatusController(publishedObjectsSummary, repositories);
 
+    // Tests mostly validate that value is directly returned.
+    @SuppressWarnings("unchecked")
     @Test
     public void test_get_published_object_diff() {
-        var diff = anyDiff();
+        var diff = (Map<PublishedObjectsSummaryService.RepositoryDiffKey, Set<RepositoryEntry>>)mock(Map.class);
         when(publishedObjectsSummary.updateAndGetPublishedObjectsDiff(
                 any(Instant.class),
                 eq(repositories.allTrackers())
@@ -78,9 +80,10 @@ class PublishedObjectStatusControllerTest {
         assertThat(objects.get().size()).isOne();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_get_rsync_diff() {
-        var diff = anyDiff();
+        var diff = (Map<PublishedObjectsSummaryService.RepositoryDiffKey, Set<RepositoryEntry>>)mock(Map.class);
         when(publishedObjectsSummary.getDiff(
                 any(Instant.class),
                 eq(repositories.trackersOfType(RepositoryTracker.Type.CORE)),
@@ -91,9 +94,10 @@ class PublishedObjectStatusControllerTest {
         assertThat(result).isEqualTo(diff);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_get_rrdp_diff() {
-        var diff = anyDiff();
+        var diff = (Map< PublishedObjectsSummaryService.RepositoryDiffKey, Set<RepositoryEntry>>)mock(Map.class);
         when(publishedObjectsSummary.getDiff(
                 any(Instant.class),
                 eq(repositories.trackersOfType(RepositoryTracker.Type.CORE)),
@@ -102,13 +106,5 @@ class PublishedObjectStatusControllerTest {
 
         var result = subject.rrdpDiff();
         assertThat(result).isEqualTo(diff);
-    }
-
-    private Map<String, Set<RepositoryEntry>> anyDiff() {
-        var entry = RepositoryEntry.builder()
-            .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
-            .sha256("55c71d1c5d23d18ff782be46c93ed6f76a6c391b60298b6c67e9adae7b3f0d37")
-            .build();
-        return Map.of("key", Set.of(entry));
     }
 }

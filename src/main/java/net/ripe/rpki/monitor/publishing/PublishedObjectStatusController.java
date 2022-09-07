@@ -27,7 +27,7 @@ public class PublishedObjectStatusController {
     private final RepositoriesState repositories;
 
     @GetMapping("/published-object-diffs")
-    public Map<String, Set<RepositoryEntry>> publishedObjectDiffs() {
+    public Map<PublishedObjectsSummaryService.RepositoryDiffKey, Set<RepositoryEntry>> publishedObjectDiffs() {
         var now = Instant.now();
         return publishedObjectsSummaryService.updateAndGetPublishedObjectsDiff(now, repositories.allTrackers());
     }
@@ -82,7 +82,7 @@ public class PublishedObjectStatusController {
     }
 
     @GetMapping("/rsync-diffs")
-    public Map<String, Set<RepositoryEntry>> rsyncDiff() {
+    public Map<PublishedObjectsSummaryService.RepositoryDiffKey, Set<RepositoryEntry>> rsyncDiff() {
         return publishedObjectsSummaryService.getDiff(
                 Instant.now(),
                 repositories.trackersOfType(RepositoryTracker.Type.CORE),
@@ -91,7 +91,7 @@ public class PublishedObjectStatusController {
     }
 
     @GetMapping("/rrdp-diffs")
-    public Map<String, Set<RepositoryEntry>> rrdpDiff() {
+    public Map<PublishedObjectsSummaryService.RepositoryDiffKey, Set<RepositoryEntry>> rrdpDiff() {
         return publishedObjectsSummaryService.getDiff(
                 Instant.now(),
                 repositories.trackersOfType(RepositoryTracker.Type.CORE),

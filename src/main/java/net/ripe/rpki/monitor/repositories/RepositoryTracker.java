@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.repositories;
 
 import lombok.Getter;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
+import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -25,6 +26,7 @@ import static java.util.stream.Collectors.*;
  * An instance of this class can be safely shared across threads.
  */
 public class RepositoryTracker {
+    /** repository tag: rsync, core, main, cdn1, cdn2, ... */
     @Getter
     private final String tag;
     @Getter
@@ -65,6 +67,10 @@ public class RepositoryTracker {
         public RepositoryObjectType getObjectType() {
             return RepositoryObjectType.parse(entry.getUri());
         }
+    }
+
+    public PublishedObjectsSummaryService.RepositoryKey key() {
+        return new PublishedObjectsSummaryService.RepositoryKey(tag, url);
     }
 
     /**
