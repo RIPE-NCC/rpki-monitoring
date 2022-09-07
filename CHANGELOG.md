@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.8.4
+  * Add url label on object count metrics
+  * Use records instead of strings as map key for metrics
+
 ## v0.8.3
 
   * Fix rsync URLs so that they work with rsync 3.2.4
