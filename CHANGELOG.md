@@ -1,5 +1,8 @@
 ## HEAD
 
+## v0.8.6
+  * Fix Akamai production RRDP URL
+
 ## v0.8.5
   * spring-boot: 2.7.3 -> 2.7.4
   * Monitor Akamai production repository
