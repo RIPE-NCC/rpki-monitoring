@@ -98,10 +98,9 @@ rrdp:
   targets:
     - name: main
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
-    # FIXME: Enable when uncore-1.rpki.prepdev has network access
-    # - name: publish
-    #   notification-url: https://rrdp.int.prepdev.ripe.net/notification.xml
-    #   override-hostname: rrdp.int.prepdev.ripe.net
+    - name: publish
+      notification-url: https://rrdp.int.prepdev.ripe.net/notification.xml
+      override-hostname: rrdp.int.prepdev.ripe.net
     - name: cloudflare
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
       connect-to:
