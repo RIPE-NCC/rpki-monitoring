@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.8.5
+  * spring-boot: 2.7.3 -> 2.7.4
+  * Monitor Akamai production repository
+  * Enable monitoring of rrdp.int.prepdev repository
+
 ## v0.8.4
   * Add url label on object count metrics
   * Use records instead of strings as map key for metrics
