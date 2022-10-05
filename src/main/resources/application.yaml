@@ -143,6 +143,10 @@ rrdp:
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
         rrdp.ripe.net: rrdp.ripe.net.cdn.cloudflare.net
+    - name: akamai
+      notification-url: https://rrdp.prepdev.ripe.net/notification.xml
+      connect-to:
+        rrdp.ripe.net: rrdp.ripe.net.akamaized.net
     - name: beanstalk
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
