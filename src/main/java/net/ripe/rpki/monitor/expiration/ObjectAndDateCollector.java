@@ -4,6 +4,7 @@ import com.google.common.hash.BloomFilter;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsParser;
 import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
@@ -110,51 +111,66 @@ public class ObjectAndDateCollector {
         final RepositoryObjectType objectType = RepositoryObjectType.parse(objectUri);
 
         try {
-            switch (objectType) {
-                case Manifest:
+            return switch (objectType) {
+                case Manifest -> {
                     ManifestCmsParser manifestCmsParser = new ManifestCmsParser();
                     manifestCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
                     final var manifestCms = manifestCmsParser.getManifestCms();
                     final var certificate = manifestCms.getCertificate().getCertificate();
                     final var notValidBefore = ObjectUtils.max(certificate.getNotBefore(), manifestCms.getThisUpdateTime().toDate());
                     final var notValidAfter = ObjectUtils.min(certificate.getNotAfter(), manifestCms.getNextUpdateTime().toDate());
-                    return acceptedObjectValidBetween(notValidBefore, notValidAfter);
-                case Roa:
+                    yield acceptedObjectValidBetween(notValidBefore, notValidAfter);
+                }
+                case Aspa -> {
+                    var aspaCmsParser = new AspaCmsParser();
+                    aspaCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
+                    var aspaCms = aspaCmsParser.getAspa();
+                    yield acceptedObjectValidBetween(
+                            aspaCms.getNotValidBefore().toDate(),
+                            aspaCms.getNotValidAfter().toDate()
+                    );
+                }
+                case Roa -> {
                     RoaCmsParser roaCmsParser = new RoaCmsParser();
                     roaCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
                     final var roaCms = roaCmsParser.getRoaCms();
-                    return acceptedObjectValidBetween(
+                    yield acceptedObjectValidBetween(
                             roaCms.getNotValidBefore().toDate(),
                             roaCms.getNotValidAfter().toDate()
                     );
-                case Certificate:
+                }
+                case Certificate -> {
                     X509ResourceCertificateParser x509CertificateParser = new X509ResourceCertificateParser();
                     x509CertificateParser.parse(ValidationResult.withLocation(objectUri), decoded);
                     final var cert = x509CertificateParser.getCertificate().getCertificate();
-                    return acceptedObjectValidBetween(
+                    yield acceptedObjectValidBetween(
                             cert.getNotBefore(),
                             cert.getNotAfter()
                     );
-                case Crl:
+                }
+                case Crl -> {
                     final X509Crl x509Crl = X509Crl.parseDerEncoded(decoded, ValidationResult.withLocation(objectUri));
                     final var crl = x509Crl.getCrl();
-                    return acceptedObjectValidBetween(
+                    yield acceptedObjectValidBetween(
                             crl.getThisUpdate(),
                             crl.getNextUpdate()
                     );
-                case Gbr:
+                }
+                case Gbr -> {
                     GhostbustersCmsParser ghostbustersCmsParser = new GhostbustersCmsParser();
                     ghostbustersCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
                     final var ghostbusterCms = ghostbustersCmsParser.getGhostbustersCms();
-                    return acceptedObjectValidBetween(
+                    yield acceptedObjectValidBetween(
                             ghostbusterCms.getNotValidBefore().toDate(),
                             ghostbusterCms.getNotValidAfter().toDate()
                     );
-                default:
+                }
+                case Unknown -> {
                     maybeLogObject(String.format("%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri),
                                    "[{}-{}] Object at {} is unknown.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri);
-                    return Pair.of(UNKNOWN, Optional.empty());
-            }
+                    yield Pair.of(UNKNOWN, Optional.empty());
+                }
+            };
         } catch (Exception e) {
             maybeLogObject(String.format("%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri),
                            "[{}-{}] Object at {} rejected: {}.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, e.getMessage());
