@@ -90,16 +90,24 @@ public class RrdpFetcher implements RepoFetcher {
             final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(bytes));
             final NodeList publishedObjects = snapshotXmlDoc.getDocumentElement().getElementsByTagName("publish");
 
+            var decoder = Base64.getDecoder();
             var objects = IntStream
                 .range(0, publishedObjects.getLength())
                 .mapToObj(publishedObjects::item)
                 .map(item -> {
-                    final String objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
+                    var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
+                    var content = item.getTextContent();
 
-                    final Base64.Decoder decoder = Base64.getDecoder();
-                    final byte[] decoded = decoder.decode(item.getTextContent());
-
-                    return ImmutablePair.of(objectUri, new RpkiObject(decoded));
+                    try {
+                        // Surrounding whitespace is allowed by xsd:base64Binary. Trim that
+                        // off before decoding. See also:
+                        // https://www.w3.org/TR/2004/PER-xmlschema-2-20040318/datatypes.html#base64Binary
+                        var decoded = decoder.decode(content.trim());
+                        return ImmutablePair.of(objectUri, new RpkiObject(decoded));
+                    } catch (RuntimeException e) {
+                        log.error("cannot decode object data for URI {}\n{}", objectUri, content);
+                        throw e;
+                    }
                 })
                 .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
