@@ -99,6 +99,9 @@ public class RrdpFetcher implements RepoFetcher {
                     var content = item.getTextContent();
 
                     try {
+                        // Surrounding whitespace is allowed by xsd:base64Binary. Trim that
+                        // off before decoding. See also:
+                        // https://www.w3.org/TR/2004/PER-xmlschema-2-20040318/datatypes.html#base64Binary
                         var decoded = decoder.decode(content.trim());
                         return ImmutablePair.of(objectUri, new RpkiObject(decoded));
                     } catch (RuntimeException e) {
