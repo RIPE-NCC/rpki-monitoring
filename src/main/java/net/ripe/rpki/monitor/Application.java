@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor;
 
 import io.micrometer.core.instrument.config.MeterFilter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
@@ -32,9 +33,9 @@ public class Application {
 
     @Bean
     public RepositoriesState repositoriesState(
-            final AppConfig config,
-            final PublishedObjectsSummaryService publishedObjectsSummary,
-            ObjectExpirationMetrics objectExpirationMetrics
+            @NonNull final AppConfig config,
+            @NonNull final PublishedObjectsSummaryService publishedObjectsSummary,
+            @NonNull ObjectExpirationMetrics objectExpirationMetrics
     ) {
         checkOverlappingRepositoryKeys(config);
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();

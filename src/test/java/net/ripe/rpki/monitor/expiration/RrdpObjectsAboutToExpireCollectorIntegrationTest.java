@@ -1,41 +1,50 @@
 package net.ripe.rpki.monitor.expiration;
 
+import lombok.NonNull;
+import lombok.Setter;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.impl.bootstrap.HttpServer;
-import org.apache.hc.core5.http.impl.bootstrap.ServerBootstrap;
-import org.apache.hc.core5.http.io.SocketConfig;
-import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.http.protocol.HttpContext;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(properties = {
-        "rrdp.targets[0].name=main",
-        "rrdp.targets[0].notification-url=http://rrdp.ripe.net:" + RrdpObjectsAboutToExpireCollectorIntegrationTest.TEST_SERVER_PORT + "/notification.xml",
-        "rrdp.targets[0].connect-to[rrdp.ripe.net]=localhost",
-})
+@SpringBootTest
 @ContextConfiguration
 class RrdpObjectsAboutToExpireCollectorIntegrationTest {
-    static final int TEST_SERVER_PORT = 9999;
-    private static final TestHttpServer server = new TestHttpServer("rrdp.ripe.net", TEST_SERVER_PORT);
+    private static int testServerPort = -1;
 
+    @DynamicPropertySource
+    public static void mockRRDPEndpointProperties(DynamicPropertyRegistry registry) throws IOException {
+        // Use mockserver to find a port
+        var server = new MockWebServer();
+        server.start();
+        testServerPort = server.getPort();
+        server.shutdown();
+
+        registry.add("rrdp.targets[0].name", () -> "main");
+        registry.add("rrdp.targets[0].notification-url", () -> "http://rrdp.ripe.net:" + testServerPort + "/notification.xml");
+        registry.add("rrdp.targets[0].connect-to[rrdp.ripe.net]", () -> server.getHostName());
+    }
+
+    @NonNull
+    private MockWebServer server;
+
+    @Setter
     @Autowired
     private RepositoriesState repositoriesState;
+
+    @Setter
     @Autowired
     private Collectors collectors;
 
@@ -45,11 +54,12 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
     private String getNotificationXml(String serial, String snapshotHash) {
         return
             "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"" + serial + "\">" +
-            "<snapshot uri=\"http://rrdp.ripe.net:9999/" + serial + "/snapshot.xml\" hash=\"" + snapshotHash + "\"/>" +
+            "<snapshot uri=\"http://rrdp.ripe.net:" + server.getPort() +"/" + serial + "/snapshot.xml\" hash=\"" + snapshotHash + "\"/>" +
             "</notification>";
     }
 
 
+    // FIXME: serial is fixed in snapshot, but making this dynamic also updates the notification payload
     private String snapshotXml = "" +
             "<snapshot version=\"1\" session_id=\"329ee04b-72b9-4221-8fe5-f04534db304d\" serial=\"574\" xmlns=\"http://www.ripe.net/rpki/rrdp\">\n" +
             "<publish uri=\"rsync://rpki.ripe.net/repository/DEFAULT/21/765e79-d0a3-472c-b5df-6d324c51362d/1/Q8uCW6eAw7tnl2QxNmQTf50fxAg.mft\">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</publish>\n" +
@@ -58,137 +68,87 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
             "<publish uri=\"rsync://rpki.ripe.net/repository/DEFAULT/YIyyikWvgf2dDgKFvSnVORZbWpo.cer\">MIIFazCCBFOgAwIBAgIFW+aFOG8wDQYJKoZIhvcNAQELBQAwMzExMC8GA1UEAxMoMmE5NGE4ZGQ1NTRhZTcwMTA3MjA5OWM3MGI2NDA3NTU1ZGRkZTY2OTAeFw0yMDAyMjQxNDU2MzlaFw0yMTA3MDEwMDAwMDBaMDMxMTAvBgNVBAMTKDYwOGNiMjhhNDVhZjgxZmQ5ZDBlMDI4NWJkMjlkNTM5MTY1YjVhOWEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCtG1f7qhk7bqzrAeXKUjvPx/CcKSk6lpUB3w6EXipam0qF2ugZOsY41tC5qnF5lW+6n/RAasr3itbuaxU05uHkCSPLnnG7U2SfLty7WNLubLwFUK7EqTBHBK8T6VJ4tMhOy6vEDLJFWzZzd7EEy9R5gy39FKU+KERuzgrpkFo8lsUIVsh9BczmgmG3WqMMDGJIq1raPPYgSaNF9BAfu9lNZFEESxNtVhxFMBdq30U7+cHo4awWDk6qU9MOtdsYIpmM49XuDAoGlOXNQuqdZ07Z/eN5QXM+SWqNrjoH/qJ89E+wkNwrbO6IWEAGciHenC/CMUzahrmmZg7jdSpW5PsHAgMBAAGjggKEMIICgDAdBgNVHQ4EFgQUYIyyikWvgf2dDgKFvSnVORZbWpowHwYDVR0jBBgwFoAUKpSo3VVK5wEHIJnHC2QHVV3d5mkwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwYAYIKwYBBQUHAQEEVDBSMFAGCCsGAQUFBzAChkRyc3luYzovL3Jwa2kucmlwZS5uZXQvcmVwb3NpdG9yeS9hY2EvS3BTbzNWVks1d0VISUpuSEMyUUhWVjNkNW1rLmNlcjCCASMGCCsGAQUFBwELBIIBFTCCAREwXQYIKwYBBQUHMAWGUXJzeW5jOi8vcnBraS5yaXBlLm5ldC9yZXBvc2l0b3J5L0RFRkFVTFQvMjAvMzM0OTc1LTEzZGItNDdjZC04YzRhLTcxM2VmNzhiZWQwZC8xLzB8BggrBgEFBQcwCoZwcnN5bmM6Ly9ycGtpLnJpcGUubmV0L3JlcG9zaXRvcnkvREVGQVVMVC8yMC8zMzQ5NzUtMTNkYi00N2NkLThjNGEtNzEzZWY3OGJlZDBkLzEvWUl5eWlrV3ZnZjJkRGdLRnZTblZPUlpiV3BvLm1mdDAyBggrBgEFBQcwDYYmaHR0cHM6Ly9ycmRwLnJpcGUubmV0L25vdGlmaWNhdGlvbi54bWwwWQYDVR0fBFIwUDBOoEygSoZIcnN5bmM6Ly9ycGtpLnJpcGUubmV0L3JlcG9zaXRvcnkvREVGQVVMVC9LcFNvM1ZWSzV3RUhJSm5IQzJRSFZWM2Q1bWsuY3JsMBgGA1UdIAEB/wQOMAwwCgYIKwYBBQUHDgIwHwYIKwYBBQUHAQcBAf8EEDAOMAwEAgABMAYDBALCJ6QwDQYJKoZIhvcNAQELBQADggEBACFosm4qQ1nBvEk5OwW8scL1egXWB5dqOl0SDhHN2uIuEo8owKD7ddyeAYcg8370r5mnAmM9/JiSpNf+AjYpbWaVllJvQ6YJqbhMY1B7d5CKLewpTS80BgArxK8VugshGy+Ddffx1dS+hTRvvxURNOCgYmrHsTfgi0A2myHip8BisFUK4NqPZOyNdg1thyp++xcTs09svJbN3ZZAFMUYndU5O1GcIId8do8RM66dGan31Knn35Enj5KlQ3Q7CE+ZBd5sd4Y77c+WLtKBrtxcm7R/LbhrpotvIR0SX4/uogrtI1/UgKaYmlligc1E6IGHLQuTAocpRmlk7rUcI8TjERM=</publish>" +
             "</snapshot>";
 
-    @BeforeAll
-    public static void start() throws Exception {
-        server.start();
-    }
-
-    @AfterAll
-    public static void shutdown() {
-        server.stop();
-    }
-
-    @AfterEach
-    public void tearDown() {
-        server.reset();
-    }
 
     @BeforeEach
-    public void init() throws IOException {
+    public void setUp() throws IOException {
         subject = collectors.getRrdpCollectors().get(0);
+
+        server = new MockWebServer();
+        server.start(testServerPort);
+    }
+    @AfterEach
+    public void tearDown() throws IOException {
+        server.shutdown();
+    }
+
+    private void enqueueXMLResponse(@NonNull String payload) {
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "application/xml")
+                .setResponseCode(200)
+                .setBody(payload)
+        );
     }
 
     @Test
-    public void itShouldUpdateRrdpRepositoryState() throws Exception {
-
+    void itShouldUpdateRrdpRepositoryState() throws Exception {
         final String serial = "574";
 
-        server.stub("/notification.xml", getNotificationXml(serial, Sha256.asString(snapshotXml)));
-        server.stub("/" + serial + "/snapshot.xml", snapshotXml);
+        enqueueXMLResponse(getNotificationXml(serial, Sha256.asString(snapshotXml)));
+        enqueueXMLResponse(snapshotXml);
 
         subject.run();
 
         var tracker = repositoriesState.getTrackerByTag("main").get();
         assertThat(tracker.view(Instant.now()).size()).isEqualTo(4);
+
+        //  And it should request notification, followed by snapshot
+        assertThat(server.takeRequest().getRequestUrl().pathSegments()).endsWith("notification.xml");
+        assertThat(server.takeRequest().getRequestUrl().pathSegments()).endsWith("snapshot.xml");
     }
 
     @Test
-    public void itShouldCheckHash() throws Exception {
+    void itShouldCheckHash() {
 
         final String serial = "666";
-        server.stub("/notification.xml", getNotificationXml(serial, "ababababababababababababababababababab1b1b1b1bababababababababab"));
-        server.stub("/" + serial + "/snapshot.xml", snapshotXml);
+        enqueueXMLResponse(getNotificationXml(serial, "ababababababababababababababababababab1b1b1b1bababababababababab"));
+        enqueueXMLResponse(snapshotXml);
 
-        try {
-            subject.run();
-            fail();
-        } catch (Exception e) {
-            assertTrue(e.getMessage().contains("Snapshot hash (" +Sha256.asString(snapshotXml) + ") is not the same as " +
-                "in notification.xml (ababababababababababababababababababab1b1b1b1bababababababababab)"));
-        }
+        assertThatThrownBy(subject::run)
+                .hasMessageContaining("Snapshot hash (" +Sha256.asString(snapshotXml) + ") is not the same as " +
+                "in notification.xml (ababababababababababababababababababab1b1b1b1bababababababababab)");
     }
 
     @Test
-    public void itShouldOnlyDownloadSnapshotWhenNeeded() throws Exception {
+    void itShouldOnlyDownloadSnapshotWhenNeeded() throws Exception {
         final String serial = "42";
-        server.stub("/notification.xml", getNotificationXml(serial, Sha256.asString(snapshotXml)));
-        server.stub("/" + serial + "/snapshot.xml", snapshotXml);
+        enqueueXMLResponse(getNotificationXml(serial, Sha256.asString(snapshotXml)));
+        enqueueXMLResponse(snapshotXml);
+        // No response will be served if notification is not present
+        enqueueXMLResponse(getNotificationXml(serial, Sha256.asString(snapshotXml)));
 
         subject.run();
-        server.unstub("/" + serial + "/snapshot.xml");
+
 
         subject.run();
+
+        assertThat(server.takeRequest().getRequestUrl().encodedPathSegments()).endsWith("notification.xml");
+        assertThat(server.takeRequest().getRequestUrl().encodedPathSegments()).endsWith("snapshot.xml");
+        assertThat(server.takeRequest().getRequestUrl().encodedPathSegments()).endsWith("notification.xml");
     }
 
     @Test
-    public void itShouldDownloadSnapshotWhenChanged() throws Exception {
+    void itShouldDownloadSnapshotWhenChanged() throws Exception {
         final int serial = 42;
 
-        server.stub("/notification.xml", getNotificationXml(String.valueOf(serial), Sha256.asString(snapshotXml)));
-        server.stub("/" + serial + "/snapshot.xml", snapshotXml);
+        enqueueXMLResponse(getNotificationXml(String.valueOf(serial), Sha256.asString(snapshotXml)));
+        enqueueXMLResponse(snapshotXml);
 
         subject.run();
 
-        server.stub("/notification.xml", getNotificationXml(String.valueOf(serial + 1), Sha256.asString(snapshotXml)));
-        server.stub("/" + (serial + 1) + "/snapshot.xml", snapshotXml);
+        enqueueXMLResponse(getNotificationXml(String.valueOf(serial + 1), Sha256.asString(snapshotXml)));
+        // FIXME: This snapshot XML does not contain the valid serial, this should fail.
+        enqueueXMLResponse(snapshotXml);
 
         subject.run();
-    }
-}
-
-class TestHttpServer {
-    private final HttpServer server;
-    private final Map<String, String> files = new HashMap<>();
-
-    public TestHttpServer(String host, int port) {
-        var socketConfig = SocketConfig.custom()
-                .setSoTimeout(3, TimeUnit.SECONDS)
-                .setTcpNoDelay(true)
-                .build();
-        server = ServerBootstrap.bootstrap()
-                .setCanonicalHostName(host)
-                .setListenerPort(port)
-                .setSocketConfig(socketConfig)
-                .register("*", this::handleRequest)
-                .create();
-    }
-
-    private void handleRequest(ClassicHttpRequest request, ClassicHttpResponse response, HttpContext context) throws HttpException, IOException {
-        if (!Method.GET.isSame( request.getMethod())) {
-            throw new MethodNotSupportedException("Method not supported: " + request.getMethod());
-        }
-
-        Optional.ofNullable(files.get(request.getPath())).ifPresentOrElse(
-                (file) -> {
-                    response.setCode(200);
-                    response.setEntity(new StringEntity(file, ContentType.TEXT_XML));
-                },
-                () -> {
-                    response.setCode(404);
-                    response.setEntity(new StringEntity("File not found: " + request.getPath()));
-                }
-        );
-    }
-
-    public void stub(String path, String content) {
-        files.put(path, content);
-    }
-
-    public void unstub(String path) {
-        if (files.remove(path) == null) {
-            throw new IllegalArgumentException("Nothing stubbed on " + path);
-        }
-    }
-
-    public void start() throws IOException {
-        server.start();
-    }
-
-    public void stop() {
-        server.stop();
-    }
-
-    public void reset() {
-        files.clear();
     }
 }

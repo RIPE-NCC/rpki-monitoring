@@ -65,8 +65,7 @@ management:
           - health
 
 ---
-spring:
-  profiles: local
+spring.config.activate.on-profile: local
 
 rrdp:
   interval: 5M
@@ -90,8 +89,7 @@ core:
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
 ---
-spring:
-  profiles: prepdev
+spring.config.activate.on-profile: prepdev
 
 rrdp:
   interval: 5M
@@ -127,8 +125,7 @@ core:
   url: https://core.rpki.prepdev.ripe.net/certification/
 
 ---
-spring:
-  profiles: production
+spring.config.activate.on-profile: production
 
 rrdp:
   interval: 5M
@@ -168,8 +165,7 @@ core:
   url: https://core.rpki.ripe.net/certification/
 
 ---
-spring:
-  profiles: paas-prepdev
+spring.config.activate.on-profile: paas-prepdev
 
 rrdp:
   interval: 5M
@@ -199,8 +195,7 @@ core:
   enable: false
 
 ---
-spring:
-  profiles: paas-production
+spring.config.activate.on-profile: paas-production
 
 rrdp:
   interval: 5M
