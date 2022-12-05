@@ -1,5 +1,11 @@
 ## HEAD
 
+## v0.8.7
+
+  * Support xsd:base64Binary values surrounded by whitespace
+  * Support ASPA objects
+  * Upgrade to spring boot 3
+
 ## v0.8.6
   * Fix Akamai production RRDP URL
 
