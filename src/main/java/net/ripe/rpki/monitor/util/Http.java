@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.util;
 
 import org.apache.hc.client5.http.SystemDefaultDnsResolver;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.BasicHttpClientResponseHandler;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -41,7 +42,6 @@ public class Http {
     public String fetch(String url) throws IOException {
         var requestConfig = RequestConfig.custom()
                 .setConnectionKeepAlive(TimeValue.ofSeconds(60))
-                .setConnectTimeout(Timeout.ofSeconds(3))
                 .setResponseTimeout(Timeout.ofSeconds(10))
                 .setContentCompressionEnabled(true)
                 .setRedirectsEnabled(false)
@@ -67,7 +67,7 @@ public class Http {
                 .register(URIScheme.HTTP.id, PlainConnectionSocketFactory.getSocketFactory())
                 .register(URIScheme.HTTPS.id, SSLConnectionSocketFactory.getSocketFactory())
                 .build();
-        return new PoolingHttpClientConnectionManager(
+        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager(
                 socketFactoryRegistry,
                 PoolConcurrencyPolicy.STRICT,
                 PoolReusePolicy.LIFO,
@@ -76,6 +76,11 @@ public class Http {
                 resolver,
                 null
         );
+        ConnectionConfig connectionConfig = ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.ofSeconds(3))
+                .build();
+        connectionManager.setDefaultConnectionConfig(connectionConfig);
+        return connectionManager;
     }
 }
 
