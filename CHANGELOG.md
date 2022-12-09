@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.9.0
+  * Accept (but log) RRDP snapshot when it contains multiple publish entries
+    for the same URLL.
+
 ## v0.8.7
 
   * Support xsd:base64Binary values surrounded by whitespace
