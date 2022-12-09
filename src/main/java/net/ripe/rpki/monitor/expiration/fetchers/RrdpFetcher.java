@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -91,6 +92,8 @@ public class RrdpFetcher implements RepoFetcher {
             final NodeList publishedObjects = snapshotXmlDoc.getDocumentElement().getElementsByTagName("publish");
 
             var decoder = Base64.getDecoder();
+            var collisionCount = new AtomicInteger();
+
             var objects = IntStream
                 .range(0, publishedObjects.getLength())
                 .mapToObj(publishedObjects::item)
@@ -109,9 +112,22 @@ public class RrdpFetcher implements RepoFetcher {
                         throw e;
                     }
                 })
+                // group by url to detect duplicate urls: keeps the first element, will cause a diff between
+                // the sources being monitored.
+                .collect(Collectors.groupingBy(Pair::getLeft))
+                // invariant: every group has at least 1 item
+                .entrySet().stream()
+                    .map((item) -> {
+                        if (item.getValue().size() > 1) {
+                            log.warn("Multiple objects for {}, keeping first element: {}", item.getKey(), item.getValue().stream().map(coll -> Sha256.asString(coll.getRight().getBytes())).collect(Collectors.joining(", ")));
+                            collisionCount.addAndGet(item.getValue().size() - 1);
+                            return item.getValue().get(0);
+                        }
+                        return item.getValue().get(0);
+                    })
                 .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
-            metrics.success(serial);
+            metrics.success(serial, collisionCount.get());
             return objects;
         } catch (ParserConfigurationException | SAXException | IOException | NumberFormatException | SnapshotWrongHashException e) {
             metrics.failure();

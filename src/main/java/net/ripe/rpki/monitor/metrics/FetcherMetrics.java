@@ -58,6 +58,7 @@ public class FetcherMetrics {
 
     public static final class RRDPFetcherMetrics extends BaseFetcherMetrics {
         final AtomicInteger rrdpSerial = new AtomicInteger();
+        final AtomicInteger rrdpCollisions = new AtomicInteger();
 
         private RRDPFetcherMetrics(final String url, MeterRegistry meterRegistry) {
             super(url, meterRegistry);
@@ -66,12 +67,17 @@ public class FetcherMetrics {
                     .description("Serial of the RRDP notification.xml at the given URL")
                     .tag("url", url)
                     .register(meterRegistry);
+            Gauge.builder("rpkimonitoring.fetcher.rrdp.url-collisions", rrdpCollisions::get)
+                    .description("Number of objects with colliding URLs")
+                    .tag("url", url)
+                    .register(meterRegistry);
         }
 
         /** RRDP variant only can track a succesful update if it also provides a serial. */
-        public void success(int serial) {
+        public void success(int serial, int collisionCount) {
             this.successfulUpdates.increment();
             this.rrdpSerial.set(serial);
+            this.rrdpCollisions.set(collisionCount);
         }
     }
 }
