@@ -44,7 +44,7 @@ public class FetcherMetricsTest {
         var rrdp1 = subject.rrdp("https://rrdp1.example.org");
         var rrdp2 = subject.rrdp("https://rrdp2.example.org");
 
-        rrdp1.success(1);
+        rrdp1.success(1, 0);
         rrdp2.failure();
 
         assertThat(updatedCountMetricValue("https://rrdp1.example.org", "success")).isOne();
