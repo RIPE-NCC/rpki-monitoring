@@ -35,7 +35,7 @@ public class RsyncObjectsAboutToExpireCollectorJob extends ObjectsAboutToExpireC
     @Bean("Rsync_Expiration_Trigger")
     public Trigger trigger(
         @Qualifier("Rsync_Expiration_Job_Detail") JobDetail job,
-        @Value("${rsync.interval}") Duration interval) {
+        @Value("${rsync.interval:10m}") Duration interval) {
         return
             TriggerBuilder.newTrigger().forJob(job)
                 .withIdentity("Rsync_Expiration_Trigger")
