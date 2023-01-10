@@ -1,8 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
-import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;

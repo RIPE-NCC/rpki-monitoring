@@ -1,4 +1,4 @@
-package net.ripe.rpki.monitor;
+package net.ripe.rpki.monitor.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

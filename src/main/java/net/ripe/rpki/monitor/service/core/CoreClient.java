@@ -2,8 +2,8 @@ package net.ripe.rpki.monitor.service.core;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.ripe.rpki.monitor.CoreConfig;
-import net.ripe.rpki.monitor.MonitorProperties;
+import net.ripe.rpki.monitor.config.CoreConfig;
+import net.ripe.rpki.monitor.config.MonitorProperties;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
 import org.springframework.beans.factory.annotation.Autowired;

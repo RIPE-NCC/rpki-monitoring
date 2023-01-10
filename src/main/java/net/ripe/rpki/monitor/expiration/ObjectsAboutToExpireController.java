@@ -1,6 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
-import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import org.springframework.beans.factory.annotation.Autowired;

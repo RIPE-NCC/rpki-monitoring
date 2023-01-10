@@ -1,7 +1,7 @@
 package net.ripe.rpki.monitor.service.core;
 
 import lombok.AllArgsConstructor;
-import net.ripe.rpki.monitor.CoreConfig;
+import net.ripe.rpki.monitor.config.CoreConfig;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import org.quartz.*;
