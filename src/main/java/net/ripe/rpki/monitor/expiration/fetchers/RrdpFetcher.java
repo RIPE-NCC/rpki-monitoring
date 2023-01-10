@@ -4,7 +4,6 @@ import com.google.common.base.Strings;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.AppConfig;
-import net.ripe.rpki.monitor.config.MonitorProperties;
 import net.ripe.rpki.monitor.config.RrdpConfig;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
