@@ -4,7 +4,6 @@ import io.micrometer.core.instrument.config.MeterFilter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.AppConfig;
-import net.ripe.rpki.monitor.config.MonitorProperties;
 import net.ripe.rpki.monitor.config.RrdpConfig;
 import net.ripe.rpki.monitor.config.RsyncConfig;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
@@ -14,7 +13,6 @@ import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
@@ -113,13 +111,6 @@ public class Application {
                 Collections.disjoint(rrdpKeys, rsyncKeys),
                 "RRDP and rsync other-urls keys overlap"
         );
-    }
-
-    @Bean
-    public InfoContributor versionInfoContributor(final MonitorProperties config) {
-        return builder -> {
-            builder.withDetail("version", config.getVersion());
-        };
     }
 
     /**

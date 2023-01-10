@@ -23,4 +23,14 @@ public class AppConfig {
 
     @Autowired
     private CoreConfig coreConfig;
+
+    @Autowired
+    private ApplicationInfo info;
+
+    @Bean
+    public static ApplicationInfo appInfo(
+            GitProperties gitProperties
+    ) {
+        return new ApplicationInfo(gitProperties.getShortCommitId());
+    }
 }

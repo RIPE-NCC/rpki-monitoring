@@ -3,6 +3,7 @@ package net.ripe.rpki.monitor.expiration.fetchers;
 import com.google.common.base.Strings;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.config.MonitorProperties;
 import net.ripe.rpki.monitor.config.RrdpConfig;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
@@ -39,9 +40,9 @@ public class RrdpFetcher implements RepoFetcher {
 
     private String lastSnapshotUrl;
 
-    public RrdpFetcher(RrdpConfig.RrdpRepositoryConfig config, MonitorProperties properties, FetcherMetrics fetcherMetrics) {
+    public RrdpFetcher(RrdpConfig.RrdpRepositoryConfig config, AppConfig appConfig, FetcherMetrics fetcherMetrics) {
         this.config = config;
-        this.http = new Http(String.format("rpki-monitor %s", properties.getVersion()), config.getConnectTo());
+        this.http = new Http(String.format("rpki-monitor %s", appConfig.getInfo().gitCommitId()), config.getConnectTo());
         this.metrics = fetcherMetrics.rrdp(
                 Strings.isNullOrEmpty(config.getOverrideHostname()) ?
                         config.getNotificationUrl() :

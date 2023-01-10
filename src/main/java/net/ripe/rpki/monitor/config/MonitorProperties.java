@@ -10,7 +10,4 @@ import org.springframework.context.annotation.Configuration;
 public class MonitorProperties {
     /** The api key header */
     private String internalApiKeyHeader;
-
-    /** The git revision */
-    private String version;
 }
