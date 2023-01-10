@@ -2,7 +2,7 @@
 
 ## v0.9.0
   * Accept (but log) RRDP snapshot when it contains multiple publish entries
-    for the same URLL.
+    for the same URL.
 
 ## v0.8.7
 
