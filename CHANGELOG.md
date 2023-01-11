@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.9.1
+
+  * Include git version information in `/actuator/info`
+  * Use abbreviated git commit in user-agent string
+
 ## v0.9.0
   * Accept (but log) RRDP snapshot when it contains multiple publish entries
     for the same URL.
