@@ -1,6 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
-import net.ripe.rpki.monitor.RrdpConfig;
+import net.ripe.rpki.monitor.config.RrdpConfig;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

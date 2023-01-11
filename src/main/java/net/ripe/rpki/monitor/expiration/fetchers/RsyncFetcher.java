@@ -7,7 +7,7 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.rsync.Rsync;
-import net.ripe.rpki.monitor.RsyncConfig;
+import net.ripe.rpki.monitor.config.RsyncConfig;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.apache.commons.lang3.tuple.Pair;

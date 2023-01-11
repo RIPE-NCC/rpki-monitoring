@@ -1,7 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import net.ripe.rpki.monitor.RsyncConfig;
+import net.ripe.rpki.monitor.config.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;

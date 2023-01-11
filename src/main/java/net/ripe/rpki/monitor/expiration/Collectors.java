@@ -1,8 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
-import net.ripe.rpki.monitor.AppConfig;
+import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
@@ -36,7 +35,7 @@ public class Collectors {
         this.repositoriesState = repositoriesState;
 
         this.rrdpCollectors = config.getRrdpConfig().getTargets().stream().map(
-                target -> makeCollector(new RrdpFetcher(target, config.getProperties(), fetcherMetrics))
+                target -> makeCollector(new RrdpFetcher(target, config, fetcherMetrics))
         ).collect(toList());
         this.rsyncCollectors = config.getRsyncConfig().getTargets().stream().map(
                 target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url(), fetcherMetrics))
