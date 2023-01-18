@@ -9,6 +9,7 @@ stages:
   - test
   - qa
   - package
+  - review
   - release
   - deploy
 
@@ -23,6 +24,9 @@ include:
     file: '/templates/mend-scanning.yml'
   - project: 'swe/gitlab-ci'
     file: '/templates/mend-generate-badge.yml'
+  # Review Apps
+  - project: 'rpki/helm-charts'
+    file: '/gitlab/review.yml'
 
 
 # Disable the Gradle daemon for Continuous Integration servers as correctness
@@ -279,3 +283,9 @@ deploy:paas-production:
   rules:
     # Only deploy tags to production (automatically)
     - if: '$CI_COMMIT_TAG =~ /^rpki-monitoring-v\d+\.\d+\.\d+/'
+
+review:
+  variables:
+    GIT_STRATEGY: none
+    RPKI_MONITORING_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  needs: ["build:image"]
