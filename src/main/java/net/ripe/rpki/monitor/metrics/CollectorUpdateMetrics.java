@@ -23,6 +23,8 @@ public class CollectorUpdateMetrics {
 
     public static final String COLLECTOR_COUNT_DESCRIPTION = "Number of objects by collector by status";
     public static final String COLLECTOR_COUNT_METRIC = "rpkimonitoring.collector.objects";
+    public static final String COLLECTOR_MAX_SIZE_METRIC = "rpkimonitoring.collector.max.object.size";
+    public static final String COLLECTOR_MAX_SIZE_DESCRIPTION = "Size of the biggest object retrieved by collector";
     public static final String STATUS = "status";
 
     @Autowired
@@ -64,6 +66,8 @@ public class CollectorUpdateMetrics {
         private final AtomicLong unknownObjectCount = new AtomicLong();
         private final AtomicLong rejectedObjectCount = new AtomicLong();
 
+        private final AtomicLong maxObjectSize = new AtomicLong();
+
         private boolean initialisedCounters = false;
 
         public ExecutionStatus(String collectorName, String tag, String repoUrl) {
@@ -95,8 +99,8 @@ public class CollectorUpdateMetrics {
                     .register(registry);
         }
 
-        public ExecutionStatus objectCount(int passed, int rejected, int unknown) {
-            // Lazy init metrics so as to never have metrics that always stay at 0.
+        public ExecutionStatus objectCount(int passed, int rejected, int unknown, long maxSize) {
+            // Lazy init metrics to never have metrics that always stay at 0.
             if (!initialisedCounters) {
                 Gauge.builder(COLLECTOR_COUNT_METRIC, passedObjectCount::get)
                         .description(COLLECTOR_COUNT_DESCRIPTION)
@@ -121,18 +125,28 @@ public class CollectorUpdateMetrics {
                         .tag(URL, repoUrl)
                         .tag(STATUS, "unknown")
                         .register(registry);
+
+                Gauge.builder(COLLECTOR_MAX_SIZE_METRIC, maxObjectSize::get)
+                        .description(COLLECTOR_MAX_SIZE_DESCRIPTION)
+                        .baseUnit("bytes")
+                        .tag(COLLECTOR, collectorName)
+                        .tag(NAME, repoTag)
+                        .tag(URL, repoUrl)
+                        .register(registry);
+
                 initialisedCounters = true;
             }
 
             passedObjectCount.set(passed);
             rejectedObjectCount.set(rejected);
             unknownObjectCount.set(unknown);
+            maxObjectSize.set(maxSize);
 
             return this;
         }
 
         public void zeroCounters() {
-            objectCount(0, 0, 0);
+            objectCount(0, 0, 0, 0);
         }
     }
 }
