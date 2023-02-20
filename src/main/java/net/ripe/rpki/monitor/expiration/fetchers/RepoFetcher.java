@@ -6,7 +6,7 @@ import java.util.Map;
 
 public interface RepoFetcher {
 
-    Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException;
+    Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotException;
 
     Meta meta();
 

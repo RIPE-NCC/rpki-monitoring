@@ -19,6 +19,9 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Base64;
@@ -56,7 +59,7 @@ public class RrdpFetcher implements RepoFetcher {
     }
 
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws SnapshotNotModifiedException {
+    public Map<String, RpkiObject> fetchObjects() throws SnapshotException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
@@ -89,7 +92,25 @@ public class RrdpFetcher implements RepoFetcher {
             }
 
             final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(bytes));
-            final NodeList publishedObjects = snapshotXmlDoc.getDocumentElement().getElementsByTagName("publish");
+            var doc = snapshotXmlDoc.getDocumentElement();
+            // Check attributes of root snapshot element (mostly: that serial matches)
+            var querySnapshot = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot");
+            var snapshotNodes = (NodeList)querySnapshot.evaluate(doc, XPathConstants.NODESET);
+            // It is invariant that there is only one root element in an XML file, but it could still contain a different
+            // root tag => 0
+            if (snapshotNodes.getLength() != 1) {
+                throw new SnapshotStructureException("No <snapshot>...</snapshot> root element found in %s".formatted(snapshotUrl));
+            } else {
+                var item = snapshotNodes.item(0);
+                var snapshotSerial = Integer.valueOf(item.getAttributes().getNamedItem("serial").getNodeValue());
+
+                if (serial != snapshotSerial) {
+                    throw new SnapshotSerialMisMatchException(snapshotUrl, serial, snapshotSerial);
+                }
+            }
+
+            var queryPublish = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot/publish");
+            final NodeList publishedObjects = (NodeList)queryPublish.evaluate(doc, XPathConstants.NODESET);
 
             var decoder = Base64.getDecoder();
             var collisionCount = new AtomicInteger();
@@ -129,7 +150,7 @@ public class RrdpFetcher implements RepoFetcher {
 
             metrics.success(serial, collisionCount.get());
             return objects;
-        } catch (ParserConfigurationException | SAXException | IOException | NumberFormatException | SnapshotWrongHashException e) {
+        } catch (ParserConfigurationException | XPathExpressionException | SAXException | IOException | NumberFormatException | SnapshotWrongHashException e) {
             metrics.failure();
             throw new FetcherException(e);
         }

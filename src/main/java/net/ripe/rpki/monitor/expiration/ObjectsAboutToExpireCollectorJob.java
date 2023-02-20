@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
+import net.ripe.rpki.monitor.expiration.fetchers.SnapshotException;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.scheduling.quartz.QuartzJobBean;
@@ -18,7 +19,7 @@ public class ObjectsAboutToExpireCollectorJob extends QuartzJobBean {
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
         try {
             collectors.parallelStream().forEach(ObjectAndDateCollector::run);
-        } catch (FetcherException e) {
+        } catch (FetcherException | SnapshotException e) {
             throw new JobExecutionException(e);
         }
     }

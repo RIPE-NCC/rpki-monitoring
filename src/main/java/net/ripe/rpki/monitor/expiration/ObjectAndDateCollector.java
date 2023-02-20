@@ -14,6 +14,7 @@ import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
+import net.ripe.rpki.monitor.expiration.fetchers.SnapshotException;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
@@ -58,7 +59,7 @@ public class ObjectAndDateCollector {
         this.repositoriesState = repositoriesState;
     }
 
-    public void run() throws FetcherException {
+    public void run() throws FetcherException, SnapshotException {
         if (!running.compareAndSet(false, true)) {
             log.warn("Skipping updates of repository '{}' ({}) because a previous update is still running.", repoFetcher.meta().tag(), repoFetcher.meta().url());
             return;
@@ -93,7 +94,7 @@ public class ObjectAndDateCollector {
         } catch (SnapshotNotModifiedException e) {
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url());
         } catch (Exception e) {
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(),  rejectedObjects.get(), unknownObjects.get());
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get());
             throw e;
         } finally {
             running.set(false);
