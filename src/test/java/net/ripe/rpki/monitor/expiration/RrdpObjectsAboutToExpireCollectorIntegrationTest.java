@@ -3,6 +3,7 @@ package net.ripe.rpki.monitor.expiration;
 import lombok.NonNull;
 import lombok.Setter;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotSerialMisMatchException;
+import net.ripe.rpki.monitor.expiration.fetchers.SnapshotStructureException;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
 import okhttp3.mockwebserver.MockResponse;
@@ -165,5 +166,13 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         assertThatThrownBy(() -> subject.run())
                 .isExactlyInstanceOf(SnapshotSerialMisMatchException.class)
                 .hasMessageContaining(String.valueOf(serial));
+
+        // Snapshot is not a snapshot but a notification.xml fille
+        var unrelatedNotificationXml = getNotificationXml("1", "DEADBEEFINVALID");
+        enqueueXMLResponse(getNotificationXml(String.valueOf(serial), Sha256.asString(unrelatedNotificationXml)));
+        enqueueXMLResponse(unrelatedNotificationXml);
+
+        assertThatThrownBy(() -> subject.run())
+                .isExactlyInstanceOf(SnapshotStructureException.class);
     }
 }
