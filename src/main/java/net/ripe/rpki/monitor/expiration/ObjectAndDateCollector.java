@@ -14,8 +14,8 @@ import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
-import net.ripe.rpki.monitor.expiration.fetchers.SnapshotException;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
+import net.ripe.rpki.monitor.expiration.fetchers.SnapshotStructureException;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
@@ -29,7 +29,6 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
 
@@ -60,7 +59,7 @@ public class ObjectAndDateCollector {
         this.repositoriesState = repositoriesState;
     }
 
-    public void run() throws FetcherException, SnapshotException {
+    public void run() throws FetcherException, SnapshotStructureException {
         if (!running.compareAndSet(false, true)) {
             log.warn("Skipping updates of repository '{}' ({}) because a previous update is still running.", repoFetcher.meta().tag(), repoFetcher.meta().url());
             return;

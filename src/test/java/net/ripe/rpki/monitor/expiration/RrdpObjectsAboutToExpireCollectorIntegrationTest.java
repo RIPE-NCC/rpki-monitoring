@@ -2,7 +2,6 @@ package net.ripe.rpki.monitor.expiration;
 
 import lombok.NonNull;
 import lombok.Setter;
-import net.ripe.rpki.monitor.expiration.fetchers.SnapshotSerialMisMatchException;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotStructureException;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
@@ -123,9 +122,11 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         enqueueXMLResponse(getNotificationXml(serial, "ababababababababababababababababababab1b1b1b1bababababababababab"));
         enqueueXMLResponse(snapshotXml);
 
+        // Exception has both hashes in message
         assertThatThrownBy(subject::run)
-                .hasMessageContaining("Snapshot hash (" +Sha256.asString(snapshotXml) + ") is not the same as " +
-                "in notification.xml (ababababababababababababababababababab1b1b1b1bababababababababab)");
+                .isExactlyInstanceOf(SnapshotStructureException.class)
+                .hasMessageContaining(Sha256.asString(snapshotXml))
+                .hasMessageContaining("ababababababababababababababababababab1b1b1b1bababababababababab");
     }
 
     @Test
@@ -164,7 +165,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         enqueueXMLResponse(snapshotXml);
 
         assertThatThrownBy(() -> subject.run())
-                .isExactlyInstanceOf(SnapshotSerialMisMatchException.class)
+                .isExactlyInstanceOf(SnapshotStructureException.class)
                 .hasMessageContaining(String.valueOf(serial));
 
         // Snapshot is not a snapshot but a notification.xml fille
