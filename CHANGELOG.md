@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.10.0
+
+  * Add metric for maximum observed object size in repository
+  * Check consistency of RRDP snapshot (serial, structure) before processing
+
 ## v0.9.1
 
   * Include git version information in `/actuator/info`
