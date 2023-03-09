@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.web.reactive.function.client.WebClientException;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -169,11 +170,42 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
                 .hasMessageContaining(String.valueOf(serial));
 
         // Snapshot is not a snapshot but a notification.xml fille
-        var unrelatedNotificationXml = getNotificationXml("1", "DEADBEEFINVALID");
-        enqueueXMLResponse(getNotificationXml(String.valueOf(serial), Sha256.asString(unrelatedNotificationXml)));
+        var unrelatedNotificationXml = getNotificationXml(String.valueOf(serial + 2), "DEADBEEFINVALID");
+        enqueueXMLResponse(getNotificationXml(String.valueOf(serial + 2), Sha256.asString(unrelatedNotificationXml)));
         enqueueXMLResponse(unrelatedNotificationXml);
 
         assertThatThrownBy(() -> subject.run())
                 .isExactlyInstanceOf(SnapshotStructureException.class);
+    }
+
+    @Test
+    void itShouldRaiseOn404_notification() throws Exception {
+        // A 404 for the notification file
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "text/plain")
+                .setResponseCode(404)
+                .setBody("404 - File not found")
+        );
+
+        assertThatThrownBy(() -> subject.run())
+                .isInstanceOf(WebClientException.class);
+    }
+
+    @Test
+    void itShouldRaiseOn404_snapshot() throws Exception {
+        // unrestricted in spec, but use 2**31 - 1 because we use ints in the test code.
+        var serial = new Random().nextInt(1, 2147483647);
+        var snapshotXml = getSnapshotXml(String.valueOf(serial));
+
+        enqueueXMLResponse(getNotificationXml(String.valueOf(serial), Sha256.asString(snapshotXml)));
+        // A 404 for the snaphot
+        server.enqueue(new MockResponse()
+                .setHeader("Content-Type", "text/plain")
+                .setResponseCode(404)
+                .setBody("404 - File not found")
+        );
+
+        assertThatThrownBy(() -> subject.run())
+                .isInstanceOf(WebClientException.class);
     }
 }
