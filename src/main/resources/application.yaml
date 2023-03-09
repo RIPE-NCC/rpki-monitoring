@@ -8,7 +8,8 @@ spring:
   main.banner-mode: off
   output.ansi.enabled: ALWAYS
   application.name: rpki-monitoring
-
+  # Affects maximum HTTP response size
+  codec.max-in-memory-size: 1GB
 
 rrdp:
   interval: 5M

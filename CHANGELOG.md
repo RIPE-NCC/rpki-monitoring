@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.11.0
+  * HTTP client for RRDP not supports a total-request timeout
+  * More metrics for http client through spring boot default metrics
+
 ## v0.10.0
 
   * Add metric for maximum observed object size in repository

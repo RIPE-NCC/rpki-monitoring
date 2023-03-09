@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Fetcher metrics tests that just check that they are safe to use.
  */
-public class FetcherMetricsTest {
+class FetcherMetricsTest {
     FetcherMetrics subject;
     MeterRegistry registry;
 
@@ -23,7 +23,7 @@ public class FetcherMetricsTest {
     }
 
     @Test
-    public void testRsyncMetrics() {
+    void testRsyncMetrics() {
         var rsync1 = subject.rsync("rsync://rsync1.example.org");
         var rsync2 = subject.rsync("rsync://rsync2.example.org");
 
@@ -38,7 +38,7 @@ public class FetcherMetricsTest {
     }
 
     @Test
-    public void testRRDPMetrics() {
+    void testRRDPMetrics() {
         Function<String, Double> rrdpSerialMetricValue = (String url) -> registry.get("rpkimonitoring.fetcher.rrdp.serial").tag("url", url).gauge().value();
 
         var rrdp1 = subject.rrdp("https://rrdp1.example.org");

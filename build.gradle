@@ -14,7 +14,7 @@ apply plugin: 'java'
 apply plugin: 'io.spring.dependency-management'
 
 group = 'net.ripe.rpki'
-version = '0.9.2-SNAPSHOT'
+version = '0.11.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -26,15 +26,16 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // for WebClient
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    implementation 'net.ripe.rpki:rpki-commons:1.32'
 
     // Metrics
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
-
-    implementation 'net.ripe.rpki:rpki-commons:1.32'
-    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
 
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
