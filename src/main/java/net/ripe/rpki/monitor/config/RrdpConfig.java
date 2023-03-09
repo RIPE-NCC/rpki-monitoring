@@ -34,6 +34,8 @@ public class RrdpConfig {
         private String overrideHostname = null;
         private Map<String, String> connectTo = Map.of();
 
+        private Duration totalRequestTimeout = Duration.ofSeconds(60);
+
         /**
          * Override the hostname in the given URL according to this config.
          * */

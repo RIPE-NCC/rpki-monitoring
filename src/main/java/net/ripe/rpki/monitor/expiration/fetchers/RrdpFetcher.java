@@ -1,21 +1,28 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
 import com.google.common.base.Strings;
+import io.netty.channel.ChannelOption;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.config.RrdpConfig;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
-import net.ripe.rpki.monitor.util.Http;
 import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
+import net.ripe.rpki.monitor.util.http.ConnectToAddressResolverGroup;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import reactor.netty.http.client.HttpClient;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -24,8 +31,10 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -37,20 +46,45 @@ import static com.google.common.base.Verify.verifyNotNull;
 public class RrdpFetcher implements RepoFetcher {
 
     private final RrdpConfig.RrdpRepositoryConfig config;
-    private final Http http;
+
+    private final WebClient httpClient;
     private final FetcherMetrics.RRDPFetcherMetrics metrics;
 
     private String lastSnapshotUrl;
 
-    public RrdpFetcher(RrdpConfig.RrdpRepositoryConfig config, AppConfig appConfig, FetcherMetrics fetcherMetrics) {
+    public RrdpFetcher(
+            RrdpConfig.RrdpRepositoryConfig config,
+            AppConfig appConfig,
+            FetcherMetrics fetcherMetrics,
+            WebClient.Builder webclientBuilder) {
         this.config = config;
-        this.http = new Http(String.format("rpki-monitor %s", appConfig.getInfo().gitCommitId()), config.getConnectTo());
+        this.httpClient = configureWebclient(webclientBuilder, config.getConnectTo(), "rpki-monitor %s".formatted(appConfig.getInfo().gitCommitId()));
+
         this.metrics = fetcherMetrics.rrdp(
                 Strings.isNullOrEmpty(config.getOverrideHostname()) ?
                         config.getNotificationUrl() :
                         String.format("%s@%s", config.getNotificationUrl(), config.getOverrideHostname()));
 
         log.info("RrdpFetcher({}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostname());
+    }
+
+    private WebClient configureWebclient(WebClient.Builder builder, Map<String, String> connectTo, String userAgent) {
+        // remember: read and write timeouts are per read, not for a request.
+        return builder.clientConnector(new ReactorClientHttpConnector(
+            HttpClient.create()
+                .resolver(new ConnectToAddressResolverGroup(connectTo))
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                .responseTimeout(Duration.ofMillis(5000))
+                .doOnConnected(conn ->
+                        conn.addHandlerLast(new ReadTimeoutHandler(5000, TimeUnit.MILLISECONDS))
+                            .addHandlerLast(new WriteTimeoutHandler(5000, TimeUnit.MILLISECONDS))
+                )
+                .headers(headers -> headers.set(HttpHeaders.USER_AGENT, userAgent))
+        )).build();
+    }
+
+    private String blockForHttpGetRequest(String uri, Duration timeout) {
+        return httpClient.get().uri(uri).retrieve().bodyToMono(String.class).block(timeout);
     }
 
     @Override
@@ -63,7 +97,7 @@ public class RrdpFetcher implements RepoFetcher {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
-            final String notificationXml = http.fetch(config.getNotificationUrl());
+            final String notificationXml = blockForHttpGetRequest(config.getNotificationUrl(), config.getTotalRequestTimeout());
             verifyNotNull(notificationXml);
             final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
 
@@ -82,7 +116,7 @@ public class RrdpFetcher implements RepoFetcher {
 
             log.info("loading {} RRDP snapshot from {}", config.getName(), snapshotUrl);
 
-            final String snapshotXml = http.fetch(snapshotUrl);
+            final String snapshotXml = blockForHttpGetRequest(snapshotUrl, config.getTotalRequestTimeout());
             assert snapshotXml != null;
             final byte[] bytes = snapshotXml.getBytes();
 
@@ -102,7 +136,7 @@ public class RrdpFetcher implements RepoFetcher {
                 throw new SnapshotStructureException(snapshotUrl, "No <snapshot>...</snapshot> root element found");
             } else {
                 var item = snapshotNodes.item(0);
-                var snapshotSerial = Integer.valueOf(item.getAttributes().getNamedItem("serial").getNodeValue());
+                int snapshotSerial = Integer.parseInt(item.getAttributes().getNamedItem("serial").getNodeValue());
 
                 if (notificationSerial != snapshotSerial) {
                     throw new SnapshotStructureException(snapshotUrl, "contained serial=%d, expected=%d".formatted(snapshotSerial, notificationSerial));
@@ -138,7 +172,7 @@ public class RrdpFetcher implements RepoFetcher {
                     .collect(Collectors.groupingBy(Pair::getLeft))
                     // invariant: every group has at least 1 item
                     .entrySet().stream()
-                    .map((item) -> {
+                    .map(item -> {
                         if (item.getValue().size() > 1) {
                             log.warn("Multiple objects for {}, keeping first element: {}", item.getKey(), item.getValue().stream().map(coll -> Sha256.asString(coll.getRight().getBytes())).collect(Collectors.joining(", ")));
                             collisionCount.addAndGet(item.getValue().size() - 1);

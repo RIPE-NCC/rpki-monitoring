@@ -10,6 +10,7 @@ import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 
@@ -30,12 +31,13 @@ public class Collectors {
     public Collectors(CollectorUpdateMetrics metrics,
                       RepositoriesState repositoriesState,
                       AppConfig config,
-                      FetcherMetrics fetcherMetrics) {
+                      FetcherMetrics fetcherMetrics,
+                      WebClient.Builder webclientBuilder) {
         this.metrics = metrics;
         this.repositoriesState = repositoriesState;
 
         this.rrdpCollectors = config.getRrdpConfig().getTargets().stream().map(
-                target -> makeCollector(new RrdpFetcher(target, config, fetcherMetrics))
+                target -> makeCollector(new RrdpFetcher(target, config, fetcherMetrics, webclientBuilder))
         ).collect(toList());
         this.rsyncCollectors = config.getRsyncConfig().getTargets().stream().map(
                 target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url(), fetcherMetrics))
