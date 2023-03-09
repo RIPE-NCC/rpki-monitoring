@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.11.1
+  * Track a non-modified snapshot as successful update
+  * Do not update the last successful URL until processing succeeds.
+
 ## v0.11.0
   * HTTP client for RRDP not supports a total-request timeout
   * More metrics for http client through spring boot default metrics
