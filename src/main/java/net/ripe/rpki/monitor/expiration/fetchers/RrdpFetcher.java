@@ -131,7 +131,8 @@ public class RrdpFetcher implements RepoFetcher {
 
             verifyNotNull(snapshotUrl);
             if (snapshotUrl.equals(lastSnapshotUrl)) {
-                log.debug("not updating: {} snapshot url {} is the same as during the last check.", config.getName(), snapshotUrl);
+                log.info("not updating: {} snapshot url {} is the same as during the last check.", config.getName(), snapshotUrl);
+                metrics.success(notificationSerial, 0);
                 throw new SnapshotNotModifiedException(snapshotUrl);
             }
             lastSnapshotUrl = snapshotUrl;
