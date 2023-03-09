@@ -20,6 +20,7 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -87,8 +88,8 @@ public class RrdpFetcher implements RepoFetcher {
                 .build();
     }
 
-    private String blockForHttpGetRequest(String uri, Duration timeout) {
-        return httpClient.get().uri(uri).retrieve().bodyToMono(String.class).block(timeout);
+    private byte[] blockForHttpGetRequest(String uri, Duration timeout) {
+        return httpClient.get().uri(uri).retrieve().bodyToMono(byte[].class).block(timeout);
     }
 
     @Override
@@ -96,14 +97,31 @@ public class RrdpFetcher implements RepoFetcher {
         return new Meta(config.getName(), config.getNotificationUrl());
     }
 
+    /**
+     * Load snapshot and validate hash
+     */
+    private byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws SnapshotStructureException {
+        log.info("loading {} RRDP snapshot from {}", config.getName(), snapshotUrl);
+
+        final byte[] snapshotBytes = blockForHttpGetRequest(snapshotUrl, config.getTotalRequestTimeout());
+        verifyNotNull(snapshotBytes);
+
+        final String realSnapshotHash = Sha256.asString(snapshotBytes);
+        if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
+            throw new SnapshotStructureException(snapshotUrl, "with len(content) = %d had sha256(content) = %s, expected %s".formatted(snapshotBytes.length, realSnapshotHash, desiredSnapshotHash));
+        }
+
+        return snapshotBytes;
+    }
+
     @Override
     public Map<String, RpkiObject> fetchObjects() throws SnapshotStructureException, SnapshotNotModifiedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
-            final String notificationXml = blockForHttpGetRequest(config.getNotificationUrl(), config.getTotalRequestTimeout());
-            verifyNotNull(notificationXml);
-            final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationXml.getBytes()));
+            final byte[] notificationBytes = blockForHttpGetRequest(config.getNotificationUrl(), config.getTotalRequestTimeout());
+            verifyNotNull(notificationBytes);
+            final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationBytes));
 
             final int notificationSerial = Integer.parseInt(notificationXmlDoc.getDocumentElement().getAttribute("serial"));
 
@@ -118,19 +136,11 @@ public class RrdpFetcher implements RepoFetcher {
             }
             lastSnapshotUrl = snapshotUrl;
 
-            log.info("loading {} RRDP snapshot from {}", config.getName(), snapshotUrl);
+            final byte[] snapshotContent = loadSnapshot(snapshotUrl, desiredSnapshotHash);
 
-            final String snapshotXml = blockForHttpGetRequest(snapshotUrl, config.getTotalRequestTimeout());
-            assert snapshotXml != null;
-            final byte[] bytes = snapshotXml.getBytes();
-
-            final String realSnapshotHash = Sha256.asString(bytes);
-            if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
-                throw new SnapshotStructureException(snapshotUrl, "with len(content) = %d had sha256(content) = %s, expected %s".formatted(bytes.length, realSnapshotHash, desiredSnapshotHash));
-            }
-
-            final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(bytes));
+            final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(snapshotContent));
             var doc = snapshotXmlDoc.getDocumentElement();
+
             // Check attributes of root snapshot element (mostly: that serial matches)
             var querySnapshot = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot");
             var snapshotNodes = (NodeList) querySnapshot.evaluate(doc, XPathConstants.NODESET);
@@ -147,47 +157,10 @@ public class RrdpFetcher implements RepoFetcher {
                 }
             }
 
-            var queryPublish = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot/publish");
-            final NodeList publishedObjects = (NodeList) queryPublish.evaluate(doc, XPathConstants.NODESET);
+            var processPublishElementResult = processPublishElements(doc);
 
-            var decoder = Base64.getDecoder();
-            var collisionCount = new AtomicInteger();
-
-            var objects = IntStream
-                    .range(0, publishedObjects.getLength())
-                    .mapToObj(publishedObjects::item)
-                    .map(item -> {
-                        var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
-                        var content = item.getTextContent();
-
-                        try {
-                            // Surrounding whitespace is allowed by xsd:base64Binary. Trim that
-                            // off before decoding. See also:
-                            // https://www.w3.org/TR/2004/PER-xmlschema-2-20040318/datatypes.html#base64Binary
-                            var decoded = decoder.decode(content.trim());
-                            return ImmutablePair.of(objectUri, new RpkiObject(decoded));
-                        } catch (RuntimeException e) {
-                            log.error("cannot decode object data for URI {}\n{}", objectUri, content);
-                            throw e;
-                        }
-                    })
-                    // group by url to detect duplicate urls: keeps the first element, will cause a diff between
-                    // the sources being monitored.
-                    .collect(Collectors.groupingBy(Pair::getLeft))
-                    // invariant: every group has at least 1 item
-                    .entrySet().stream()
-                    .map(item -> {
-                        if (item.getValue().size() > 1) {
-                            log.warn("Multiple objects for {}, keeping first element: {}", item.getKey(), item.getValue().stream().map(coll -> Sha256.asString(coll.getRight().getBytes())).collect(Collectors.joining(", ")));
-                            collisionCount.addAndGet(item.getValue().size() - 1);
-                            return item.getValue().get(0);
-                        }
-                        return item.getValue().get(0);
-                    })
-                    .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
-
-            metrics.success(notificationSerial, collisionCount.get());
-            return objects;
+            metrics.success(notificationSerial, processPublishElementResult.collisionCount);
+            return processPublishElementResult.objects;
         } catch (SnapshotStructureException e) {
             metrics.failure();
             throw e;
@@ -208,4 +181,50 @@ public class RrdpFetcher implements RepoFetcher {
             throw e;
         }
     }
+
+    private ProcessPublishElementResult processPublishElements(Element doc) throws XPathExpressionException {
+        var queryPublish = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot/publish");
+        final NodeList publishedObjects = (NodeList) queryPublish.evaluate(doc, XPathConstants.NODESET);
+
+        var collisionCount = new AtomicInteger();
+
+        var decoder = Base64.getDecoder();
+
+        var objects = IntStream
+                .range(0, publishedObjects.getLength())
+                .mapToObj(publishedObjects::item)
+                .map(item -> {
+                    var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
+                    var content = item.getTextContent();
+
+                    try {
+                        // Surrounding whitespace is allowed by xsd:base64Binary. Trim that
+                        // off before decoding. See also:
+                        // https://www.w3.org/TR/2004/PER-xmlschema-2-20040318/datatypes.html#base64Binary
+                        var decoded = decoder.decode(content.trim());
+                        return ImmutablePair.of(objectUri, new RpkiObject(decoded));
+                    } catch (RuntimeException e) {
+                        log.error("cannot decode object data for URI {}\n{}", objectUri, content);
+                        throw e;
+                    }
+                })
+                // group by url to detect duplicate urls: keeps the first element, will cause a diff between
+                // the sources being monitored.
+                .collect(Collectors.groupingBy(Pair::getLeft))
+                // invariant: every group has at least 1 item
+                .entrySet().stream()
+                .map(item -> {
+                    if (item.getValue().size() > 1) {
+                        log.warn("Multiple objects for {}, keeping first element: {}", item.getKey(), item.getValue().stream().map(coll -> Sha256.asString(coll.getRight().getBytes())).collect(Collectors.joining(", ")));
+                        collisionCount.addAndGet(item.getValue().size() - 1);
+                        return item.getValue().get(0);
+                    }
+                    return item.getValue().get(0);
+                })
+                .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+
+        return new ProcessPublishElementResult(objects, collisionCount.get());
+    }
+
+    record ProcessPublishElementResult(Map<String, RpkiObject> objects, int collisionCount) {};
 }

@@ -27,13 +27,13 @@ public class ConnectToAddressResolverGroup extends AddressResolverGroup<InetSock
         return new ConnectToDefaultAddressResolver(executor).asAddressResolver();
     }
 
-    private String connectTo(String originalInetHost) {
-        return connectTo.getOrDefault(originalInetHost, originalInetHost);
-    }
-
     private class ConnectToDefaultAddressResolver extends InetNameResolver {
         public ConnectToDefaultAddressResolver(EventExecutor executor) {
             super(executor);
+        }
+
+        private String connectTo(String originalInetHost) {
+            return connectTo.getOrDefault(originalInetHost, originalInetHost);
         }
 
         @Override
