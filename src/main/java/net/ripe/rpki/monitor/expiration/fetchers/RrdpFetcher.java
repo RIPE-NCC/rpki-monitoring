@@ -16,14 +16,17 @@ import net.ripe.rpki.monitor.util.http.ConnectToAddressResolverGroup;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -38,6 +41,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -175,6 +179,11 @@ public class RrdpFetcher implements RepoFetcher {
             if (e.getMessage().contains("Timeout")) {
                 metrics.timeout();
             }
+            throw e;
+        } catch (WebClientResponseException e) {
+            log.error("Web client error (likely HTTP non-200)", e);
+            metrics.failure();
+
             throw e;
         } catch (WebClientRequestException e) {
             // TODO: Exception handling could be a lot nicer. However we are mixing reactive and synchronous code,
