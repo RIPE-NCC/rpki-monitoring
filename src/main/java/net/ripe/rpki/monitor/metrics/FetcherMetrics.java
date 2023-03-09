@@ -32,9 +32,12 @@ public class FetcherMetrics {
         final Counter successfulUpdates;
         private final Counter failedUpdates;
 
+        private final Counter timeoutUpdates;
+
         BaseFetcherMetrics(final String url, MeterRegistry meterRegistry) {
             successfulUpdates = buildCounter(url, "success", meterRegistry);
             failedUpdates = buildCounter(url, "failed", meterRegistry);
+            timeoutUpdates = buildCounter(url, "timeout", meterRegistry);
         }
 
         private static Counter buildCounter(String url, String statusTag, MeterRegistry registry) {
@@ -46,6 +49,8 @@ public class FetcherMetrics {
         }
 
         public void failure() { this.failedUpdates.increment(); }
+
+        public void timeout() { this.timeoutUpdates.increment(); }
     }
 
     public static final class RsyncFetcherMetrics extends BaseFetcherMetrics {

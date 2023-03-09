@@ -18,6 +18,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -191,8 +192,20 @@ public class RrdpFetcher implements RepoFetcher {
             metrics.failure();
             throw e;
         } catch (ParserConfigurationException | XPathExpressionException | SAXException | IOException | NumberFormatException e) {
+            // recall: IOException, ConnectException are subtypes of IOException
             metrics.failure();
             throw new FetcherException(e);
+        } catch (IllegalStateException e) {
+            if (e.getMessage().contains("Timeout")) {
+                metrics.timeout();
+            }
+            throw e;
+        } catch (WebClientRequestException e) {
+            // TODO: Exception handling could be a lot nicer. However we are mixing reactive and synchronous code,
+            //  and a nice solution probably requires major changes.
+            log.error("Web client request exception, only known cause is a timeout.", e);
+            metrics.timeout();
+            throw e;
         }
     }
 }
