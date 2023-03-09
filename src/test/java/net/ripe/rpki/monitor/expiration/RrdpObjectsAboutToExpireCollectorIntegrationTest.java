@@ -169,8 +169,8 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
                 .hasMessageContaining(String.valueOf(serial));
 
         // Snapshot is not a snapshot but a notification.xml fille
-        var unrelatedNotificationXml = getNotificationXml("1", "DEADBEEFINVALID");
-        enqueueXMLResponse(getNotificationXml(String.valueOf(serial), Sha256.asString(unrelatedNotificationXml)));
+        var unrelatedNotificationXml = getNotificationXml(String.valueOf(serial + 2), "DEADBEEFINVALID");
+        enqueueXMLResponse(getNotificationXml(String.valueOf(serial + 2), Sha256.asString(unrelatedNotificationXml)));
         enqueueXMLResponse(unrelatedNotificationXml);
 
         assertThatThrownBy(() -> subject.run())
