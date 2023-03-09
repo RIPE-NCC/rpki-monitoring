@@ -135,7 +135,6 @@ public class RrdpFetcher implements RepoFetcher {
                 metrics.success(notificationSerial, 0);
                 throw new SnapshotNotModifiedException(snapshotUrl);
             }
-            lastSnapshotUrl = snapshotUrl;
 
             final byte[] snapshotContent = loadSnapshot(snapshotUrl, desiredSnapshotHash);
 
@@ -161,6 +160,9 @@ public class RrdpFetcher implements RepoFetcher {
             var processPublishElementResult = processPublishElements(doc);
 
             metrics.success(notificationSerial, processPublishElementResult.collisionCount);
+            // We have successfully updated from the snapshot, store the URL
+            lastSnapshotUrl = snapshotUrl;
+
             return processPublishElementResult.objects;
         } catch (SnapshotStructureException e) {
             metrics.failure();
