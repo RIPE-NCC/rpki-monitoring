@@ -1,9 +1,6 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
 import com.google.common.base.Strings;
-import io.netty.channel.ChannelOption;
-import io.netty.handler.timeout.ReadTimeoutHandler;
-import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.AppConfig;
@@ -12,13 +9,10 @@ import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
-import net.ripe.rpki.monitor.util.http.ConnectToAddressResolverGroup;
+import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -27,8 +21,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -41,9 +33,7 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -64,9 +54,9 @@ public class RrdpFetcher implements RepoFetcher {
             RrdpConfig.RrdpRepositoryConfig config,
             AppConfig appConfig,
             FetcherMetrics fetcherMetrics,
-            WebClient.Builder webclientBuilder) {
+            WebClientBuilderFactory webclientBuilderFactory) {
         this.config = config;
-        this.httpClient = configureWebclient(webclientBuilder, config.getConnectTo(), "rpki-monitor %s".formatted(appConfig.getInfo().gitCommitId()));
+        this.httpClient = webclientBuilderFactory.connectToClientBuilder(config.getConnectTo()).build();
 
         this.metrics = fetcherMetrics.rrdp(
                 Strings.isNullOrEmpty(config.getOverrideHostname()) ?
@@ -74,24 +64,6 @@ public class RrdpFetcher implements RepoFetcher {
                         String.format("%s@%s", config.getNotificationUrl(), config.getOverrideHostname()));
 
         log.info("RrdpFetcher({}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostname());
-    }
-
-    private WebClient configureWebclient(WebClient.Builder builder, Map<String, String> connectTo, String userAgent) {
-        // remember: read and write timeouts are per read, not for a request.
-        return builder
-                .clientConnector(new ReactorClientHttpConnector(
-                    HttpClient.create()
-                        .resolver(new ConnectToAddressResolverGroup(connectTo))
-                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-                        .responseTimeout(Duration.ofMillis(5000))
-                        .doOnConnected(conn ->
-                                conn.addHandlerLast(new ReadTimeoutHandler(5000, TimeUnit.MILLISECONDS))
-                                    .addHandlerLast(new WriteTimeoutHandler(5000, TimeUnit.MILLISECONDS))
-                        )
-                    )
-                )
-                .defaultHeader(HttpHeaders.USER_AGENT, userAgent)
-                .build();
     }
 
     private byte[] blockForHttpGetRequest(String uri, Duration timeout) {
@@ -107,7 +79,7 @@ public class RrdpFetcher implements RepoFetcher {
      * Load snapshot and validate hash
      */
     private byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws SnapshotStructureException {
-        log.info("loading {} RRDP snapshot from {}", config.getName(), snapshotUrl);
+        log.info("loading {} RRDP snapshot from {} (connect-to={})", config.getName(), snapshotUrl, config.getConnectTo());
 
         final byte[] snapshotBytes = blockForHttpGetRequest(snapshotUrl, config.getTotalRequestTimeout());
         verifyNotNull(snapshotBytes);

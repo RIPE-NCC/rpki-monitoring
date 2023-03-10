@@ -8,9 +8,9 @@ import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
+import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ public class Collectors {
                       RepositoriesState repositoriesState,
                       AppConfig config,
                       FetcherMetrics fetcherMetrics,
-                      WebClient.Builder webclientBuilder) {
+                      WebClientBuilderFactory webclientBuilder) {
         this.metrics = metrics;
         this.repositoriesState = repositoriesState;
 

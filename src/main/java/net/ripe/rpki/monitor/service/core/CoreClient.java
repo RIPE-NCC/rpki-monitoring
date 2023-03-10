@@ -6,6 +6,7 @@ import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.config.CoreConfig;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
+import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,14 +28,13 @@ public class CoreClient {
 
     @Autowired
     public CoreClient(CoreConfig coreConfig,
-                      WebClient.Builder builder,
+                      WebClientBuilderFactory builderFactory,
                       AppConfig appConfig,
                       CollectorUpdateMetrics collectorUpdateMetrics) {
         this.collectorUpdateMetrics = collectorUpdateMetrics;
         this.url = coreConfig.getUrl();
         this.httpTotalTimeout = coreConfig.getTotalRequestTimeout();
-        this.httpClient = builder
-                .defaultHeader("user-agent", String.format("rpki-monitor %s", appConfig.getInfo().gitCommitId()))
+        this.httpClient = builderFactory.builder()
                 .defaultHeader(appConfig.getProperties().getInternalApiKeyHeader(), coreConfig.getApiKey())
                 .baseUrl(url)
                 .build();
