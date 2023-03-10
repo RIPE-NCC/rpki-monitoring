@@ -63,6 +63,7 @@ public class FetcherMetrics {
 
     public static final class RRDPFetcherMetrics extends BaseFetcherMetrics {
         final AtomicInteger rrdpSerial = new AtomicInteger();
+
         final AtomicInteger rrdpCollisions = new AtomicInteger();
 
         private RRDPFetcherMetrics(final String url, MeterRegistry meterRegistry) {
@@ -83,6 +84,10 @@ public class FetcherMetrics {
             this.successfulUpdates.increment();
             this.rrdpSerial.set(serial);
             this.rrdpCollisions.set(collisionCount);
+        }
+
+        public int collisionCount() {
+            return rrdpCollisions.get();
         }
     }
 }

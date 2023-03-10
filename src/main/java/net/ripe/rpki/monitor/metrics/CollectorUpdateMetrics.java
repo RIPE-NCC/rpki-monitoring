@@ -48,6 +48,14 @@ public class CollectorUpdateMetrics {
         return status;
     }
 
+    public ExecutionStatus trackAborted(final String collectorName, final String tag, final String url) {
+        final var status = getExecutionStatus(collectorName, tag, url);
+
+        status.abortedCount.increment();
+        status.lastUpdated.set(System.currentTimeMillis()/1000);
+        return status;
+    }
+
     private ExecutionStatus getExecutionStatus(final String collectorName, final String tag, final String repoUrl) {
         return executionStatus.computeIfAbsent(Triple.of(collectorName, tag, repoUrl), key -> new ExecutionStatus(collectorName, tag, repoUrl));
     }
@@ -61,6 +69,8 @@ public class CollectorUpdateMetrics {
 
         private final Counter successCount;
         private final Counter failureCount;
+
+        private final Counter abortedCount;
 
         private final AtomicLong passedObjectCount = new AtomicLong();
         private final AtomicLong unknownObjectCount = new AtomicLong();
@@ -96,6 +106,14 @@ public class CollectorUpdateMetrics {
                     .tag(NAME, tag)
                     .tag(URL, repoUrl)
                     .tag(STATUS, "failure")
+                    .register(registry);
+
+            abortedCount = Counter.builder(COLLECTOR_UPDATE_METRIC)
+                    .description(COLLECTOR_UPDATE_DESCRIPTION)
+                    .tag(COLLECTOR, collectorName)
+                    .tag(NAME, tag)
+                    .tag(URL, repoUrl)
+                    .tag(STATUS, "aborted")
                     .register(registry);
         }
 

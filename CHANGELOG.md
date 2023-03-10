@@ -1,5 +1,8 @@
 ## HEAD
 
+## v0.11.2
+  * Improve exception handling - track aborted non-failure cases
+
 ## v0.11.1
   * Track a non-modified snapshot as successful update
   * Do not update the last successful URL until processing succeeds.

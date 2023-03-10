@@ -119,7 +119,7 @@ public class RrdpFetcher implements RepoFetcher {
     }
 
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws SnapshotStructureException, SnapshotNotModifiedException {
+    public Map<String, RpkiObject> fetchObjects() throws SnapshotStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
@@ -136,7 +136,7 @@ public class RrdpFetcher implements RepoFetcher {
             verifyNotNull(snapshotUrl);
             if (snapshotUrl.equals(lastSnapshotUrl)) {
                 log.info("not updating: {} snapshot url {} is the same as during the last check.", config.getName(), snapshotUrl);
-                metrics.success(notificationSerial, 0);
+                metrics.success(notificationSerial, metrics.collisionCount());
                 throw new SnapshotNotModifiedException(snapshotUrl);
             }
 
@@ -177,20 +177,30 @@ public class RrdpFetcher implements RepoFetcher {
             throw new FetcherException(e);
         } catch (IllegalStateException e) {
             if (e.getMessage().contains("Timeout")) {
+                log.info("Timeout while loading RRDP repo: connect-to={} url={}", config.getConnectTo(), config.getNotificationUrl());
                 metrics.timeout();
+                throw new RepoUpdateAbortedException(config.getNotificationUrl(), config.getConnectTo(), e);
+            } else {
+                throw e;
             }
-            throw e;
         } catch (WebClientResponseException e) {
-            log.error("Web client error (likely HTTP non-200)", e);
-            metrics.failure();
+            // Can be either a HTTP non-2xx or a timeout
+            log.error("Web client error for {} {}: Can be HTTP non-200 or a timeout. For 2xx we assume it's a timeout.", e.getRequest().getMethod(), e.getRequest().getURI(), e);
+            if (e.getStatusCode().is2xxSuccessful()) {
+                // Assume it's a timeout
+                metrics.timeout();
+                throw new RepoUpdateAbortedException(e.getRequest().getURI(), config.getConnectTo(), e);
+            } else {
+                metrics.failure();
 
-            throw e;
+                throw e;
+            }
         } catch (WebClientRequestException e) {
             // TODO: Exception handling could be a lot nicer. However we are mixing reactive and synchronous code,
             //  and a nice solution probably requires major changes.
             log.error("Web client request exception, only known cause is a timeout.", e);
             metrics.timeout();
-            throw e;
+            throw new RepoUpdateAbortedException(config.getNotificationUrl(), config.getConnectTo(), e);
         }
     }
 
