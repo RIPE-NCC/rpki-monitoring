@@ -12,10 +12,7 @@ import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationResult;
-import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
-import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
-import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
-import net.ripe.rpki.monitor.expiration.fetchers.SnapshotStructureException;
+import net.ripe.rpki.monitor.expiration.fetchers.*;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
@@ -95,6 +92,8 @@ public class ObjectAndDateCollector {
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get(), maxObjectSize.get());
         } catch (SnapshotNotModifiedException e) {
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url());
+        } catch (RepoUpdateAbortedException e) {
+            collectorUpdateMetrics.trackAborted(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url());
         } catch (Exception e) {
             collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get(), maxObjectSize.get());
             throw e;

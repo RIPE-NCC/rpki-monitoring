@@ -16,6 +16,7 @@ import net.ripe.rpki.monitor.util.http.ConnectToAddressResolverGroup;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -39,6 +40,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -119,7 +121,7 @@ public class RrdpFetcher implements RepoFetcher {
     }
 
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws SnapshotStructureException, SnapshotNotModifiedException {
+    public Map<String, RpkiObject> fetchObjects() throws SnapshotStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
@@ -136,7 +138,7 @@ public class RrdpFetcher implements RepoFetcher {
             verifyNotNull(snapshotUrl);
             if (snapshotUrl.equals(lastSnapshotUrl)) {
                 log.info("not updating: {} snapshot url {} is the same as during the last check.", config.getName(), snapshotUrl);
-                metrics.success(notificationSerial, 0);
+                metrics.success(notificationSerial, metrics.collisionCount());
                 throw new SnapshotNotModifiedException(snapshotUrl);
             }
 
@@ -145,21 +147,7 @@ public class RrdpFetcher implements RepoFetcher {
             final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(snapshotContent));
             var doc = snapshotXmlDoc.getDocumentElement();
 
-            // Check attributes of root snapshot element (mostly: that serial matches)
-            var querySnapshot = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot");
-            var snapshotNodes = (NodeList) querySnapshot.evaluate(doc, XPathConstants.NODESET);
-            // It is invariant that there is only one root element in an XML file, but it could still contain a different
-            // root tag => 0
-            if (snapshotNodes.getLength() != 1) {
-                throw new SnapshotStructureException(snapshotUrl, "No <snapshot>...</snapshot> root element found");
-            } else {
-                var item = snapshotNodes.item(0);
-                int snapshotSerial = Integer.parseInt(item.getAttributes().getNamedItem("serial").getNodeValue());
-
-                if (notificationSerial != snapshotSerial) {
-                    throw new SnapshotStructureException(snapshotUrl, "contained serial=%d, expected=%d".formatted(snapshotSerial, notificationSerial));
-                }
-            }
+            validateSnapshotStructure(notificationSerial, snapshotUrl, doc);
 
             var processPublishElementResult = processPublishElements(doc);
 
@@ -177,20 +165,49 @@ public class RrdpFetcher implements RepoFetcher {
             throw new FetcherException(e);
         } catch (IllegalStateException e) {
             if (e.getMessage().contains("Timeout")) {
+                log.info("Timeout while loading RRDP repo: connect-to={} url={}", config.getConnectTo(), config.getNotificationUrl());
                 metrics.timeout();
+                throw new RepoUpdateAbortedException(config.getNotificationUrl(), config.getConnectTo(), e);
+            } else {
+                throw e;
             }
-            throw e;
         } catch (WebClientResponseException e) {
-            log.error("Web client error (likely HTTP non-200)", e);
-            metrics.failure();
+            var maybeRequest = Optional.ofNullable(e.getRequest());
+            // Can be either a HTTP non-2xx or a timeout
+            log.error("Web client error for {} {}: Can be HTTP non-200 or a timeout. For 2xx we assume it's a timeout.", maybeRequest.map(HttpRequest::getMethod), maybeRequest.map(HttpRequest::getURI), e);
+            if (e.getStatusCode().is2xxSuccessful()) {
+                // Assume it's a timeout
+                metrics.timeout();
+                throw new RepoUpdateAbortedException(Optional.ofNullable(e.getRequest()).map(HttpRequest::getURI).orElse(null), config.getConnectTo(), e);
+            } else {
+                metrics.failure();
 
-            throw e;
+                throw e;
+            }
         } catch (WebClientRequestException e) {
             // TODO: Exception handling could be a lot nicer. However we are mixing reactive and synchronous code,
             //  and a nice solution probably requires major changes.
             log.error("Web client request exception, only known cause is a timeout.", e);
             metrics.timeout();
-            throw e;
+            throw new RepoUpdateAbortedException(config.getNotificationUrl(), config.getConnectTo(), e);
+        }
+    }
+
+    private static void validateSnapshotStructure(int notificationSerial, String snapshotUrl, Element doc) throws XPathExpressionException, SnapshotStructureException {
+        // Check attributes of root snapshot element (mostly: that serial matches)
+        var querySnapshot = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot");
+        var snapshotNodes = (NodeList) querySnapshot.evaluate(doc, XPathConstants.NODESET);
+        // It is invariant that there is only one root element in an XML file, but it could still contain a different
+        // root tag => 0
+        if (snapshotNodes.getLength() != 1) {
+            throw new SnapshotStructureException(snapshotUrl, "No <snapshot>...</snapshot> root element found");
+        } else {
+            var item = snapshotNodes.item(0);
+            int snapshotSerial = Integer.parseInt(item.getAttributes().getNamedItem("serial").getNodeValue());
+
+            if (notificationSerial != snapshotSerial) {
+                throw new SnapshotStructureException(snapshotUrl, "contained serial=%d, expected=%d".formatted(snapshotSerial, notificationSerial));
+            }
         }
     }
 
