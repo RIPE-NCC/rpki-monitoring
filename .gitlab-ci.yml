@@ -122,6 +122,8 @@ build:image:
 release:latest:
   stage: release
   needs: ["build:image"]
+  # optional
+  allow_failure: true
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
@@ -285,6 +287,8 @@ deploy:paas-production:
     - if: '$CI_COMMIT_TAG =~ /^rpki-monitoring-v\d+\.\d+\.\d+/'
 
 review:
+  # optional
+  allow_failure: true
   variables:
     GIT_STRATEGY: none
     RPKI_MONITORING_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
