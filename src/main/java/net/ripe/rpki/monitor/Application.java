@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor;
 
+import io.micrometer.common.KeyValues;
 import io.netty.channel.nio.NioEventLoopGroup;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +18,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -41,6 +43,22 @@ public class Application {
         NioEventLoopGroup group = new NioEventLoopGroup(1);
 
         return new WebClientBuilderFactory(group, baseBuilder, "rpki-monitor %s".formatted(appConfig.getInfo().gitCommitId()));
+    }
+
+    /**
+     * Return an observation customiser that only differs in that it omits the URL.
+     * The hostname for the request is the clientName.
+     *
+     * The full URL is in a high cardinality value (which would be used by observability tools)
+     */
+    @Bean
+    public ClientRequestObservationConvention nonUriClientRequestObservationConvention() {
+        return new DefaultClientRequestObservationConvention() {
+            @Override
+            public KeyValues getLowCardinalityKeyValues(ClientRequestObservationContext context) {
+                    return KeyValues.of(method(context), status(context), clientName(context), exception(context), outcome(context));
+            }
+        };
     }
 
     @Bean
@@ -121,13 +139,5 @@ public class Application {
                 Collections.disjoint(rrdpKeys, rsyncKeys),
                 "RRDP and rsync other-urls keys overlap"
         );
-    }
-
-    /**
-     * Drop all the http.client.requests metrics to prevent metrics explosion
-     */
-    @Bean
-    public MeterFilter dropHttpClientRequestMetrics() {
-        return MeterFilter.denyNameStartsWith("http.client.requests");
     }
 }
