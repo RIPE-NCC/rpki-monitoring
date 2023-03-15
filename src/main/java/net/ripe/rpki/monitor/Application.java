@@ -1,7 +1,7 @@
 package net.ripe.rpki.monitor;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.config.MeterFilter;
+import io.micrometer.common.KeyValues;
+import io.netty.channel.nio.NioEventLoopGroup;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.AppConfig;
@@ -11,20 +11,20 @@ import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
+import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.metrics.AutoTimer;
-import org.springframework.boot.actuate.metrics.web.reactive.client.DefaultWebClientExchangeTagsProvider;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -35,6 +35,30 @@ import static java.util.stream.Collectors.toSet;
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
+    }
+
+    @Bean
+    public WebClientBuilderFactory webclientConfigurer(WebClient.Builder baseBuilder, AppConfig appConfig) {
+        // Explicit event loop is required for custom DnsNameResolverBuilder
+        NioEventLoopGroup group = new NioEventLoopGroup(1);
+
+        return new WebClientBuilderFactory(group, baseBuilder, "rpki-monitor %s".formatted(appConfig.getInfo().gitCommitId()));
+    }
+
+    /**
+     * Return an observation customiser that only differs in that it omits the URL.
+     * The hostname for the request is the clientName.
+     *
+     * The full URL is in a high cardinality value (which would be used by observability tools)
+     */
+    @Bean
+    public ClientRequestObservationConvention nonUriClientRequestObservationConvention() {
+        return new DefaultClientRequestObservationConvention() {
+            @Override
+            public KeyValues getLowCardinalityKeyValues(ClientRequestObservationContext context) {
+                    return KeyValues.of(method(context), status(context), clientName(context), exception(context), outcome(context));
+            }
+        };
     }
 
     @Bean
@@ -115,13 +139,5 @@ public class Application {
                 Collections.disjoint(rrdpKeys, rsyncKeys),
                 "RRDP and rsync other-urls keys overlap"
         );
-    }
-
-    /**
-     * Drop all the http.client.requests metrics to prevent metrics explosion
-     */
-    @Bean
-    public MeterFilter dropHttpClientRequestMetrics() {
-        return MeterFilter.denyNameStartsWith("http.client.requests");
     }
 }

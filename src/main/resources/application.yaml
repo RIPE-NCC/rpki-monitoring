@@ -67,12 +67,16 @@ management:
 ---
 spring.config.activate.on-profile: local
 
+logging.level:
+      reactor.netty.http: DEBUG
+
 rrdp:
   interval: 5M
   targets:
     - name: main
-      notification-url: https://rrdp.int.ripe.net/notification.xml
-      override-hostname: rrdp.int.ripe.net
+      notification-url: https://rrdp.ripe.net/notification.xml
+      connect-to:
+        rrdp.ripe.net: rrdp.int.ripe.net
 
 rsync:
   # *without* the trailing slash
