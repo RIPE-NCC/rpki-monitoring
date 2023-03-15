@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.11.3
+  * Use resolver that prefers IPv6. Add metrics for HTTP clients that do not
+    use URL in labels.
+
 ## v0.11.2
   * Improve exception handling - track aborted non-failure cases
 
