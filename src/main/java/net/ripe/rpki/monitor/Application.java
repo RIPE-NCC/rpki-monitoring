@@ -24,7 +24,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toSet;
 
