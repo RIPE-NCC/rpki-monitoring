@@ -37,8 +37,10 @@ public record WebClientBuilderFactory(EventLoopGroup eventLoopGroup, WebClient.B
                 .responseTimeout(Duration.ofMillis(5000))
                 // remember: read and write timeouts are per read, not for a request.
                 .doOnConnected(conn ->
-                        conn.addHandlerLast(new ReadTimeoutHandler(5000, TimeUnit.MILLISECONDS))
-                                .addHandlerLast(new WriteTimeoutHandler(5000, TimeUnit.MILLISECONDS))
+                        conn
+                                // some endpoints (e.g. rpki core) are slow, 5s -> 60s.
+                                .addHandlerLast(new ReadTimeoutHandler(60000, TimeUnit.MILLISECONDS))
+                                .addHandlerLast(new WriteTimeoutHandler(60000, TimeUnit.MILLISECONDS))
                 );
     }
 

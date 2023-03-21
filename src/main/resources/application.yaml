@@ -30,6 +30,20 @@ rsync:
     - name: rsync
       url: rsync://rpki.prepdev.ripe.net
 
+expiry.match:
+  - regex: 'rsync://.*/repository/aca/.*'
+    threshold: 21D
+    labels:
+      file_description: 'products of offline CA'
+  - regex: 'rsync://.*/ta/.*'
+    threshold: 21D
+    labels:
+      file_description: 'TA certificate'
+  - regex: 'rsync://.*/repository/.*\.[^/]*'
+    threshold: 15H
+    labels:
+      file_description: 'production CA manifest & crl'
+
 server:
   port: 9090
   shutdown: graceful

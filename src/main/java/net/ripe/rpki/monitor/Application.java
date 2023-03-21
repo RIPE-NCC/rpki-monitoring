@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.config.RrdpConfig;
 import net.ripe.rpki.monitor.config.RsyncConfig;
+import net.ripe.rpki.monitor.expiration.ExpiryMonitorHooks;
 import net.ripe.rpki.monitor.metrics.ObjectExpirationMetrics;
 import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
@@ -64,8 +65,9 @@ public class Application {
     public RepositoriesState repositoriesState(
             @NonNull final AppConfig config,
             @NonNull final PublishedObjectsSummaryService publishedObjectsSummary,
-            @NonNull ObjectExpirationMetrics objectExpirationMetrics
-    ) {
+            @NonNull ObjectExpirationMetrics objectExpirationMetrics,
+            @NonNull ExpiryMonitorHooks expiryMonitorHooks
+            ) {
         checkOverlappingRepositoryKeys(config);
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
 
@@ -96,6 +98,7 @@ public class Application {
                 objectExpirationMetrics.trackExpiration(tracker.getUrl(), now, tracker.view(now).entries());
             }
         });
+        state.addHook(expiryMonitorHooks::track);
         state.addHook(tracker -> log.info(
             "Updated {} repository {} at {}; it now has {} entries.",
             tracker.getType(),
