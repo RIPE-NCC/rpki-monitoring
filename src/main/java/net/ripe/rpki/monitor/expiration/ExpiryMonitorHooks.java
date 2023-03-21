@@ -37,12 +37,15 @@ public class ExpiryMonitorHooks {
     }
 
     public void track(final RepositoryTracker tracker) {
-        log.info("track({}, {}, {})", tracker.getUrl(), tracker.getTag(), tracker.getType());
-        expiryMonitoring.match().stream().parallel().forEach(matcher -> {
-            var matcherMetrics = metrics.computeIfAbsent(new TrackedMonitor(tracker.getTag(), tracker.getUrl(), matcher), monitor -> new MatcherMetrics(monitor, meterRegistry));
+        // Track specified tags if set, but default to all of them.
+        if (expiryMonitoring.shouldTrack(tracker)) {
+            log.info("track({}, {}, {})", tracker.getUrl(), tracker.getTag(), tracker.getType());
+            expiryMonitoring.match().stream().parallel().forEach(matcher -> {
+                var matcherMetrics = metrics.computeIfAbsent(new TrackedMonitor(tracker.getTag(), tracker.getUrl(), matcher), monitor -> new MatcherMetrics(monitor, meterRegistry));
 
-            matcherMetrics.trackObjects(tracker.view(Instant.now()).entries());
-        });
+                matcherMetrics.trackObjects(tracker.view(Instant.now()).entries());
+            });
+        }
     }
 
     private record TrackedMonitor(String key, String url, ExpiryMonitoringConfig.Matcher matcher) { }
