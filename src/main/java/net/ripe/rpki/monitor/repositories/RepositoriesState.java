@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.repositories;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.tuple.Triple;
 
 import java.time.Duration;
@@ -47,7 +48,7 @@ public class RepositoriesState {
     }
 
     public void addHook(Consumer<RepositoryTracker> f) {
-        updateHooks.getAndUpdate((xs -> append(xs, f)));
+        updateHooks.getAndUpdate(xs -> ImmutableList.<Consumer<RepositoryTracker>>builder().addAll(xs).add(f).build());
     }
 
     /**
@@ -63,7 +64,7 @@ public class RepositoriesState {
     public List<RepositoryTracker> trackersOfType(RepositoryTracker.Type type) {
         return repositories.stream()
                 .filter(x -> x.getType() == type)
-                .collect(toUnmodifiableList());
+                .toList();
     }
 
     /**
@@ -72,13 +73,6 @@ public class RepositoriesState {
     public List<RepositoryTracker> otherTrackers(RepositoryTracker tracker) {
         return repositories.stream()
                 .filter(x -> !x.getUrl().equals(tracker.getUrl()))
-                .collect(toUnmodifiableList());
-    }
-
-    private <T> List<T> append(List<T> xs, T x) {
-        return Stream.concat(
-                xs.stream(),
-                Stream.of(x)
-        ).collect(Collectors.toList());
+                .toList();
     }
 }

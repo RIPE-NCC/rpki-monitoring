@@ -20,5 +20,5 @@ public class CoreConfig {
     private Duration interval = Duration.ofMinutes(1);
     private Duration initialDelay = Duration.ofSeconds(10);
 
-    private Duration totalRequestTimeout = Duration.ofSeconds(60);
+    private Duration totalRequestTimeout = Duration.ofSeconds(120);
 }
