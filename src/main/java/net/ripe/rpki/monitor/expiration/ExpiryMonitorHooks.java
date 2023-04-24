@@ -70,6 +70,7 @@ public class ExpiryMonitorHooks {
                     .tags(monitor.matcher.tags())
                     .tag("uri", monitor.url)
                     .tag("key", monitor.key)
+                    .tag("threshold", monitor.matcher.threshold().toString())
                     .tag("regex", monitor.matcher.regex())
                     .tag("comparison", comparison)
                     .register(registry);
