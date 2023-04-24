@@ -36,7 +36,7 @@ expiry:
   track-tags:
     - main
   match:
-    - regex: 'rsync://.*/repository/.*\.[^/]*'
+    - regex: 'rsync://.*/repository/[^/]+'
       threshold: 21D
       labels:
         file_description: 'products of offline CA'
@@ -44,7 +44,7 @@ expiry:
       threshold: 180D
       labels:
         file_description: 'TA certificate'
-    - regex: 'rsync://.*/repository/aca/.*\.[^/]*'
+    - regex: 'rsync://.*/repository/aca/.*'
       threshold: 15H
       labels:
         file_description: 'production CA manifest & crl'
