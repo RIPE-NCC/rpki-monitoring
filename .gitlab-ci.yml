@@ -228,7 +228,7 @@ deploy:prepdev:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
     TARGET_CONTAINER: rpki-monitoring
     READINESS_URL: http://127.0.0.1:9090/actuator/info
-    TARGET_HOST: uncore-1.rpki.prepdev.ripe.net
+    TARGET_HOST: uncore-*.rpki.prepdev.ripe.net
     TARGET_TAG: prepdev
   environment:
     name: prepdev
@@ -261,7 +261,7 @@ deploy:paas-prepdev:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
     TARGET_CONTAINER: rpki-monitoring
     READINESS_URL: http://127.0.0.1:9090/actuator/info
-    TARGET_HOST: monitoring-1.paas.rpki.prepdev.ripe.net
+    TARGET_HOST: monitoring-*.paas.rpki.prepdev.ripe.net
     TARGET_TAG: paas-prepdev
   environment:
     name: paas-prepdev
@@ -277,7 +277,7 @@ deploy:paas-production:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
     TARGET_CONTAINER: rpki-monitoring
     READINESS_URL: http://127.0.0.1:9090/actuator/info
-    TARGET_HOST: monitoring-1.paas.rpki.ripe.net
+    TARGET_HOST: monitoring-*.paas.rpki.ripe.net
     TARGET_TAG: paas-production
   environment:
     name: paas-production
