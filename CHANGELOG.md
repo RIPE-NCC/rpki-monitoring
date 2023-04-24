@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.12.0
+  * Add `rpkimonitoring_expiry_matcher` metrics to match expiry time for
+    objects in specific locations.
+
 ## v0.11.3
   * Use resolver that prefers IPv6. Add metrics for HTTP clients that do not
     use URL in labels.
