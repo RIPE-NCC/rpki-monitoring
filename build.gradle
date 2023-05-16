@@ -31,6 +31,11 @@ dependencies {
 
     implementation 'net.ripe.rpki:rpki-commons:1.33'
 
+    implementation 'io.micrometer:micrometer-observation'
+    implementation 'io.micrometer:micrometer-registry-otlp'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+
     // Metrics
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'

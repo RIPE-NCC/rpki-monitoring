@@ -1,0 +1,11 @@
+export RRDP_URL=https://rrdp.prepdev.ripe.net
+export RSYNC_URL=rsync://rpki.prepdev.ripe.net
+export CORE_URL=https://ba-apps.prepdev.ripe.net/certification/
+export CORE_API_KEY=BAD-TEST-D2Shtf2n5Bwh02P7
+
+
+export MANAGEMENT_OTLP_METRICS_EXPORT_URL=https://apm.prepdev.ripe.net:8200/v1/metrics
+export MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://apm.prepdev.ripe.net:8200
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer TokenThing=="
+export OTEL_RESOURCE_ATTRIBUTES=service.name=rpki-monitoring,service.version=main,deployment.environment=prepdev
