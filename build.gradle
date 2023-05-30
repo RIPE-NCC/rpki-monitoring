@@ -29,7 +29,7 @@ dependencies {
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
-    implementation 'net.ripe.rpki:rpki-commons:1.32'
+    implementation 'net.ripe.rpki:rpki-commons:1.33'
 
     // Metrics
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
