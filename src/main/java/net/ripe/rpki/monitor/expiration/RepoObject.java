@@ -5,6 +5,7 @@ import com.google.common.hash.HashCode;
 import lombok.Value;
 import net.ripe.rpki.monitor.HasHashAndUri;
 
+import java.time.Instant;
 import java.util.Date;
 
 @Value
@@ -24,8 +25,9 @@ public class RepoObject implements Comparable<RepoObject>, HasHashAndUri {
             .result();
     }
 
-    public static RepoObject fictionalObjectValidAtInstant(final Date date) {
-        return new RepoObject(date, date, "NA", new byte[]{0});
+    public static RepoObject fictionalObjectValidAtInstant(final Instant then) {
+        var asDate = Date.from(then);
+        return new RepoObject(asDate, asDate, "NA", new byte[]{0});
     }
 
     public String getSha256() {

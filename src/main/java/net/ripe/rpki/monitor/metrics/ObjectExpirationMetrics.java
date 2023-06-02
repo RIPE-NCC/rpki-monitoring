@@ -27,14 +27,13 @@ public class ObjectExpirationMetrics {
         Duration.ofHours(1).toSeconds(),
         Duration.ofHours(4).toSeconds(),
         Duration.ofHours(7).toSeconds(),
-        Duration.ofHours(8).toSeconds(),
+        Duration.ofHours(8).toSeconds(),  // All manifests and CRLs are likely created within the last 8 hours.
         Duration.ofHours(13).toSeconds(), // manifests MUST be refreshed before they have 13h left
         Duration.ofHours(15).toSeconds(), // manifests and SHOULD be refreshed by this timestamp
         Duration.ofHours(24).toSeconds(), // validity of CRLs, manifest eContent, manifest EE cert (6486-bis 5.1.2)
         Duration.ofDays(7).toSeconds(),
-        Duration.ofDays(182).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12,18 months
+        Duration.ofDays(182).toSeconds(), // ROA EE certs, CAs have 18 months validity, track 6,12 months
         Duration.ofDays(365).toSeconds(),
-        Duration.ofDays(548).toSeconds()
     };
 
     private final MeterRegistry registry;
@@ -60,9 +59,9 @@ public class ObjectExpirationMetrics {
                     .description(COLLECTOR_CREATION_DESCRIPTION)
                     .tag("url", repoUrl)
                     .baseUnit("seconds")
-                    .publishPercentileHistogram()
                     .distributionStatisticExpiry(Duration.ofMinutes(15))
                     .minimumExpectedValue((double)Duration.ofMinutes(5).toSeconds())
+                    .maximumExpectedValue((double)Duration.ofDays(366).toSeconds())
                     .serviceLevelObjectives(SERVICE_LEVEL_INDICATORS)
                     .register(registry);
 
@@ -70,9 +69,9 @@ public class ObjectExpirationMetrics {
                     .description(COLLECTOR_EXPIRATION_DESCRIPTION)
                     .tag("url", repoUrl)
                     .baseUnit("seconds")
-                    .publishPercentileHistogram()
                     .distributionStatisticExpiry(Duration.ofMinutes(15))
                     .minimumExpectedValue((double)Duration.ofMinutes(5).toSeconds())
+                    .maximumExpectedValue((double)Duration.ofDays(366).toSeconds())
                     .serviceLevelObjectives(SERVICE_LEVEL_INDICATORS)
                     .register(registry);
         }
