@@ -12,12 +12,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.api.BDDAssertions.then;
-
+import static org.assertj.core.api.Assertions.assertThat;
 
 @NoArgsConstructor
 public class ObjectExpirationMetricsTest {
@@ -36,11 +34,12 @@ public class ObjectExpirationMetricsTest {
     public void itShouldHaveTimeToExpiryMetricsWhichCountedAllObjects() throws Exception {
         var now = Instant.now();
         var objects = Set.of(
-                RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofMinutes(50)))),
-                RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofMinutes(61)))),
-                RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofHours(7).plusMinutes(10)))),
-                RepoObject.fictionalObjectValidAtInstant(Date.from(now.plus(Duration.ofHours(14))))
+                RepoObject.fictionalObjectValidAtInstant(now.plus(Duration.ofMinutes(0))),
+                RepoObject.fictionalObjectValidAtInstant(now.plus(Duration.ofMinutes(61))),
+                RepoObject.fictionalObjectValidAtInstant(now.plus(Duration.ofHours(7).plusMinutes(10))),
+                RepoObject.fictionalObjectValidAtInstant(now.plus(Duration.ofHours(14)))
         );
+        assertThat(objects.size()).isEqualTo(4);
 
         subject.trackExpiration(REPO_URL, now, objects.stream().map(RepositoryEntry::from));
 
@@ -50,31 +49,37 @@ public class ObjectExpirationMetricsTest {
                 .takeSnapshot()
                 .histogramCounts());
 
+        var theCount = buckets.stream().filter(bucket -> (int)bucket.bucket() == Duration.ofHours(4).toSeconds());
+
         // Bucket durations are constants for the SLO
-        then(buckets.stream().filter(bucket -> (int)bucket.bucket() == Duration.ofHours(1).toSeconds()))
+        assertThat(buckets)
+                .filteredOn(bucket -> (int)bucket.bucket() == Duration.ofHours(1).toSeconds())
                 .first()
-                .matches(bucket -> bucket.count() == 1); // one object < 1 hr
+                .matches(bucket -> bucket.count() == 1, "one object < 1hr");
 
-        then(buckets.stream().filter(bucket -> (int)bucket.bucket() == Duration.ofHours(4).toSeconds()))
+        assertThat(buckets)
+                .filteredOn(bucket -> (int)bucket.bucket() == Duration.ofHours(4).toSeconds())
                 .first()
-                .matches(bucket -> bucket.count() == 2); // two objects < 4 hrs
+                .matches(bucket -> bucket.count() == 2, "two objects < 4 hrs");
 
-        then(buckets.stream().filter(bucket -> (int)bucket.bucket() == Duration.ofHours(7).toSeconds()))
+        assertThat(buckets)
+                .filteredOn(bucket -> (int)bucket.bucket() == Duration.ofHours(7).toSeconds())
                 .first()
-                .matches(bucket -> bucket.count() == 2); // two objects < 7 hours
+                .matches(bucket -> bucket.count() == 2, "two objects < 7 hours"); // two objects < 7 hours
 
-        then(buckets.stream().filter(bucket -> bucket.bucket() == TimeUnit.HOURS.toSeconds(8)))
+        assertThat(buckets)
+                .filteredOn(bucket -> bucket.bucket() == TimeUnit.HOURS.toSeconds(8))
                 .first()
-                .matches(bucket -> bucket.count() == 3); // three objects < 8 hours
+                .matches(bucket -> bucket.count() == 3, "three objects < 8 hours");
     }
 
     @Test
     public void itShouldHaveTimeSinceCreationMetricsWhichCountedAllObjects() throws Exception {
         var now = Instant.now();
         var objects = Set.of(
-                RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(90, ChronoUnit.MINUTES))),
-                RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(18L * 31, ChronoUnit.DAYS))),
-                RepoObject.fictionalObjectValidAtInstant(Date.from(now.minus(18, ChronoUnit.HOURS)))
+                RepoObject.fictionalObjectValidAtInstant(now.minus(90, ChronoUnit.MINUTES)),
+                RepoObject.fictionalObjectValidAtInstant(now.minus(18L * 31, ChronoUnit.DAYS)),
+                RepoObject.fictionalObjectValidAtInstant(now.minus(18, ChronoUnit.HOURS))
         );
 
         subject.trackExpiration(REPO_URL, now, objects.stream().map(RepositoryEntry::from));
@@ -84,19 +89,22 @@ public class ObjectExpirationMetricsTest {
                 .summary()
                 .takeSnapshot();
 
-        then(snapshot.count()).isEqualTo(3);
+        assertThat(snapshot.count()).isEqualTo(3);
+        final var buckets = Arrays.asList(snapshot.histogramCounts());
 
         // Bucket durations are constants for the SLO
-        then(Arrays.stream(snapshot.histogramCounts())
-                .filter(bucket -> (int)bucket.bucket() == Duration.ofHours(1).toSeconds()))
+        assertThat(buckets)
+                .filteredOn(bucket -> (int)bucket.bucket() == Duration.ofHours(1).toSeconds())
                 .first()
                 .matches(bucket -> bucket.count() == 0); // one object < 1 hr
-        then(Arrays.stream(snapshot.histogramCounts())
-                .filter(bucket -> (int)bucket.bucket() == Duration.ofHours(4).toSeconds()))
+
+        assertThat(buckets)
+                .filteredOn(bucket -> (int)bucket.bucket() == Duration.ofHours(4).toSeconds())
                 .first()
                 .matches(bucket -> bucket.count() == 1); // one object within 4 hrs.
-        then(Arrays.stream(snapshot.histogramCounts())
-                .filter(bucket -> (int)bucket.bucket() == Duration.ofHours(24).toSeconds()))
+
+        assertThat(buckets)
+                .filteredOn(bucket -> (int)bucket.bucket() == Duration.ofHours(24).toSeconds())
                 .first()
                 .matches(bucket -> bucket.count() == 2); // two objects within 24hr
     }
