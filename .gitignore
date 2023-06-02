@@ -35,9 +35,3 @@ out/
 bin
 .bloop
 .metals
-
-## Gradle
-gradlew
-gradlew.bat
-gradle/
-
