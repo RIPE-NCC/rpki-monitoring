@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.13.0
+  * Spring boot 3.1
+  * Use connect-to in metric tags, to prevent overwriting metrics from
+    multiple RRDP sources.
+
 ## v0.12.0
   * Add `rpkimonitoring_expiry_matcher` metrics to match expiry time for
     objects in specific locations.
