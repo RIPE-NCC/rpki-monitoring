@@ -71,7 +71,7 @@ public class RsyncFetcher implements RepoFetcher {
         //  * Replace dots with underscores
         var transformedHost = String.format("%s", uri.getHost()).replace(".", "_");
         targetPath = basePath.resolve(transformedHost);
-        // Host should not be able to contain dots, but let's double check
+        // Host should not be able to contain dots, but let's double-check
         Verify.verify(targetPath.normalize().startsWith(basePath), String.format("Directory traversal detected - %s is not below %s", targetPath, basePath));
 
         Files.createDirectories(targetPath);

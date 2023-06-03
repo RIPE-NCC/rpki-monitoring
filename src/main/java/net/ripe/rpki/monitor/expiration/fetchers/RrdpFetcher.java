@@ -1,6 +1,5 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
-import com.google.common.base.Strings;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.AppConfig;
@@ -58,12 +57,9 @@ public class RrdpFetcher implements RepoFetcher {
         this.config = config;
         this.httpClient = webclientBuilderFactory.connectToClientBuilder(config.getConnectTo()).build();
 
-        this.metrics = fetcherMetrics.rrdp(
-                Strings.isNullOrEmpty(config.getOverrideHostname()) ?
-                        config.getNotificationUrl() :
-                        String.format("%s@%s", config.getNotificationUrl(), config.getOverrideHostname()));
+        this.metrics = fetcherMetrics.rrdp(config);
 
-        log.info("RrdpFetcher({}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostname());
+        log.info("RrdpFetcher({}, {}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostname(), config.getConnectTo());
     }
 
     private byte[] blockForHttpGetRequest(String uri, Duration timeout) {
