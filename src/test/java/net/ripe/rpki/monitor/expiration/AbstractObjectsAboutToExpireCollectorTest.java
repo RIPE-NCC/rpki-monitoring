@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import io.micrometer.tracing.Tracer;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
@@ -31,7 +32,8 @@ class AbstractObjectsAboutToExpireCollectorTest {
     ObjectAndDateCollector collector = new ObjectAndDateCollector(
             new NoopRepoFetcher("noop", "https://rrdp.ripe.net"),
             mock(CollectorUpdateMetrics.class),
-            state
+            state,
+            Tracer.NOOP
     );
 
     @Test

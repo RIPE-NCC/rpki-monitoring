@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import io.micrometer.tracing.Tracer;
 import lombok.Getter;
 import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
@@ -22,6 +23,8 @@ public class Collectors {
     private final CollectorUpdateMetrics metrics;
     private final RepositoriesState repositoriesState;
 
+    private final Tracer tracer;
+
     @Getter
     private final List<ObjectAndDateCollector> rrdpCollectors;
     @Getter
@@ -32,9 +35,11 @@ public class Collectors {
                       RepositoriesState repositoriesState,
                       AppConfig config,
                       FetcherMetrics fetcherMetrics,
-                      WebClientBuilderFactory webclientBuilder) {
+                      WebClientBuilderFactory webclientBuilder,
+                      Tracer tracer) {
         this.metrics = metrics;
         this.repositoriesState = repositoriesState;
+        this.tracer = tracer;
 
         this.rrdpCollectors = config.getRrdpConfig().getTargets().stream().map(
                 target -> makeCollector(new RrdpFetcher(target, config, fetcherMetrics, webclientBuilder))
@@ -45,6 +50,6 @@ public class Collectors {
     }
 
     private ObjectAndDateCollector makeCollector(RepoFetcher fetcher) {
-        return new ObjectAndDateCollector(fetcher, metrics, repositoriesState);
+        return new ObjectAndDateCollector(fetcher, metrics, repositoriesState, tracer);
     }
 }

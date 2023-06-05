@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.hash.BloomFilter;
+import io.micrometer.tracing.Tracer;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,8 @@ public class ObjectAndDateCollector {
     private final RepoFetcher repoFetcher;
     private final CollectorUpdateMetrics collectorUpdateMetrics;
 
+    private final Tracer tracer;
+
     /**
      * Bloom filter with 0.5% false positives (and no false negatives) at 100K objects to reduce logging.
      *
@@ -48,26 +51,33 @@ public class ObjectAndDateCollector {
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     public ObjectAndDateCollector(
-        @NonNull final RepoFetcher repoFetcher,
-        @NonNull CollectorUpdateMetrics metrics,
-        @NonNull RepositoriesState repositoriesState) {
+            @NonNull final RepoFetcher repoFetcher,
+            @NonNull CollectorUpdateMetrics metrics,
+            @NonNull RepositoriesState repositoriesState,
+            @NonNull Tracer tracer) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
         this.repositoriesState = repositoriesState;
+        this.tracer = tracer;
     }
 
+    @SuppressWarnings("try")
     public void run() throws FetcherException, SnapshotStructureException {
         if (!running.compareAndSet(false, true)) {
             log.warn("Skipping updates of repository '{}' ({}) because a previous update is still running.", repoFetcher.meta().tag(), repoFetcher.meta().url());
             return;
         }
 
+        var span = this.tracer.nextSpan()
+                .name("ObjectAndDateCollector")
+                .tag("tag", repoFetcher.meta().tag())
+                .tag("url", repoFetcher.meta().url());
         final var passedObjects = new AtomicInteger();
         final var unknownObjects = new AtomicInteger();
         final var rejectedObjects = new AtomicInteger();
         final var maxObjectSize = new AtomicInteger();
 
-        try {
+        try (Tracer.SpanInScope ignored = this.tracer.withSpan(span.start())) {
             final var expirationSummary = repoFetcher.fetchObjects().entrySet().parallelStream().map(e -> {
                 var objectUri = e.getKey();
                 var object = e.getValue();
@@ -86,6 +96,7 @@ public class ObjectAndDateCollector {
 
                 return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
             }).flatMap(Optional::stream);
+            span.event("objects processed");
 
             repositoriesState.updateByTag(repoFetcher.meta().tag(), Instant.now(), expirationSummary.map(RepositoryEntry::from));
 
@@ -99,6 +110,7 @@ public class ObjectAndDateCollector {
             throw e;
         } finally {
             running.set(false);
+            span.end();
         }
     }
 
