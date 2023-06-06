@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.service.core;
 
+import io.micrometer.observation.ObservationRegistry;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import net.ripe.rpki.monitor.service.core.dto.PublishedObjectEntry;
@@ -29,7 +30,7 @@ class CoreRepositorySyncJobTest {
         when(coreClientStub.getName()).thenReturn("core");
         when(coreClientStub.publishedObjects()).thenReturn(List.of(object));
 
-        var subject = new CoreRepositorySyncJob(state, coreClientStub);
+        var subject = new CoreRepositorySyncJob(state, coreClientStub, ObservationRegistry.create());
         subject.execute(mock(JobExecutionContext.class, RETURNS_DEEP_STUBS));
 
         assertThat(state.getTrackerByTag("core").get().view(Instant.now()).size()).isEqualTo(1);

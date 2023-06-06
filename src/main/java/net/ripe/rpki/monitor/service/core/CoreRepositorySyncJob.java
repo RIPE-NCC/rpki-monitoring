@@ -1,5 +1,7 @@
 package net.ripe.rpki.monitor.service.core;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.AllArgsConstructor;
 import net.ripe.rpki.monitor.config.CoreConfig;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
@@ -23,15 +25,26 @@ import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 public class CoreRepositorySyncJob extends QuartzJobBean {
     private final RepositoriesState state;
     private final CoreClient coreClient;
+    private final ObservationRegistry observationRegistry;
 
+    @SuppressWarnings("try")
     @Override
     protected void executeInternal(JobExecutionContext context) {
-        var content = coreClient.publishedObjects();
-        state.updateByTag(
-                coreClient.getName(),
-                Instant.now(),
-                content.stream().map(RepositoryEntry::from)
-        );
+        var observation = Observation.start("rpkimonitoring.fetcher", observationRegistry)
+                .contextualName("CoreRepositorySyncJob")
+                .lowCardinalityKeyValue("client.name", coreClient.getName())
+                .highCardinalityKeyValue("url", coreClient.getUrl());
+
+        try (Observation.Scope ignored = observation.openScope()) {
+            var content = coreClient.publishedObjects();
+            state.updateByTag(
+                    coreClient.getName(),
+                    Instant.now(),
+                    content.stream().map(RepositoryEntry::from)
+            );
+        } finally {
+            observation.stop();
+        }
     }
 
     @Bean("CoreRepositorySyncJob")

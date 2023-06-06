@@ -21,6 +21,7 @@ import java.util.Optional;
 public class CoreClient {
     @Getter
     private final String name = "core";
+    @Getter
     private final String url;
     private final WebClient httpClient;
     private final Duration httpTotalTimeout;

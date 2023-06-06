@@ -73,8 +73,11 @@ logging:
     web: INFO
     net.ripe.rpki: DEBUG
 
-# Enable prometheus endpoint
 management:
+  otlp.metrics.export.enabled: false
+  # 100% sample rate
+  tracing.sampling.probability: 1.0
+  # Enable prometheus endpoint
   endpoints:
     web:
       exposure:
@@ -83,6 +86,15 @@ management:
           - info
           - health
 
+otel:
+  traces.exporter: otlp
+  metrics.exporter: none
+  logs.exporter: otlp
+# Set OTEL_RESOURCE_ATTRIBUTES and other OTLP env vars via environment variables,
+#  export MANAGEMENT_OTLP_TRACING_ENDPOINT=https://apm.prepdev.ripe.net:8200/v1/traces
+#  export MANAGEMENT_OTLP_TRACING_HEADERS_Authorization="Bearer base64=="
+#  export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer base64=="
+#  export OTEL_RESOURCE_ATTRIBUTES=service.name=rpki-monitoring,service.version=main,deployment.environment=prepdev
 ---
 spring.config.activate.on-profile: local
 
