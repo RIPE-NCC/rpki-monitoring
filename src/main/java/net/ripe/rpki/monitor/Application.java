@@ -1,7 +1,11 @@
 package net.ripe.rpki.monitor;
 
+import com.google.common.base.Joiner;
 import io.micrometer.common.KeyValues;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.AppConfig;
@@ -16,9 +20,11 @@ import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.tracing.SdkTracerProviderBuilderCustomizer;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.web.reactive.function.client.*;
 
 import java.time.Instant;
@@ -58,6 +64,19 @@ public class Application {
             public KeyValues getLowCardinalityKeyValues(ClientRequestObservationContext context) {
                     return KeyValues.of(method(context), status(context), clientName(context), exception(context), outcome(context));
             }
+        };
+    }
+
+    @Bean
+    public SdkTracerProviderBuilderCustomizer openTracingTracerProviderCustomizer(Environment environment) {
+        return (builder) -> {
+            String applicationName = environment.getProperty("spring.application.name", "unknown");
+            builder.setResource(Resource.create(
+                    Attributes.of(
+                            ResourceAttributes.SERVICE_NAME, applicationName,
+                            ResourceAttributes.DEPLOYMENT_ENVIRONMENT, Joiner.on("-").join(environment.getActiveProfiles())
+                    )
+            ));
         };
     }
 
