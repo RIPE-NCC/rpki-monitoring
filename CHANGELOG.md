@@ -1,5 +1,8 @@
 ## HEAD
 
+## v0.13.1
+  * Add opentelemetry tracing
+
 ## v0.13.0
   * Spring boot 3.1
   * Use connect-to in metric tags, to prevent overwriting metrics from

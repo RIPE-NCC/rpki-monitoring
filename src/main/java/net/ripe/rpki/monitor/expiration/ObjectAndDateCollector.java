@@ -96,6 +96,7 @@ public class ObjectAndDateCollector {
 
                 return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
             }).flatMap(Optional::stream);
+
             span.event("objects processed");
 
             repositoriesState.updateByTag(repoFetcher.meta().tag(), Instant.now(), expirationSummary.map(RepositoryEntry::from));

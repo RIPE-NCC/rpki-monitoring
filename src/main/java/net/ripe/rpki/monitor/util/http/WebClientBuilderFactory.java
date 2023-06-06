@@ -48,7 +48,6 @@ public record WebClientBuilderFactory(EventLoopGroup eventLoopGroup, WebClient.B
         return baseBuilder
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .defaultHeader(HttpHeaders.USER_AGENT, userAgent);
-
     }
 
     public WebClient.Builder builder() {
