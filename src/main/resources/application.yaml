@@ -182,6 +182,9 @@ rrdp:
       notification-url: https://rrdp.ripe.net/notification.xml
       connect-to:
         rrdp.ripe.net: d2imhg7olcem40.cloudfront.net
+    - name: linode
+      notification-url: https://publish.linode.rpki.ripe.net/notification.xml
+      override-hostname: publish.linode.rpki.ripe.net
 
 rsync:
   repository-url: rsync://rpki.ripe.net
