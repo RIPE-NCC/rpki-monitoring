@@ -2,6 +2,8 @@
 
 ## v0.13.1
   * Add opentelemetry tracing
+  * Dependency updates
+  * Add Linode external publication server
 
 ## v0.13.0
   * Spring boot 3.1
