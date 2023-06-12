@@ -1,5 +1,8 @@
 ## HEAD
 
+## 0.13.2
+  * Disable tracing by default and enable only on prepdev
+
 ## v0.13.1
   * Add opentelemetry tracing
   * Dependency updates

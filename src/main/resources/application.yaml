@@ -72,8 +72,10 @@ logging:
   level:
     web: INFO
     net.ripe.rpki: DEBUG
+    reactor.netty.http: DEBUG
 
 management:
+  tracing.enabled: false
   otlp.metrics.export.enabled: false
   # 100% sample rate
   tracing.sampling.probability: 1.0
@@ -97,9 +99,6 @@ otel:
 #  export OTEL_RESOURCE_ATTRIBUTES=service.name=rpki-monitoring,service.version=main,deployment.environment=prepdev
 ---
 spring.config.activate.on-profile: local
-
-logging.level:
-      reactor.netty.http: DEBUG
 
 rrdp:
   interval: 5M
@@ -159,6 +158,8 @@ core:
   enable: true
   url: https://core.rpki.prepdev.ripe.net/certification/
 
+management:
+  tracing.enabled: true
 ---
 spring.config.activate.on-profile: production
 
@@ -232,6 +233,8 @@ rsync:
 core:
   enable: false
 
+management:
+  tracing.enabled: true
 ---
 spring.config.activate.on-profile: paas-production
 

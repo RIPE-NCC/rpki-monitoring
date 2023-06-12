@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
 
@@ -36,10 +37,10 @@ public class Collectors {
                       AppConfig config,
                       FetcherMetrics fetcherMetrics,
                       WebClientBuilderFactory webclientBuilder,
-                      Tracer tracer) {
+                      Optional<Tracer> tracer) {
         this.metrics = metrics;
         this.repositoriesState = repositoriesState;
-        this.tracer = tracer;
+        this.tracer = tracer.orElse(Tracer.NOOP);
 
         this.rrdpCollectors = config.getRrdpConfig().getTargets().stream().map(
                 target -> makeCollector(new RrdpFetcher(target, config, fetcherMetrics, webclientBuilder))
