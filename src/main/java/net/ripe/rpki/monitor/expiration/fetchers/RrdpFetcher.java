@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.RrdpConfig;
@@ -45,7 +46,7 @@ public class RrdpFetcher implements RepoFetcher {
     }
 
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws RRDPStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException, RepoUpdateFailedException {
+    public ImmutableMap<String, RpkiObject> fetchObjects() throws RRDPStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException, RepoUpdateFailedException {
         try {
             var update = rrdpSnapshotClient.fetchObjects(config.getNotificationUrl(), lastUpdate);
             metrics.success(update.serialAsLong(), update.collisionCount());

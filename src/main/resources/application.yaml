@@ -30,6 +30,14 @@ rsync:
     - name: rsync
       url: rsync://rpki.prepdev.ripe.net
 
+certificate.analysis.ignored-overlaps:
+  - regex: 'rsync://.*/repository/[^/]+'
+    description: 'intermediate CAs'
+  - regex: 'rsync://.*/repository/DEFAULT/[^/]+'
+    description: 'intermediate CAs'
+  - regex: 'rsync://.*/repository/aca/.*'
+    description: 'production CA manifest & crl'
+
 expiry:
   # repository tags for which the regex matching is performed.
   # not present -> all. empty list -> none. specific values -> only these.
@@ -166,6 +174,12 @@ management:
   tracing.enabled: true
 ---
 spring.config.activate.on-profile: production
+
+certificate.analysis.ignored-overlaps:
+  - regex: 'rsync://.*/repository/[^/]+'
+    description: 'intermediate CAs'
+  - regex: 'rsync://.*/repository/aca/.*'
+    description: 'production CA manifest & crl'
 
 rrdp:
   interval: 5M

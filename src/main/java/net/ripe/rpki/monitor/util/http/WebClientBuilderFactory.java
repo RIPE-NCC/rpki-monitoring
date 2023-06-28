@@ -33,6 +33,7 @@ public record WebClientBuilderFactory(EventLoopGroup eventLoopGroup, WebClient.B
      */
     private HttpClient initialHttpClientConfig() {
         return HttpClient.create()
+                .compress(true)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
                 .responseTimeout(Duration.ofMillis(5000))
                 // remember: read and write timeouts are per read, not for a request.

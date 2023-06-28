@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import com.google.common.collect.ImmutableMap;
 import io.micrometer.tracing.Tracer;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
@@ -33,6 +34,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
             new NoopRepoFetcher("noop", "https://rrdp.ripe.net"),
             mock(CollectorUpdateMetrics.class),
             state,
+            (objects) -> {},
             Tracer.NOOP
     );
 
@@ -116,8 +118,8 @@ class AbstractObjectsAboutToExpireCollectorTest {
 
 record NoopRepoFetcher(String name, String url) implements RepoFetcher {
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
-        return Collections.emptyMap();
+    public ImmutableMap<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
+        return ImmutableMap.of();
     }
 
     @Override

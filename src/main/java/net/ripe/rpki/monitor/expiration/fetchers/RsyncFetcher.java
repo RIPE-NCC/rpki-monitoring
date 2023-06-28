@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableMap;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -102,7 +103,7 @@ public class RsyncFetcher implements RepoFetcher {
     }
 
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws FetcherException {
+    public ImmutableMap<String, RpkiObject> fetchObjects() throws FetcherException {
         try {
             for (var directory : directories) {
                 rsyncPathFromRepository(rsyncUrl + "/" + appendIfMissing(directory, "/"), targetPath.resolve(directory));
@@ -121,7 +122,7 @@ public class RsyncFetcher implements RepoFetcher {
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
-                    }).collect(Collectors.toConcurrentMap(Pair::getKey, Pair::getValue));
+                    }).collect(ImmutableMap.toImmutableMap(Pair::getKey, Pair::getValue));
                 metrics.success();
                 return res;
             }

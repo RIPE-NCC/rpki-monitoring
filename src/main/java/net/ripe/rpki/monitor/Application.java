@@ -2,12 +2,14 @@ package net.ripe.rpki.monitor;
 
 import com.google.common.base.Joiner;
 import io.micrometer.common.KeyValues;
+import io.micrometer.tracing.Tracer;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisService;
 import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.config.RrdpConfig;
 import net.ripe.rpki.monitor.config.RsyncConfig;
@@ -28,9 +30,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.web.reactive.function.client.*;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -85,7 +85,8 @@ public class Application {
             @NonNull final AppConfig config,
             @NonNull final PublishedObjectsSummaryService publishedObjectsSummary,
             @NonNull ObjectExpirationMetrics objectExpirationMetrics,
-            @NonNull ExpiryMonitorHooks expiryMonitorHooks
+            @NonNull ExpiryMonitorHooks expiryMonitorHooks,
+            @NonNull CertificateAnalysisService certificateAnalysisService
             ) {
         checkOverlappingRepositoryKeys(config);
         var repos = new ArrayList<Triple<String, String, RepositoryTracker.Type>>();
@@ -105,6 +106,7 @@ public class Application {
         );
 
         var state = RepositoriesState.init(repos, publishedObjectsSummary.maxThreshold());
+
         state.addHook(tracker -> publishedObjectsSummary.updateSizes(Instant.now(), tracker));
         state.addHook(tracker -> {
             var now = Instant.now();
