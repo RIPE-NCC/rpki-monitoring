@@ -62,7 +62,7 @@ public class ObjectAndDateCollector {
     }
 
     @SuppressWarnings("try")
-    public void run() throws FetcherException, SnapshotStructureException {
+    public void run() throws FetcherException, RRDPStructureException {
         if (!running.compareAndSet(false, true)) {
             log.warn("Skipping updates of repository '{}' ({}) because a previous update is still running.", repoFetcher.meta().tag(), repoFetcher.meta().url());
             return;
