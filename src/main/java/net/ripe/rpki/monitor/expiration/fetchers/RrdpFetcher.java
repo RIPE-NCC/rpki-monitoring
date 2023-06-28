@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -74,7 +75,7 @@ public class RrdpFetcher implements RepoFetcher {
     /**
      * Load snapshot and validate hash
      */
-    private byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws SnapshotStructureException {
+    private byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws RRDPStructureException {
         log.info("loading {} RRDP snapshot from {} (connect-to={})", config.getName(), snapshotUrl, config.getConnectTo());
 
         final byte[] snapshotBytes = blockForHttpGetRequest(snapshotUrl, config.getTotalRequestTimeout());
@@ -82,14 +83,14 @@ public class RrdpFetcher implements RepoFetcher {
 
         final String realSnapshotHash = Sha256.asString(snapshotBytes);
         if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
-            throw new SnapshotStructureException(snapshotUrl, "with len(content) = %d had sha256(content) = %s, expected %s".formatted(snapshotBytes.length, realSnapshotHash, desiredSnapshotHash));
+            throw new RRDPStructureException(snapshotUrl, "with len(content) = %d had sha256(content) = %s, expected %s".formatted(snapshotBytes.length, realSnapshotHash, desiredSnapshotHash));
         }
 
         return snapshotBytes;
     }
 
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws SnapshotStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException {
+    public Map<String, RpkiObject> fetchObjects() throws RRDPStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
@@ -98,6 +99,15 @@ public class RrdpFetcher implements RepoFetcher {
             final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationBytes));
 
             final int notificationSerial = Integer.parseInt(notificationXmlDoc.getDocumentElement().getAttribute("serial"));
+            final String sessionId = notificationXmlDoc.getDocumentElement().getAttribute("session_id");
+            try {
+                var sessionUUID = UUID.fromString(sessionId); // throws IllegalArgumentException if not a valid UUID
+                if (sessionUUID.version() != 4) {
+                    throw new RRDPStructureException(config.getNotificationUrl(), "session_id %s is not a valid UUIDv4 (version: %d)".formatted(sessionId, sessionUUID.version()));
+                }
+            } catch (IllegalArgumentException e) {
+                throw new RRDPStructureException(config.getNotificationUrl(), "session_id %s is not a valid UUID".formatted(sessionId));
+            }
 
             final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
             final String snapshotUrl = config.overrideHostname(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
@@ -124,7 +134,7 @@ public class RrdpFetcher implements RepoFetcher {
             lastSnapshotUrl = snapshotUrl;
 
             return processPublishElementResult.objects;
-        } catch (SnapshotStructureException e) {
+        } catch (RRDPStructureException e) {
             metrics.failure();
             throw e;
         } catch (ParserConfigurationException | XPathExpressionException | SAXException | IOException | NumberFormatException e) {
@@ -161,20 +171,20 @@ public class RrdpFetcher implements RepoFetcher {
         }
     }
 
-    private static void validateSnapshotStructure(int notificationSerial, String snapshotUrl, Element doc) throws XPathExpressionException, SnapshotStructureException {
+    private static void validateSnapshotStructure(int notificationSerial, String snapshotUrl, Element doc) throws XPathExpressionException, RRDPStructureException {
         // Check attributes of root snapshot element (mostly: that serial matches)
         var querySnapshot = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot");
         var snapshotNodes = (NodeList) querySnapshot.evaluate(doc, XPathConstants.NODESET);
         // It is invariant that there is only one root element in an XML file, but it could still contain a different
         // root tag => 0
         if (snapshotNodes.getLength() != 1) {
-            throw new SnapshotStructureException(snapshotUrl, "No <snapshot>...</snapshot> root element found");
+            throw new RRDPStructureException(snapshotUrl, "No <snapshot>...</snapshot> root element found");
         } else {
             var item = snapshotNodes.item(0);
             int snapshotSerial = Integer.parseInt(item.getAttributes().getNamedItem("serial").getNodeValue());
 
             if (notificationSerial != snapshotSerial) {
-                throw new SnapshotStructureException(snapshotUrl, "contained serial=%d, expected=%d".formatted(snapshotSerial, notificationSerial));
+                throw new RRDPStructureException(snapshotUrl, "contained serial=%d, expected=%d".formatted(snapshotSerial, notificationSerial));
             }
         }
     }

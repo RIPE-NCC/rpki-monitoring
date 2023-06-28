@@ -2,7 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import lombok.NonNull;
 import lombok.Setter;
-import net.ripe.rpki.monitor.expiration.fetchers.SnapshotStructureException;
+import net.ripe.rpki.monitor.expiration.fetchers.RRDPStructureException;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
 import okhttp3.mockwebserver.MockResponse;
@@ -125,7 +125,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
 
         // Exception has both hashes in message
         assertThatThrownBy(subject::run)
-                .isExactlyInstanceOf(SnapshotStructureException.class)
+                .isExactlyInstanceOf(RRDPStructureException.class)
                 .hasMessageContaining(Sha256.asString(snapshotXml))
                 .hasMessageContaining("ababababababababababababababababababab1b1b1b1bababababababababab");
     }
@@ -166,7 +166,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         enqueueXMLResponse(snapshotXml);
 
         assertThatThrownBy(() -> subject.run())
-                .isExactlyInstanceOf(SnapshotStructureException.class)
+                .isExactlyInstanceOf(RRDPStructureException.class)
                 .hasMessageContaining(String.valueOf(serial));
 
         // Snapshot is not a snapshot but a notification.xml fille
@@ -175,7 +175,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         enqueueXMLResponse(unrelatedNotificationXml);
 
         assertThatThrownBy(() -> subject.run())
-                .isExactlyInstanceOf(SnapshotStructureException.class);
+                .isExactlyInstanceOf(RRDPStructureException.class);
     }
 
     @Test
