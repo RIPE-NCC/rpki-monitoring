@@ -1,6 +1,10 @@
 ## HEAD
 
-## 0.13.2
+## v0.13.3
+  * Validate that `session_id` is a UUIDv4
+  * spring boot 3.1.1, rpki-commons 1.34, other dependency updates.
+
+## v0.13.2
   * Disable tracing by default and enable only on prepdev
 
 ## v0.13.1
