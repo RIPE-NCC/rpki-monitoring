@@ -37,6 +37,8 @@ certificate.analysis.ignored-overlaps:
     description: 'intermediate CAs'
   - regex: 'rsync://.*/repository/aca/.*'
     description: 'production CA manifest & crl'
+  - regex: 'rsync://.*/ta/.*'
+    description: 'TA certificate'
 
 expiry:
   # repository tags for which the regex matching is performed.
@@ -80,7 +82,6 @@ logging:
   level:
     web: INFO
     net.ripe.rpki: DEBUG
-    reactor.netty.http: DEBUG
 
 management:
   tracing.enabled: false
@@ -180,6 +181,8 @@ certificate.analysis.ignored-overlaps:
     description: 'intermediate CAs'
   - regex: 'rsync://.*/repository/aca/.*'
     description: 'production CA manifest & crl'
+  - regex: 'rsync://.*/ta/.*'
+    description: 'TA certificate'
 
 rrdp:
   interval: 5M

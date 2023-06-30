@@ -1,13 +1,13 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.tracing.Tracer;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.IpResource;
+import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
@@ -15,16 +15,15 @@ import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.springframework.stereotype.Service;
 
-import javax.security.auth.x500.X500Principal;
+import java.math.BigInteger;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Service
@@ -34,7 +33,6 @@ public class CertificateAnalysisService {
     final Tracer tracer;
 
     final Timer certificateComparisonDuration;
-    final Timer certificateBatchDuration;
 
     public CertificateAnalysisService(
             CertificateAnalysisConfig config,
@@ -44,22 +42,19 @@ public class CertificateAnalysisService {
         this.config = config;
         certificateComparisonDuration = Timer.builder("rpki.monitor.certificate.comparison.duration")
                 .description("Duration of certificate comparison (N^2)")
-                .maximumExpectedValue(Duration.ofSeconds(60))
-                .register(meterRegistry);
-        certificateBatchDuration = Timer.builder("rpki.monitor.certificate.batch.duration")
-                .description("Duration of certificate comparison (per 1000 comparisons)")
-                .maximumExpectedValue(Duration.ofSeconds(60))
+                .maximumExpectedValue(Duration.ofSeconds(300))
                 .register(meterRegistry);
     }
 
     public void process(ImmutableMap<String, RpkiObject> rpkiObjectMap) {
         var allObjects = rpkiObjectMap.size();
+        log.info("Processing {} files", rpkiObjectMap.size());
 
-        var certificates = rpkiObjectMap.entrySet().stream()
+        var certificates = rpkiObjectMap.entrySet().parallelStream()
                 .filter(entry -> entry.getKey().endsWith(".cer"))
-                .filter(entry -> config.isIgnoredFileName(entry.getKey()))
+                .filter(entry -> !config.isIgnoredFileName(entry.getKey()))
                 .toList();
-        log.info("Processing {} certificates out of {} objects", certificates.size(), allObjects);
+        log.info("{} certificates found", certificates.size());
 
         // Parse all certificates
         var routerCertificates = new AtomicInteger();
@@ -81,73 +76,70 @@ public class CertificateAnalysisService {
 
         }).filter(Optional::isPresent).map(Optional::get)
                 .distinct() // ignore duplicate certificates
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(Collectors.toUnmodifiableList());
 
-        log.info("Found {} router certificates", routerCertificates.get());
+        log.info("Found {} router certificates, keeping {} resource certificates", routerCertificates.get(), resourceCertificates.size());
 
         // Naïeve O(n^2) implementation (n choose 2) = n!/(k!(n-k)!)
         // = n!/(2!*(n-2)!) = n*(n-1)*(n-2)!/(2*1*(n-2)!)
         // = n*(n-1)/2
-        log.info("Starting certificate comparison of {} certs", resourceCertificates.size());
         var overlap = certificateComparisonDuration.record(() -> compareCertificates(resourceCertificates));
-        log.info("Finished certificate comparison of {} certs", resourceCertificates.size());
 
         var overlapCount = overlap.stream().count();
+        overlap.stream().collect(Collectors.groupingBy(IpResource::getType)).forEach((type, resources) -> {
+            var resourceCount = resources.stream().map(resource -> resource.getEnd().getValue().min(resource.getStart().getValue()).add(BigInteger.ONE)).reduce(BigInteger.ZERO, BigInteger::add);
+            log.info("Type: {}, |overlapping elements|: {} |addresses|: log(count)/log(2)={}", type, resources.size(), Math.log(resourceCount.longValue())/Math.log(2));
+        });
         if (overlapCount > 64) {
-            log.info("Not printing {} overlaps between certificates.", overlapCount);
+            log.info("Not printing {} resources overlapping between certificates.", overlapCount);
         } else {
             log.info("Overlap between certs: {}", overlap);
         }
     }
 
-    private ImmutableResourceSet compareCertificates(Set<CertificateEntry> resourceCertificates) {
+    private ImmutableResourceSet compareCertificates(List<CertificateEntry> resourceCertificates) {
+        var totalCerts = resourceCertificates.size();
+        log.info("Starting certificate comparison of {} certs", totalCerts);
         var overlap = new AtomicReference<>(ImmutableResourceSet.of());
 
         var overlapCount = new AtomicInteger();
-        var processedCerts = new AtomicInteger();
 
-        var batchStart = new AtomicLong(System.currentTimeMillis());
 
-        if (resourceCertificates.size() >= 2) {
-            Sets.combinations(resourceCertificates, 2).parallelStream().forEach(pair -> {
-                // prevent some object construction and copying by using iterator to access.
-                var it = pair.iterator();
+        AtomicInteger comparisonsIter = new AtomicInteger();
+        IntStream.range(0, totalCerts).parallel().forEach(i -> {
+            // intersection only needs to be determined in one direction between distinct certs
+            IntStream.range(0, totalCerts).forEach(j -> {
+                if (i < j) {
+                    comparisonsIter.getAndIncrement();
+                    var cert1 = resourceCertificates.get(i);
+                    var cert2 = resourceCertificates.get(j);
 
-                var cert1 = it.next();
-                var cert2 = it.next();
-
-                var intersection = cert1.resources().intersection(cert2.resources());
-                if (!intersection.isEmpty()) {
-                    var count = overlapCount.incrementAndGet();
-                    if (count <= 10) {
-                        log.info("Found intersection between {} ({}) and {} ({}) of {}", cert1.subject(), cert1.uri(), cert2.subject(), cert2.uri(), intersection);
-                        if (count == 10) {
+                    var intersection = cert1.resources().intersection(cert2.resources());
+                    if (!intersection.isEmpty()) {
+                        var count = overlapCount.incrementAndGet();
+                        if (count < 50) {
+                            log.info("Found intersection between {} (uri={} SIA={}) and {} (uri={} SIA={}). Overlap: {}. Non-overlapping resources: {}",
+                                    cert1.certificate().getSubject(), cert1.uri(), cert1.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
+                                    cert2.certificate().getSubject(), cert2.uri(), cert2.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
+                                    intersection,
+                                    cert1.resources.difference(cert2.resources).isEmpty() ? "∅" : cert1.resources.difference(cert2.resources)
+                            );
+                        } else if (count == 50) {
                             log.info("Not printing further overlaps.");
                         }
-                    }
-                    overlap.accumulateAndGet(intersection, (a, b) -> new ImmutableResourceSet.Builder().addAll(a).addAll(b).build());
-                }
-
-                var processedCount = processedCerts.getAndIncrement();
-                if (processedCount % 1000 == 0) {
-                    if (processedCount % 1000 == 0) {
-                        batchStart.updateAndGet(now -> {
-                            var t1 = System.currentTimeMillis();
-                            certificateBatchDuration.record(Duration.ofMillis(t1 - now));
-
-                            return t1;
-                        });
+                        overlap.accumulateAndGet(intersection, (a, b) -> new ImmutableResourceSet.Builder().addAll(a).addAll(b).build());
                     }
                 }
             });
-        }
+        });
 
+        log.info("Finished {} certificate comparison of {} certs. |certificates with overlaps|: {}", comparisonsIter.get(), resourceCertificates.size(), overlapCount.get());
         return overlap.get();
     }
 
-    record CertificateEntry(URI uri, X500Principal subject, ImmutableResourceSet resources) {
+    record CertificateEntry(URI uri, X509ResourceCertificate certificate, ImmutableResourceSet resources) {
         public CertificateEntry(URI uri, X509ResourceCertificate certificate) {
-            this(uri, certificate.getSubject(), ImmutableResourceSet.of(certificate.getResources()));
+            this(uri, certificate, ImmutableResourceSet.of(certificate.getResources()));
         }
     }
 }

@@ -17,7 +17,7 @@ public class CertificateAnalysisConfig {
     public record IgnoredOverlap(Pattern regex, String description) {}
 
     public boolean isIgnoredFileName(String fileName) {
-        return ignoredOverlaps.stream().anyMatch(ignoredOverlap -> !ignoredOverlap.regex().matcher(fileName).matches());
+        return ignoredOverlaps.stream().anyMatch(ignoredOverlap -> ignoredOverlap.regex().matcher(fileName).matches());
     }
 }
 
