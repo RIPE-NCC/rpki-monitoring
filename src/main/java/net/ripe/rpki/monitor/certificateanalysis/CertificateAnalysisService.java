@@ -118,11 +118,16 @@ public class CertificateAnalysisService {
                     if (!intersection.isEmpty()) {
                         var count = overlapCount.incrementAndGet();
                         if (count < 50) {
-                            log.info("Found intersection between {} (uri={} SIA={}) and {} (uri={} SIA={}). Overlap: {}. Non-overlapping resources: {}",
+                            var symmetricDifference = new ImmutableResourceSet.Builder()
+                                    .addAll(cert1.resources().difference(cert2.resources()))
+                                    .addAll(cert2.resources().difference(cert1.resources()))
+                                    .build();
+
+                            log.info("Found intersection between {} (uri={} SIA={}) and {} (uri={} SIA={}). Overlap: {}. Symmetric difference: {}",
                                     cert1.certificate().getSubject(), cert1.uri(), cert1.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
                                     cert2.certificate().getSubject(), cert2.uri(), cert2.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
                                     intersection,
-                                    cert1.resources.difference(cert2.resources).isEmpty() ? "∅" : cert1.resources.difference(cert2.resources)
+                                    symmetricDifference.isEmpty() ? "∅" : symmetricDifference
                             );
                         } else if (count == 50) {
                             log.info("Not printing further overlaps.");
