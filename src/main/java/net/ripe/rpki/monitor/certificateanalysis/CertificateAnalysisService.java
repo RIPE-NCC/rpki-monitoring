@@ -7,17 +7,13 @@ import io.micrometer.tracing.Tracer;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
-import net.ripe.rpki.commons.crypto.x509cert.X509CertificateParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
-import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
 import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -34,9 +30,9 @@ public class CertificateAnalysisService {
 
     public CertificateAnalysisService(
             CertificateAnalysisConfig config,
-            Optional<Tracer> tracer,
+            Optional<Tracer> maybeTracer,
             MeterRegistry meterRegistry) {
-        this.tracer = tracer.orElse(Tracer.NOOP);
+        this.tracer = maybeTracer.orElse(Tracer.NOOP);
         this.config = config;
         certificateComparisonDuration = Timer.builder("rpki.monitor.certificate.comparison.duration")
                 .description("Duration of certificate comparison (N^2)")
@@ -48,48 +44,31 @@ public class CertificateAnalysisService {
         var allObjects = rpkiObjectMap.size();
         log.info("Processing {} files", rpkiObjectMap.size());
 
-        var certificates = rpkiObjectMap.entrySet().parallelStream()
-                .filter(entry -> entry.getKey().endsWith(".cer"))
-                .filter(entry -> !config.isIgnoredFileName(entry.getKey()))
-                .toList();
-        log.info("{} certificates found", certificates.size());
 
-        // Parse all certificates
-        var routerCertificates = new AtomicInteger();
-        // Get the _unique_ certificates
-        var resourceCertificates = certificates.parallelStream().map(object -> {
-            var encoded = object.getValue().getBytes();
-            ValidationResult validationResult = ValidationResult.withLocation(object.getKey());
-            var cert = X509CertificateParser.parseCertificate(validationResult, encoded);
+        try {
+            // Top-down exploration via manifests
+            var resourceCertificates = ForkJoinPool.commonPool().submit(new ExtractRpkiCertificateSpan(rpkiObjectMap, config.getRootCertificateUrl())).get()
+                    .filter(entry -> !config.isIgnoredFileName(entry.uri()))
+                    .collect(Collectors.toList());
+            log.info("Expanded {} RPKI certificates", resourceCertificates.size());
 
-            boolean router = cert.isRouter();
-            if (!router) {
-                var parser = new X509ResourceCertificateParser();
-                parser.parse(validationResult, encoded);
-                return Optional.of(new CertificateEntry(URI.create(object.getKey()), parser.getCertificate()));
+            // Naïeve O(n^2) implementation (n choose 2) = n!/(k!(n-k)!)
+            // = n!/(2!*(n-2)!) = n*(n-1)*(n-2)!/(2*1*(n-2)!)
+            // = n*(n-1)/2
+            var overlap = certificateComparisonDuration.record(() -> compareCertificates(resourceCertificates));
+
+            var overlapCount = overlap.stream().count();
+            if (overlapCount > 21) {
+                log.info("Not printing {} resources overlapping between certificates.", overlapCount);
             } else {
-                routerCertificates.incrementAndGet();
-                return Optional.<CertificateEntry>empty();
+                log.info("Overlap between certs: {}", overlap);
             }
-
-        }).filter(Optional::isPresent).map(Optional::get)
-                .distinct() // ignore duplicate files
-                .collect(Collectors.toUnmodifiableList());
-
-        log.info("Found {} router certificates, keeping {} resource certificates", routerCertificates.get(), resourceCertificates.size());
-
-        // Naïeve O(n^2) implementation (n choose 2) = n!/(k!(n-k)!)
-        // = n!/(2!*(n-2)!) = n*(n-1)*(n-2)!/(2*1*(n-2)!)
-        // = n*(n-1)/2
-        var overlap = certificateComparisonDuration.record(() -> compareCertificates(resourceCertificates));
-
-        var overlapCount = overlap.stream().count();
-        if (overlapCount > 64) {
-            log.info("Not printing {} resources overlapping between certificates.", overlapCount);
-        } else {
-            log.info("Overlap between certs: {}", overlap);
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Failed to explore objects.", e);
         }
+
     }
+
 
     private ImmutableResourceSet compareCertificates(List<CertificateEntry> resourceCertificates) {
         var totalCerts = resourceCertificates.size();
@@ -130,12 +109,6 @@ public class CertificateAnalysisService {
 
         log.info("Finished {} certificate comparison of {} certs. |certificates with overlaps|: {}", comparisonsIter.get(), resourceCertificates.size(), overlapCount.get());
         return overlap.get();
-    }
-
-    record CertificateEntry(URI uri, X509ResourceCertificate certificate, ImmutableResourceSet resources) {
-        public CertificateEntry(URI uri, X509ResourceCertificate certificate) {
-            this(uri, certificate, ImmutableResourceSet.of(certificate.getResources()));
-        }
     }
 
     record CertificateOverlap(List<OverlappingResourceCertificates> overlappingCertificatePairs) {
