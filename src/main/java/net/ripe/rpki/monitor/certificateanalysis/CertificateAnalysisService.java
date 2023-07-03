@@ -6,7 +6,6 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.tracing.Tracer;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
-import net.ripe.ipresource.IpResource;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -15,7 +14,6 @@ import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.springframework.stereotype.Service;
 
-import java.math.BigInteger;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -75,7 +73,7 @@ public class CertificateAnalysisService {
             }
 
         }).filter(Optional::isPresent).map(Optional::get)
-                .distinct() // ignore duplicate certificates
+                .distinct() // ignore duplicate files
                 .collect(Collectors.toUnmodifiableList());
 
         log.info("Found {} router certificates, keeping {} resource certificates", routerCertificates.get(), resourceCertificates.size());
@@ -86,10 +84,6 @@ public class CertificateAnalysisService {
         var overlap = certificateComparisonDuration.record(() -> compareCertificates(resourceCertificates));
 
         var overlapCount = overlap.stream().count();
-        overlap.stream().collect(Collectors.groupingBy(IpResource::getType)).forEach((type, resources) -> {
-            var resourceCount = resources.stream().map(resource -> resource.getEnd().getValue().min(resource.getStart().getValue()).add(BigInteger.ONE)).reduce(BigInteger.ZERO, BigInteger::add);
-            log.info("Type: {}, |overlapping elements|: {} |addresses|: log(count)/log(2)={}", type, resources.size(), Math.log(resourceCount.longValue())/Math.log(2));
-        });
         if (overlapCount > 64) {
             log.info("Not printing {} resources overlapping between certificates.", overlapCount);
         } else {
@@ -104,7 +98,6 @@ public class CertificateAnalysisService {
 
         var overlapCount = new AtomicInteger();
 
-
         AtomicInteger comparisonsIter = new AtomicInteger();
         IntStream.range(0, totalCerts).parallel().forEach(i -> {
             // intersection only needs to be determined in one direction between distinct certs
@@ -118,10 +111,7 @@ public class CertificateAnalysisService {
                     if (!intersection.isEmpty()) {
                         var count = overlapCount.incrementAndGet();
                         if (count < 50) {
-                            var symmetricDifference = new ImmutableResourceSet.Builder()
-                                    .addAll(cert1.resources().difference(cert2.resources()))
-                                    .addAll(cert2.resources().difference(cert1.resources()))
-                                    .build();
+                            var symmetricDifference = symmetricDifference(cert1.resources(), cert2.resources());
 
                             log.info("Found intersection between {} (uri={} SIA={}) and {} (uri={} SIA={}). Overlap: {}. Symmetric difference: {}",
                                     cert1.certificate().getSubject(), cert1.uri(), cert1.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
@@ -146,5 +136,28 @@ public class CertificateAnalysisService {
         public CertificateEntry(URI uri, X509ResourceCertificate certificate) {
             this(uri, certificate, ImmutableResourceSet.of(certificate.getResources()));
         }
+    }
+
+    record CertificateOverlap(List<OverlappingResourceCertificates> overlappingCertificatePairs) {
+        public ImmutableResourceSet overlap() {
+            return this.overlappingCertificatePairs.stream()
+                    .map(OverlappingResourceCertificates::overlap)
+                    .collect(ImmutableResourceSet::of
+                            , ImmutableResourceSet::union, ImmutableResourceSet::union);
+        }
+    }
+
+    record OverlappingResourceCertificates(X509ResourceCertificate lhs, X509ResourceCertificate rhs) {
+        public ImmutableResourceSet overlap() {
+            return ImmutableResourceSet.of(lhs.getResources()).intersection(ImmutableResourceSet.of(rhs.getResources()));
+        }
+    }
+
+    // https://github.com/RIPE-NCC/ipresource/pull/16
+    public ImmutableResourceSet symmetricDifference(ImmutableResourceSet lhs, ImmutableResourceSet rhs) {
+        return new ImmutableResourceSet.Builder()
+                .addAll(lhs.difference(rhs))
+                .addAll(rhs.difference(lhs))
+                .build();
     }
 }
