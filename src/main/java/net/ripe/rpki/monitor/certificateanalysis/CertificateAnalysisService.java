@@ -1,11 +1,17 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.googlecode.concurrenttrees.radix.ConcurrentRadixTree;
+import com.googlecode.concurrenttrees.radix.RadixTree;
+import com.googlecode.concurrenttrees.radix.node.concrete.DefaultByteArrayNodeFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.tracing.Tracer;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
+import net.ripe.ipresource.IpRange;
+import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
@@ -69,11 +75,37 @@ public class CertificateAnalysisService {
 
     }
 
+    public static String getKey(IpRange range) {
+        var start = range.getStart().getValue();
+        // **unsigned**/prevent leading zero if in signed notation
+
+        var res = start.toString(2);
+        return res.substring(0, range.getPrefixLength());
+    }
+
 
     private ImmutableResourceSet compareCertificates(List<CertificateEntry> resourceCertificates) {
         var totalCerts = resourceCertificates.size();
         log.info("Starting certificate comparison of {} certs", totalCerts);
         var overlap = new AtomicReference<>(ImmutableResourceSet.of());
+
+        RadixTree<Set<X509ResourceCertificate>> trie = new ConcurrentRadixTree<>(new DefaultByteArrayNodeFactory());
+
+        resourceCertificates.forEach(entry -> {
+            entry.resources().stream().filter(resource -> resource.getType() == IpResourceType.IPv4).forEach(resource -> {
+                Preconditions.checkArgument(resource instanceof IpRange);
+                ((IpRange)resource).splitToPrefixes().forEach(prefix -> {
+                    var key = getKey(prefix);
+                    var cur = trie.getValueForExactKey(key);
+
+                    if (cur == null) {
+                        trie.put(key, new HashSet<>(Set.of(entry.certificate())));
+                    } else {
+                        cur.add(entry.certificate());
+                    }
+                });
+            });
+        });
 
         var overlapCount = new AtomicInteger();
 
