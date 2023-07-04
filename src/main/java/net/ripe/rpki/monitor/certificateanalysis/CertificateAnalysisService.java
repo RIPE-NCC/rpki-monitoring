@@ -11,6 +11,7 @@ import io.micrometer.tracing.Tracer;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpRange;
+import net.ripe.ipresource.IpResource;
 import net.ripe.ipresource.IpResourceType;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
 
 @Slf4j
 @Service
@@ -75,37 +77,33 @@ public class CertificateAnalysisService {
 
     }
 
-    public static String getKey(IpRange range) {
-        var start = range.getStart().getValue();
-        // **unsigned**/prevent leading zero if in signed notation
-
-        var res = start.toString(2);
-        return res.substring(0, range.getPrefixLength());
-    }
-
-
     private ImmutableResourceSet compareCertificates(List<CertificateEntry> resourceCertificates) {
         var totalCerts = resourceCertificates.size();
         log.info("Starting certificate comparison of {} certs", totalCerts);
         var overlap = new AtomicReference<>(ImmutableResourceSet.of());
 
-        RadixTree<Set<X509ResourceCertificate>> trie = new ConcurrentRadixTree<>(new DefaultByteArrayNodeFactory());
+        PrefixTree<X509ResourceCertificate> certificateTree = new PrefixTree<>(IpResourceType.IPv4);
+        PrefixTree<X509ResourceCertificate> certificateTree6 = new PrefixTree<>(IpResourceType.IPv4);
+
+        log.info("Building trie for IPv4");
 
         resourceCertificates.forEach(entry -> {
             entry.resources().stream().filter(resource -> resource.getType() == IpResourceType.IPv4).forEach(resource -> {
-                Preconditions.checkArgument(resource instanceof IpRange);
                 ((IpRange)resource).splitToPrefixes().forEach(prefix -> {
-                    var key = getKey(prefix);
-                    var cur = trie.getValueForExactKey(key);
-
-                    if (cur == null) {
-                        trie.put(key, new HashSet<>(Set.of(entry.certificate())));
-                    } else {
-                        cur.add(entry.certificate());
-                    }
+                    certificateTree.put(prefix, entry.certificate());
                 });
             });
         });
+        log.info("Done.");
+        log.info("IPv6:");
+        resourceCertificates.forEach(entry -> {
+            entry.resources().stream().filter(resource -> resource.getType() == IpResourceType.IPv6).forEach(resource -> {
+                ((IpRange)resource).splitToPrefixes().forEach(prefix -> {
+                    certificateTree6.put(prefix, entry.certificate());
+                });
+            });
+        });
+        log.info("Done.");
 
         var overlapCount = new AtomicInteger();
 
