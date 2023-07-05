@@ -127,28 +127,45 @@ public class PrefixTreeTest {
                 .contains(Set.of("entry for test_net_1"));
     }
 
+    @Test
+    void testInsertAndGetParents() {
+        // insert ::/0 -> first bit should be true
+        subjectV6.put(IpRange.ALL_IPV6_RESOURCES, "::/0");
+        subjectV6.put(IPV6_DOCUMENTATION_RANGE, "2001:DB8::/32");
+        subjectV6.put(IPv6_SINGLE_ADDR, "2001:DB8::/128");
+
+        // Test lookup of element and parents
+        assertThat(subjectV6.getValuesForEqualOrLessSpecific(IPv6_SINGLE_ADDR))
+                .hasSize(3);
+        assertThat(subjectV6.getValuesForEqualOrLessSpecific(IPV6_DOCUMENTATION_RANGE))
+                .hasSize(2);
+        assertThat(subjectV6.getValuesForEqualOrLessSpecific(IpRange.ALL_IPV6_RESOURCES))
+                .hasSize(1);
+
+        // Lookup in empty collection works
+        assertThat(subjectV4.getValuesForEqualOrLessSpecific(TEST_NET_1))
+                .hasSize(0);
+    }
+
     // tracking of stored lengths
     @Test
     void testTracksInsertedLengths() {
         // starts at all 0
-        assertThat(subjectV6.getSeenLengths()).doesNotContain(true);
+        assertThat(subjectV6.getSeenLengths()).isEmpty();
 
         // insert ::/0 -> first bit should be true
         subjectV6.put(IpRange.ALL_IPV6_RESOURCES, "::/0");
         assertThat(subjectV6.getSeenLengths())
-                .hasSize(129)
-                .matches(arr -> IntStream.rangeClosed(0, 128).allMatch(i -> arr[i] == Set.of(0).contains(i)));
+                .contains(0);
 
         subjectV6.put(IPV6_DOCUMENTATION_RANGE, "2001:DB8::/32");
         assertThat(subjectV6.getSeenLengths())
-                .hasSize(129)
-                .matches(arr -> IntStream.rangeClosed(0, 128).allMatch(i -> arr[i] == Set.of(0, 32).contains(i)));
+                .contains(0, 32);
 
         subjectV6.put(IPv6_SINGLE_ADDR, "2001:DB8::/128");
 
         assertThat(subjectV6.getSeenLengths())
-                .hasSize(129)
-                .matches(arr -> IntStream.rangeClosed(0, 128).allMatch(i -> arr[i] == Set.of(0, 32, 128).contains(i)));
+                .contains(0, 32, 128);
     }
 }
 

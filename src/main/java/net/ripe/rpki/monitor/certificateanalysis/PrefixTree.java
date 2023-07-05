@@ -10,7 +10,11 @@ import net.ripe.ipresource.*;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Slf4j
 public class PrefixTree<T> {
@@ -57,6 +61,15 @@ public class PrefixTree<T> {
         return this.tree.getValuesForKeysStartingWith(getKey(key));
     }
 
+    public List<Set<T>> getValuesForEqualOrLessSpecific(IpRange prefix) {
+       var fullKey = getKey(prefix);
+
+       return IntStream.rangeClosed(0, prefix.getPrefixLength())
+               .filter(length -> seenLengths[length])
+               .mapToObj(length -> this.tree.getValueForExactKey(fullKey.substring(0, length + 1)))
+               .collect(Collectors.toList());
+    }
+
     /**
      * Format of the keys:
      *   * P - first character to prevent zero length keys
@@ -96,7 +109,10 @@ public class PrefixTree<T> {
          return IpRange.prefix(ip, prefixLength);
     }
 
-    public boolean[] getSeenLengths() {
-        return Arrays.copyOf(seenLengths, seenLengths.length);
+    public Set<Integer> getSeenLengths() {
+        return IntStream.range(0, seenLengths.length)
+                .filter(i -> seenLengths[i])
+                .boxed()
+                .collect(Collectors.toUnmodifiableSet());
     }
 }

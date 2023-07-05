@@ -17,6 +17,4 @@ record CertificateEntry(String uri, X509ResourceCertificate certificate, Immutab
         parser.parse(validationResult, encoded);
         return new CertificateEntry(uri, parser.getCertificate());
     }
-
-
 }
