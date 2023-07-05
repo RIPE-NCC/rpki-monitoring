@@ -8,10 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.*;
 
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -37,19 +34,22 @@ public class PrefixTree<T> {
     }
 
     public void put(IpRange prefix, T value) {
+        assert value != null;
         assert this.elementType == prefix.getType();
-        Preconditions.checkArgument(prefix.isLegalPrefix(), "Can only store prefix representations in trie");
+        assert prefix.isLegalPrefix(); // Can only store prefix representations in trie
 
         var key = getKey(prefix);
         seenLengths[prefix.getPrefixLength()] = true;
 
         Set<T> newElement = new HashSet<>();
+        newElement.add(value);
         var curElement = this.tree.putIfAbsent(key, newElement);
         // returns null if missing and it was replaced.
-        if (curElement == null) {
-            newElement.add(value);
-        } else {
-            curElement.add(value);
+        if (curElement != null) {
+            // synchronize on the set being adjusted
+//            synchronized (curElement) {
+                curElement.add(value);
+//            }
         }
     }
 
@@ -67,6 +67,7 @@ public class PrefixTree<T> {
        return IntStream.rangeClosed(0, prefix.getPrefixLength())
                .filter(length -> seenLengths[length])
                .mapToObj(length -> this.tree.getValueForExactKey(fullKey.substring(0, length + 1)))
+               .filter(Objects::nonNull)
                .collect(Collectors.toList());
     }
 

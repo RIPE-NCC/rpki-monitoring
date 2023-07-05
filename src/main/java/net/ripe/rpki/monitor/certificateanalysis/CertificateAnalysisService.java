@@ -81,24 +81,70 @@ public class CertificateAnalysisService {
 
     }
 
+    private static <T> void putAsSet(NestedIntervalMap<IpResource, Set<T>> target, IpResource resource, T value) {
+//        synchronized (target) {
+            var cur = target.findExact(resource);
+            if (cur != null) {
+                cur.add(value);
+            } else {
+                var newEntry = new HashSet<T>();
+                newEntry.add(value);
+                target.put(resource, newEntry);
+            }
+//        }
+    }
+
     private ImmutableResourceSet compareCertificates(List<CertificateEntry> resourceCertificates) {
         var totalCerts = resourceCertificates.size();
         log.info("Starting certificate comparison of {} certs", totalCerts);
         var overlap = new AtomicReference<>(ImmutableResourceSet.of());
 
-        PrefixTree<X509ResourceCertificate> certificateTree = new PrefixTree<>(IpResourceType.IPv4);
-        PrefixTree<X509ResourceCertificate> certificateTree6 = new PrefixTree<>(IpResourceType.IPv6);
+        PrefixTree<CertificateEntry> certificateTree = new PrefixTree<>(IpResourceType.IPv4);
+        PrefixTree<CertificateEntry> certificateTree6 = new PrefixTree<>(IpResourceType.IPv6);
+        NestedIntervalMap<IpResource, Set<CertificateEntry>> asnTree = new NestedIntervalMap<>(IpResourceIntervalStrategy.getInstance());
 
-        log.info("Building trie for IPv4");
-
-        resourceCertificates.stream().parallel().forEach(entry -> {
-            entry.resources().stream().filter(resource -> resource.getType() == IpResourceType.IPv4).forEach(resource -> {
-                ((IpRange)resource).splitToPrefixes().forEach(prefix -> {
-                    certificateTree.put(prefix, entry.certificate());
-                });
+        log.info("Building trie");
+        resourceCertificates.stream().forEach(entry -> {
+            entry.resources().forEach(resource -> {
+                switch (resource.getType()) {
+                    case ASN -> putAsSet(asnTree, resource, entry);
+                    case IPv4 -> ((IpRange) resource).splitToPrefixes().forEach(prefix -> certificateTree.put(prefix, entry));
+                    case IPv6 -> ((IpRange) resource).splitToPrefixes().forEach(prefix -> certificateTree6.put(prefix, entry));
+                }
             });
         });
-        log.info("Done.");
+        log.info("Built trie. Lookups start.");
+        var overlapsTrie = resourceCertificates.stream().flatMap(cert -> {
+            Set<CertificateEntry> entriesForCertificateResources = new HashSet<>();
+
+            cert.resources().forEach(resource -> {
+                switch (resource.getType()) {
+                    case ASN -> {
+                        asnTree.findAllLessSpecific(resource).forEach(entriesForCertificateResources::addAll);
+                        asnTree.findExactAndAllMoreSpecific(resource).forEach(entriesForCertificateResources::addAll);
+                    }
+                    case IPv4 -> ((IpRange)resource).splitToPrefixes().forEach(prefix -> {
+                        certificateTree.getValuesForEqualOrLessSpecific(prefix).forEach(entriesForCertificateResources::addAll);
+                        certificateTree.getValuesForKeysStartingWith(prefix).forEach(entriesForCertificateResources::addAll);
+                    });
+                    case IPv6 -> ((IpRange)resource).splitToPrefixes().forEach(prefix -> {
+                        certificateTree6.getValuesForEqualOrLessSpecific(prefix).forEach(entriesForCertificateResources::addAll);
+                        certificateTree6.getValuesForKeysStartingWith(prefix).forEach(entriesForCertificateResources::addAll);
+                    });
+                }
+            });
+
+            if (entriesForCertificateResources.size() > 1) {
+                return Sets.combinations(entriesForCertificateResources, 2).stream();
+            }
+            return Stream.empty();
+        }).collect(Collectors.toSet());
+
+        log.info("Trie lookups done.");
+        printOverlaps(overlapsTrie);
+
+
+
         log.info("Building nestedIntervlaMap for comparison");
         var nestedIntervalMap = new NestedIntervalMap<IpResource, Set<CertificateEntry>>(IpResourceIntervalStrategy.getInstance());
         resourceCertificates.forEach(entry -> {
@@ -128,15 +174,6 @@ public class CertificateAnalysisService {
             });
         });
         log.info("Done");
-        log.info("IPv6:");
-        resourceCertificates.stream().parallel().forEach(entry -> {
-            entry.resources().stream().filter(resource -> resource.getType() == IpResourceType.IPv6).forEach(resource -> {
-                ((IpRange)resource).splitToPrefixes().forEach(prefix -> {
-                    certificateTree6.put(prefix, entry.certificate());
-                });
-            });
-        });
-        log.info("Done.");
         log.info("Start nestedintervalmap overlap check");
         var overlaps = resourceCertificates.stream().flatMap(cert -> {
             Set<CertificateEntry> entriesForCertificateResources = new HashSet<>();
@@ -152,23 +189,8 @@ public class CertificateAnalysisService {
             return Stream.empty();
         }).collect(Collectors.toSet());
 
-        overlaps.forEach(pair -> {
-                    var iter = pair.iterator();
-                    var cert1 = iter.next();
-                    var cert2 = iter.next();
-
-                    var intersection = cert1.resources().intersection(cert2.resources());
-
-                    var symmetricDifference = symmetricDifference(cert1.resources(), cert2.resources());
-
-                    log.info("Found intersection between {} (uri={} SIA={}) and {} (uri={} SIA={}). Overlap: {}. Symmetric difference: {}",
-                            cert1.certificate().getSubject(), cert1.uri(), cert1.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
-                            cert2.certificate().getSubject(), cert2.uri(), cert2.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
-                            intersection,
-                            symmetricDifference.isEmpty() ? "∅" : symmetricDifference
-                    );
-                });
         log.info("Finished overlap check of {} certs. |certificates with overlaps|: {}", resourceCertificates.size(), overlaps.size());
+        printOverlaps(overlaps);
 
         log.info("End of nestedintervalmap overlap check");
 
@@ -206,6 +228,25 @@ public class CertificateAnalysisService {
 
         log.info("Finished {} certificate comparison of {} certs. |certificates with overlaps|: {}", comparisonsIter.get(), resourceCertificates.size(), overlapCount.get());
         return overlap.get();
+    }
+
+    private void printOverlaps(Set<Set<CertificateEntry>> overlaps) {
+        overlaps.forEach(pair -> {
+                    var iter = pair.iterator();
+                    var cert1 = iter.next();
+                    var cert2 = iter.next();
+
+                    var intersection = cert1.resources().intersection(cert2.resources());
+
+                    var symmetricDifference = symmetricDifference(cert1.resources(), cert2.resources());
+
+                    log.info("Found intersection between {} (uri={} SIA={}) and {} (uri={} SIA={}). Overlap: {}. Symmetric difference: {}",
+                            cert1.certificate().getSubject(), cert1.uri(), cert1.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
+                            cert2.certificate().getSubject(), cert2.uri(), cert2.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
+                            intersection,
+                            symmetricDifference.isEmpty() ? "∅" : symmetricDifference
+                    );
+                });
     }
 
     record CertificateOverlap(List<OverlappingResourceCertificates> overlappingCertificatePairs) {
