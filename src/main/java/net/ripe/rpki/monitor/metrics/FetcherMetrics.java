@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 @AllArgsConstructor
 @Component
@@ -72,7 +73,7 @@ public class FetcherMetrics {
     }
 
     public static final class RRDPFetcherMetrics extends BaseFetcherMetrics {
-        final AtomicInteger rrdpSerial = new AtomicInteger();
+        final AtomicLong rrdpSerial = new AtomicLong();
 
         final AtomicInteger rrdpCollisions = new AtomicInteger();
 
@@ -90,7 +91,7 @@ public class FetcherMetrics {
         }
 
         /** RRDP variant only can track a succesful update if it also provides a serial. */
-        public void success(int serial, int collisionCount) {
+        public void success(long serial, int collisionCount) {
             this.successfulUpdates.increment();
             this.rrdpSerial.set(serial);
             this.rrdpCollisions.set(collisionCount);

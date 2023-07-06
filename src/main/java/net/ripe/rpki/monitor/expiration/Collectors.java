@@ -43,7 +43,7 @@ public class Collectors {
         this.tracer = tracer.orElse(Tracer.NOOP);
 
         this.rrdpCollectors = config.getRrdpConfig().getTargets().stream().map(
-                target -> makeCollector(new RrdpFetcher(target, config, fetcherMetrics, webclientBuilder))
+                target -> makeCollector(new RrdpFetcher(target, fetcherMetrics, webclientBuilder))
         ).collect(toList());
         this.rsyncCollectors = config.getRsyncConfig().getTargets().stream().map(
                 target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url(), fetcherMetrics))
