@@ -179,7 +179,7 @@ public class RrdpSnapshotClient {
 
     record ProcessPublishElementResult(ImmutableMap<String, RpkiObject> objects, int collisionCount) {}
 
-    record RrdpSnapshotState(String snapshotUrl, String sessionId, BigInteger serial, ImmutableMap<String, RpkiObject> objects, int collisionCount){
+    public record RrdpSnapshotState(String snapshotUrl, String sessionId, BigInteger serial, ImmutableMap<String, RpkiObject> objects, int collisionCount){
         public long serialAsLong() {
             return serial.mod(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact();
         }
