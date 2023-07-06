@@ -9,7 +9,6 @@ import net.ripe.rpki.monitor.util.Sha256;
 import net.ripe.rpki.monitor.util.XML;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.http.HttpRequest;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -40,7 +39,7 @@ public class RrdpSnapshotClient {
      * Load snapshot and validate hash
      */
     byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws RRDPStructureException, RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout {
-        log.info("loading RRDP snapshot from notification file at {}", snapshotUrl);
+        log.info("loading RRDP snapshot from {}", snapshotUrl);
 
         final byte[] snapshotBytes = httpClient.fetch(snapshotUrl);
         Verify.verifyNotNull(snapshotBytes);
@@ -61,16 +60,8 @@ public class RrdpSnapshotClient {
             Verify.verifyNotNull(notificationBytes);
             final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationBytes));
 
-            final BigInteger notificationSerial = new BigInteger(notificationXmlDoc.getDocumentElement().getAttribute("serial"));
-            final String sessionId = notificationXmlDoc.getDocumentElement().getAttribute("session_id");
-            try {
-                var sessionUUID = UUID.fromString(sessionId); // throws IllegalArgumentException if not a valid UUID
-                if (sessionUUID.version() != 4) {
-                    throw new RRDPStructureException(notificationUrl, "session_id %s is not a valid UUIDv4 (version: %d)".formatted(sessionId, sessionUUID.version()));
-                }
-            } catch (IllegalArgumentException e) {
-                throw new RRDPStructureException(notificationUrl, "session_id %s is not a valid UUID".formatted(sessionId));
-            }
+            final BigInteger notificationSerial = parseSerial(notificationUrl, notificationXmlDoc.getDocumentElement());
+            var sessionIdUUID = validateSessionIdUUIDv4(notificationUrl, notificationXmlDoc.getDocumentElement());
 
             final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
             final String snapshotUrl = httpClient.overrideHostname(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
@@ -87,13 +78,13 @@ public class RrdpSnapshotClient {
             final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(snapshotContent));
             var doc = snapshotXmlDoc.getDocumentElement();
 
-            validateSnapshotStructure(notificationSerial, snapshotUrl, doc);
+            validateSnapshotStructure(notificationSerial, sessionIdUUID, snapshotUrl, doc);
 
             var processPublishElementResult = processPublishElements(doc);
 
             return new RrdpSnapshotState(
                     snapshotUrl,
-                    sessionId,
+                    sessionIdUUID,
                     notificationSerial,
                     processPublishElementResult.objects,
                     processPublishElementResult.collisionCount
@@ -101,8 +92,7 @@ public class RrdpSnapshotClient {
 
         } catch (RRDPStructureException e) {
             throw e;
-        } catch (ParserConfigurationException | XPathExpressionException | SAXException | IOException |
-                 NumberFormatException e) {
+        } catch (ParserConfigurationException | XPathExpressionException | SAXException | IOException e) {
             // recall: IOException, ConnectException are subtypes of IOException
             throw new FetcherException(e);
         } catch (IllegalStateException e) {
@@ -115,7 +105,12 @@ public class RrdpSnapshotClient {
         }
     }
 
-    static void validateSnapshotStructure(BigInteger notificationSerial, String snapshotUrl, Element doc) throws XPathExpressionException, RRDPStructureException {
+    /**
+     * @precondition: sessionId is UUID version 4 - this check must be done before.
+     */
+    static void validateSnapshotStructure(BigInteger notificationSerial, UUID sessionId, String snapshotUrl, Element doc) throws XPathExpressionException, RRDPStructureException {
+        assert sessionId.version() == 4;
+
         // Check attributes of root snapshot element (mostly: that serial matches)
         var querySnapshot = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot");
         var snapshotNodes = (NodeList) querySnapshot.evaluate(doc, XPathConstants.NODESET);
@@ -125,10 +120,18 @@ public class RrdpSnapshotClient {
             throw new RRDPStructureException(snapshotUrl, "No <snapshot>...</snapshot> root element found");
         } else {
             var item = snapshotNodes.item(0);
-            var snapshotSerial = new BigInteger(item.getAttributes().getNamedItem("serial").getNodeValue());
+            try {
+                var snapshotSerial = parseSerial(snapshotUrl, item);
+                var snapshotSessionId = validateSessionIdUUIDv4(snapshotUrl, item);
 
-            if (!notificationSerial.equals(snapshotSerial)) {
-                throw new RRDPStructureException(snapshotUrl, "contained serial=%d, expected=%d".formatted(snapshotSerial, notificationSerial));
+                if (!sessionId.equals(snapshotSessionId)) {
+                    throw new RRDPStructureException(snapshotUrl, "contained session-id=%s, expected=%s".formatted(sessionId, snapshotSessionId));
+                }
+                if (!notificationSerial.equals(snapshotSerial)) {
+                    throw new RRDPStructureException(snapshotUrl, "contained serial=%d, expected=%d".formatted(snapshotSerial, notificationSerial));
+                }
+            } catch (NumberFormatException e) {
+                throw new RRDPStructureException(snapshotUrl, "Invalid serial in <snapshot> tag.");
             }
         }
     }
@@ -177,9 +180,32 @@ public class RrdpSnapshotClient {
         return new ProcessPublishElementResult(objects, collisionCount.get());
     }
 
+    private static UUID validateSessionIdUUIDv4(String url, Node element) throws RRDPStructureException {
+        var sessionId = element.getAttributes().getNamedItem("session_id").getNodeValue();
+        try {
+            var sessionUUID = UUID.fromString(sessionId); // throws IllegalArgumentException if not a valid UUID
+            if (sessionUUID.version() != 4) {
+                throw new RRDPStructureException(url, "session_id %s is not a valid UUIDv4 (version: %d)".formatted(sessionId, sessionUUID.version()));
+            }
+            return sessionUUID;
+        } catch (IllegalArgumentException e) {
+            throw new RRDPStructureException(url, "session_id %s is not a valid UUID".formatted(sessionId));
+        }
+    }
+
+    private static BigInteger parseSerial(String url, Node element) throws  RRDPStructureException {
+        var serial = element.getAttributes().getNamedItem("serial").getNodeValue();
+        try {
+            return new BigInteger(serial);
+        } catch (NumberFormatException e) {
+            throw new RRDPStructureException(url, "invalid serial '%s'".formatted(serial));
+        }
+    }
+
+
     record ProcessPublishElementResult(ImmutableMap<String, RpkiObject> objects, int collisionCount) {}
 
-    public record RrdpSnapshotState(String snapshotUrl, String sessionId, BigInteger serial, ImmutableMap<String, RpkiObject> objects, int collisionCount){
+    public record RrdpSnapshotState(String snapshotUrl, UUID sessionId, BigInteger serial, ImmutableMap<String, RpkiObject> objects, int collisionCount){
         public long serialAsLong() {
             return serial.mod(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact();
         }

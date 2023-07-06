@@ -2,7 +2,6 @@ package net.ripe.rpki.monitor.fetchers;
 
 import net.ripe.rpki.monitor.expiration.fetchers.*;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.assertj.core.api.InstanceOfAssertFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -104,7 +103,6 @@ public class RrdpSnapshotClientTest {
         );
         when(http.overrideHostname(any())).thenAnswer(i -> i.getArguments()[0]);
 
-        // Pass in the previous state.
         assertThatThrownBy(() -> subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty()))
                 .asInstanceOf(InstanceOfAssertFactories.throwable(RRDPStructureException.class));
     }
