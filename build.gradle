@@ -36,9 +36,7 @@ dependencies {
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
-    // for partricia trie --- last release in 2017 but looks complete and no bugs.
-    // also there are no good alternatives.
-    implementation 'com.googlecode.concurrent-trees:concurrent-trees:2.6.1'
+    implementation  'org.apache.commons:commons-collections4:4.4'
 
     // Metrics
     implementation 'org.springframework.boot:spring-boot-starter-actuator'

@@ -1,11 +1,10 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
 import com.google.common.base.Preconditions;
-import com.googlecode.concurrenttrees.radix.ConcurrentRadixTree;
-import com.googlecode.concurrenttrees.radix.node.concrete.DefaultByteArrayNodeFactory;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.*;
+import org.apache.commons.collections4.trie.PatriciaTrie;
 
 import java.math.BigInteger;
 import java.util.*;
@@ -18,7 +17,8 @@ public class PrefixTree<T> {
     public static final String KEY_MARKER = "P";
     @NonNull
     private final IpResourceType elementType;
-    private final ConcurrentRadixTree<Set<T>> tree = new ConcurrentRadixTree<>(new DefaultByteArrayNodeFactory());
+
+    private final PatriciaTrie<Set<T>> trie = new PatriciaTrie<>();
 
     /**
      * Track the length of prefixes seen - used to check what parent prefixes to check for
@@ -41,34 +41,41 @@ public class PrefixTree<T> {
         var key = getKey(prefix);
         seenLengths[prefix.getPrefixLength()] = true;
 
-        Set<T> newElement = new HashSet<>();
-        newElement.add(value);
-        var curElement = this.tree.putIfAbsent(key, newElement);
-        // returns null if missing and it was replaced.
-        if (curElement != null) {
-            // synchronize on the set being adjusted
-//            synchronized (curElement) {
+        this.trie.compute(key, (k, curElement) -> {
+            if (curElement == null) {
+                Set<T> newElement = new HashSet<>();
+                newElement.add(value);
+                return newElement;
+            } else {
                 curElement.add(value);
-//            }
-        }
+                return curElement;
+            }
+        });
     }
 
     public Set<T> getValueForExactKey(IpRange key) {
-        return this.tree.getValueForExactKey(getKey(key));
+        return this.trie.get(getKey(key));
     }
 
     public Iterable<Set<T>> getValuesForKeysStartingWith(IpRange key) {
-        return this.tree.getValuesForKeysStartingWith(getKey(key));
+       return this.trie.prefixMap(getKey(key)).values();
     }
 
     public List<Set<T>> getValuesForEqualOrLessSpecific(IpRange prefix) {
        var fullKey = getKey(prefix);
 
-       return IntStream.rangeClosed(0, prefix.getPrefixLength())
-               .filter(length -> seenLengths[length])
-               .mapToObj(length -> this.tree.getValueForExactKey(fullKey.substring(0, length + 1)))
-               .filter(Objects::nonNull)
-               .collect(Collectors.toList());
+       var out = new ArrayList<Set<T>>(prefix.getPrefixLength());
+
+       for (int i=0; i < prefix.getPrefixLength(); i++) {
+           if (seenLengths[i]) {
+               var res = this.trie.get(fullKey.substring(0, i+1));
+                if (res != null) {
+                     out.add(res);
+                }
+           }
+       }
+
+       return out;
     }
 
     /**

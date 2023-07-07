@@ -1,11 +1,7 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import com.googlecode.concurrenttrees.radix.ConcurrentRadixTree;
-import com.googlecode.concurrenttrees.radix.RadixTree;
-import com.googlecode.concurrenttrees.radix.node.concrete.DefaultByteArrayNodeFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.tracing.Tracer;
