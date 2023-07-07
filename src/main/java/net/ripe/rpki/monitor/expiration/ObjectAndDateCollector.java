@@ -62,7 +62,7 @@ public class ObjectAndDateCollector {
     }
 
     @SuppressWarnings("try")
-    public void run() throws FetcherException, RRDPStructureException {
+    public void run() throws FetcherException, RRDPStructureException, RepoUpdateFailedException {
         if (!running.compareAndSet(false, true)) {
             log.warn("Skipping updates of repository '{}' ({}) because a previous update is still running.", repoFetcher.meta().tag(), repoFetcher.meta().url());
             return;
@@ -107,6 +107,7 @@ public class ObjectAndDateCollector {
         } catch (RepoUpdateAbortedException e) {
             collectorUpdateMetrics.trackAborted(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url());
         } catch (Exception e) {
+            // Includes RepoUpdateFailedException
             collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get(), maxObjectSize.get());
             throw e;
         } finally {

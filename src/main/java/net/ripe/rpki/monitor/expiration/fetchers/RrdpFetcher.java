@@ -2,42 +2,17 @@ package net.ripe.rpki.monitor.expiration.fetchers;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.config.RrdpConfig;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
-import net.ripe.rpki.monitor.util.Sha256;
-import net.ripe.rpki.monitor.util.XML;
 import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.http.HttpRequest;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import static com.google.common.base.Verify.verifyNotNull;
 
 @Slf4j
 @Getter
@@ -47,24 +22,21 @@ public class RrdpFetcher implements RepoFetcher {
 
     private final WebClient httpClient;
     private final FetcherMetrics.RRDPFetcherMetrics metrics;
+    private final RrdpSnapshotClient rrdpSnapshotClient;
 
-    private String lastSnapshotUrl;
+    private Optional<RrdpSnapshotClient.RrdpSnapshotState> lastUpdate = Optional.empty();
 
     public RrdpFetcher(
             RrdpConfig.RrdpRepositoryConfig config,
-            AppConfig appConfig,
             FetcherMetrics fetcherMetrics,
             WebClientBuilderFactory webclientBuilderFactory) {
         this.config = config;
         this.httpClient = webclientBuilderFactory.connectToClientBuilder(config.getConnectTo()).build();
 
         this.metrics = fetcherMetrics.rrdp(config);
+        this.rrdpSnapshotClient = new RrdpSnapshotClient(new WebclientRrdpHttpStrategy(config));
 
         log.info("RrdpFetcher({}, {}, {}, {})", config.getName(), config.getNotificationUrl(), config.getOverrideHostname(), config.getConnectTo());
-    }
-
-    private byte[] blockForHttpGetRequest(String uri, Duration timeout) {
-        return httpClient.get().uri(uri).retrieve().bodyToMono(byte[].class).block(timeout);
     }
 
     @Override
@@ -72,166 +44,67 @@ public class RrdpFetcher implements RepoFetcher {
         return new Meta(config.getName(), config.getNotificationUrl());
     }
 
-    /**
-     * Load snapshot and validate hash
-     */
-    private byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws RRDPStructureException {
-        log.info("loading {} RRDP snapshot from {} (connect-to={})", config.getName(), snapshotUrl, config.getConnectTo());
-
-        final byte[] snapshotBytes = blockForHttpGetRequest(snapshotUrl, config.getTotalRequestTimeout());
-        verifyNotNull(snapshotBytes);
-
-        final String realSnapshotHash = Sha256.asString(snapshotBytes);
-        if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
-            throw new RRDPStructureException(snapshotUrl, "with len(content) = %d had sha256(content) = %s, expected %s".formatted(snapshotBytes.length, realSnapshotHash, desiredSnapshotHash));
-        }
-
-        return snapshotBytes;
-    }
-
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws RRDPStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException {
+    public Map<String, RpkiObject> fetchObjects() throws RRDPStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException, RepoUpdateFailedException {
         try {
-            final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
+            var update = rrdpSnapshotClient.fetchObjects(config.getNotificationUrl(), lastUpdate);
+            metrics.success(update.serialAsLong(), update.collisionCount());
 
-            final byte[] notificationBytes = blockForHttpGetRequest(config.getNotificationUrl(), config.getTotalRequestTimeout());
-            verifyNotNull(notificationBytes);
-            final Document notificationXmlDoc = documentBuilder.parse(new ByteArrayInputStream(notificationBytes));
+            this.lastUpdate = Optional.of(update);
 
-            final int notificationSerial = Integer.parseInt(notificationXmlDoc.getDocumentElement().getAttribute("serial"));
-            final String sessionId = notificationXmlDoc.getDocumentElement().getAttribute("session_id");
-            try {
-                var sessionUUID = UUID.fromString(sessionId); // throws IllegalArgumentException if not a valid UUID
-                if (sessionUUID.version() != 4) {
-                    throw new RRDPStructureException(config.getNotificationUrl(), "session_id %s is not a valid UUIDv4 (version: %d)".formatted(sessionId, sessionUUID.version()));
-                }
-            } catch (IllegalArgumentException e) {
-                throw new RRDPStructureException(config.getNotificationUrl(), "session_id %s is not a valid UUID".formatted(sessionId));
-            }
-
-            final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
-            final String snapshotUrl = config.overrideHostname(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
-            final String desiredSnapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
-
-            verifyNotNull(snapshotUrl);
-            if (snapshotUrl.equals(lastSnapshotUrl)) {
-                log.info("not updating: {} snapshot url {} is the same as during the last check.", config.getName(), snapshotUrl);
-                metrics.success(notificationSerial, metrics.collisionCount());
-                throw new SnapshotNotModifiedException(snapshotUrl);
-            }
-
-            final byte[] snapshotContent = loadSnapshot(snapshotUrl, desiredSnapshotHash);
-
-            final Document snapshotXmlDoc = documentBuilder.parse(new ByteArrayInputStream(snapshotContent));
-            var doc = snapshotXmlDoc.getDocumentElement();
-
-            validateSnapshotStructure(notificationSerial, snapshotUrl, doc);
-
-            var processPublishElementResult = processPublishElements(doc);
-
-            metrics.success(notificationSerial, processPublishElementResult.collisionCount);
-            // We have successfully updated from the snapshot, store the URL
-            lastSnapshotUrl = snapshotUrl;
-
-            return processPublishElementResult.objects;
-        } catch (RRDPStructureException e) {
+            return update.objects();
+        } catch (SnapshotNotModifiedException e) {
+            lastUpdate.ifPresent(update -> metrics.success(update.serialAsLong(), update.collisionCount()));
+            throw e;
+        } catch (RRDPStructureException | FetcherException e) {
             metrics.failure();
             throw e;
-        } catch (ParserConfigurationException | XPathExpressionException | SAXException | IOException | NumberFormatException e) {
-            // recall: IOException, ConnectException are subtypes of IOException
+        } catch (RrdpHttp.HttpResponseException e) {
+            log.error("HTTP error on {} {}: {}", e.getMethod(), e.getUri(), e.getStatusCode());
             metrics.failure();
-            throw new FetcherException(e);
-        } catch (IllegalStateException e) {
-            if (e.getMessage().contains("Timeout")) {
-                log.info("Timeout while loading RRDP repo: connect-to={} url={}", config.getConnectTo(), config.getNotificationUrl());
-                metrics.timeout();
-                throw new RepoUpdateAbortedException(config.getNotificationUrl(), config.getConnectTo(), e);
-            } else {
-                throw e;
-            }
-        } catch (WebClientResponseException e) {
-            var maybeRequest = Optional.ofNullable(e.getRequest());
-            // Can be either a HTTP non-2xx or a timeout
-            log.error("Web client error for {} {}: Can be HTTP non-200 or a timeout. For 2xx we assume it's a timeout.", maybeRequest.map(HttpRequest::getMethod), maybeRequest.map(HttpRequest::getURI), e);
-            if (e.getStatusCode().is2xxSuccessful()) {
-                // Assume it's a timeout
-                metrics.timeout();
-                throw new RepoUpdateAbortedException(Optional.ofNullable(e.getRequest()).map(HttpRequest::getURI).orElse(null), config.getConnectTo(), e);
-            } else {
-                metrics.failure();
-
-                throw e;
-            }
-        } catch (WebClientRequestException e) {
-            // TODO: Exception handling could be a lot nicer. However we are mixing reactive and synchronous code,
-            //  and a nice solution probably requires major changes.
-            log.error("Web client request exception, only known cause is a timeout.", e);
+            throw new RepoUpdateFailedException(e.getUri(), e.getClient(), e);
+        } catch (RrdpHttp.HttpTimeout e) {
+            log.info("HTTP timeout on {} {}", e.getMethod(), e.getUri());
             metrics.timeout();
-            throw new RepoUpdateAbortedException(config.getNotificationUrl(), config.getConnectTo(), e);
+            throw new RepoUpdateAbortedException(e.getUri(), e.getClient(), e);
         }
     }
 
-    private static void validateSnapshotStructure(int notificationSerial, String snapshotUrl, Element doc) throws XPathExpressionException, RRDPStructureException {
-        // Check attributes of root snapshot element (mostly: that serial matches)
-        var querySnapshot = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot");
-        var snapshotNodes = (NodeList) querySnapshot.evaluate(doc, XPathConstants.NODESET);
-        // It is invariant that there is only one root element in an XML file, but it could still contain a different
-        // root tag => 0
-        if (snapshotNodes.getLength() != 1) {
-            throw new RRDPStructureException(snapshotUrl, "No <snapshot>...</snapshot> root element found");
-        } else {
-            var item = snapshotNodes.item(0);
-            int snapshotSerial = Integer.parseInt(item.getAttributes().getNamedItem("serial").getNodeValue());
+    private class WebclientRrdpHttpStrategy implements RrdpHttp {
+        private final RrdpConfig.RrdpRepositoryConfig config;
 
-            if (notificationSerial != snapshotSerial) {
-                throw new RRDPStructureException(snapshotUrl, "contained serial=%d, expected=%d".formatted(snapshotSerial, notificationSerial));
+        public WebclientRrdpHttpStrategy(RrdpConfig.RrdpRepositoryConfig config) {
+            this.config = config;
+        }
+
+        @Override
+        public byte[] fetch(String uri) throws HttpResponseException, HttpTimeout {
+            try {
+                return httpClient.get().uri(uri).retrieve().bodyToMono(byte[].class).block(config.getTotalRequestTimeout());
+            } catch (WebClientResponseException e) {
+                var maybeRequest = Optional.ofNullable(e.getRequest());
+
+                // Can be either a HTTP non-2xx or a timeout
+                log.error("Webclient error for {} {}: Can be HTTP non-200 or a timeout. For 2xx responses, assume it's a timeout reading the response.", maybeRequest.map(HttpRequest::getMethod), maybeRequest.map(HttpRequest::getURI), e);
+                if (e.getStatusCode().is2xxSuccessful()) {
+                    throw new HttpTimeout(this, maybeRequest.map(HttpRequest::getMethod).orElse(null), uri, e);
+                } else {
+                    throw new HttpResponseException(this, maybeRequest.map(HttpRequest::getMethod).orElse(null), uri, e.getStatusCode(), e);
+                }
+            } catch (WebClientRequestException e) {
+                // Only known cause is a timeout
+                throw new HttpTimeout(this, uri, e);
             }
         }
+
+        @Override
+        public String overrideHostname(String url) {
+            return config.overrideHostname(url);
+        }
+
+        @Override
+        public String describe() {
+            return "override-host-name=" + config.getOverrideHostname() + "connect-to=" + config.getConnectTo().toString();
+        }
     }
-
-    private ProcessPublishElementResult processPublishElements(Element doc) throws XPathExpressionException {
-        var queryPublish = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot/publish");
-        final NodeList publishedObjects = (NodeList) queryPublish.evaluate(doc, XPathConstants.NODESET);
-
-        var collisionCount = new AtomicInteger();
-
-        var decoder = Base64.getDecoder();
-
-        var objects = IntStream
-                .range(0, publishedObjects.getLength())
-                .mapToObj(publishedObjects::item)
-                .map(item -> {
-                    var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
-                    var content = item.getTextContent();
-
-                    try {
-                        // Surrounding whitespace is allowed by xsd:base64Binary. Trim that
-                        // off before decoding. See also:
-                        // https://www.w3.org/TR/2004/PER-xmlschema-2-20040318/datatypes.html#base64Binary
-                        var decoded = decoder.decode(content.trim());
-                        return ImmutablePair.of(objectUri, new RpkiObject(decoded));
-                    } catch (RuntimeException e) {
-                        log.error("cannot decode object data for URI {}\n{}", objectUri, content);
-                        throw e;
-                    }
-                })
-                // group by url to detect duplicate urls: keeps the first element, will cause a diff between
-                // the sources being monitored.
-                .collect(Collectors.groupingBy(Pair::getLeft))
-                // invariant: every group has at least 1 item
-                .entrySet().stream()
-                .map(item -> {
-                    if (item.getValue().size() > 1) {
-                        log.warn("Multiple objects for {}, keeping first element: {}", item.getKey(), item.getValue().stream().map(coll -> Sha256.asString(coll.getRight().getBytes())).collect(Collectors.joining(", ")));
-                        collisionCount.addAndGet(item.getValue().size() - 1);
-                        return item.getValue().get(0);
-                    }
-                    return item.getValue().get(0);
-                })
-                .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
-
-        return new ProcessPublishElementResult(objects, collisionCount.get());
-    }
-
-    record ProcessPublishElementResult(Map<String, RpkiObject> objects, int collisionCount) {};
 }

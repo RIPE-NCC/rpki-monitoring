@@ -3,17 +3,20 @@ package net.ripe.rpki.monitor.expiration;
 import lombok.NonNull;
 import lombok.Setter;
 import net.ripe.rpki.monitor.expiration.fetchers.RRDPStructureException;
+import net.ripe.rpki.monitor.expiration.fetchers.RepoUpdateFailedException;
+import net.ripe.rpki.monitor.expiration.fetchers.RrdpHttp;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.Sha256;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.reactive.function.client.WebClientException;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -188,7 +191,8 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         );
 
         assertThatThrownBy(() -> subject.run())
-                .isInstanceOf(WebClientException.class);
+                .asInstanceOf(InstanceOfAssertFactories.type(RepoUpdateFailedException.class))
+                .matches(e -> HttpStatusCode.valueOf(404).equals(((RrdpHttp.HttpResponseException)e.getCause()).getStatusCode()));
     }
 
     @Test
@@ -206,6 +210,7 @@ class RrdpObjectsAboutToExpireCollectorIntegrationTest {
         );
 
         assertThatThrownBy(() -> subject.run())
-                .isInstanceOf(WebClientException.class);
+                .asInstanceOf(InstanceOfAssertFactories.type(RepoUpdateFailedException.class))
+                .matches(e -> HttpStatusCode.valueOf(404).equals(((RrdpHttp.HttpResponseException)e.getCause()).getStatusCode()));
     }
 }
