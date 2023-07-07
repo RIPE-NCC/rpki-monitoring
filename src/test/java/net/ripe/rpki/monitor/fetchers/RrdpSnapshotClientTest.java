@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 public class RrdpSnapshotClientTest {
     public static final String EXAMPLE_ORG_NOTIFICATION_XML = "https://example.org/notification.xml";
     @Mock
-    private RrdpHttpStrategy http;
+    private RrdpHttp http;
 
     private RrdpSnapshotClient subject;
 
@@ -31,7 +31,7 @@ public class RrdpSnapshotClientTest {
     }
 
     @Test
-    void loadNotificationAndSnapshot() throws RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
+    void loadNotificationAndSnapshot() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
         when(http.fetch(any())).thenReturn(
             new ClassPathResource("rrdp/ripe-notification.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot.xml").getInputStream().readAllBytes()
@@ -45,7 +45,7 @@ public class RrdpSnapshotClientTest {
     }
 
     @Test
-    void loadNotificationAndSnapshot_not_changed() throws RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
+    void loadNotificationAndSnapshot_not_changed() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
         when(http.fetch(any())).thenReturn(
                 new ClassPathResource("rrdp/ripe-notification.xml").getInputStream().readAllBytes(),
                 new ClassPathResource("rrdp/ripe-snapshot.xml").getInputStream().readAllBytes(),
@@ -60,7 +60,7 @@ public class RrdpSnapshotClientTest {
     }
 
     @Test
-    void loadNotificationAndSnapshot_collisions() throws RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
+    void loadNotificationAndSnapshot_collisions() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
         when(http.fetch(any())).thenReturn(
             new ClassPathResource("rrdp/ripe-notification-collision.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot-collision.xml").getInputStream().readAllBytes()
@@ -71,7 +71,7 @@ public class RrdpSnapshotClientTest {
         assertThat(res.collisionCount()).isEqualTo(1);
     }
 
-    void detectsHashMismatch() throws RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout, IOException {
+    void detectsHashMismatch() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException {
         when(http.fetch(any())).thenReturn(
             new ClassPathResource("rrdp/ripe-notification.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot-collision.xml").getInputStream().readAllBytes()
@@ -83,7 +83,7 @@ public class RrdpSnapshotClientTest {
     }
 
     @Test
-    void detectsSerialMismatch() throws RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout, IOException {
+    void detectsSerialMismatch() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException {
         when(http.fetch(any())).thenReturn(
             new ClassPathResource("rrdp/ripe-notification-serial-2.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot.xml").getInputStream().readAllBytes()
@@ -95,7 +95,7 @@ public class RrdpSnapshotClientTest {
     }
 
     @Test
-    void detectsSessionMismatch() throws RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
+    void detectsSessionMismatch() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
         // Return the same snapshot for different session
         when(http.fetch(any())).thenReturn(
             new ClassPathResource("rrdp/ripe-notification-session-mismatch.xml").getInputStream().readAllBytes(),

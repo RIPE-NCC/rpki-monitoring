@@ -11,7 +11,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 
@@ -57,22 +56,21 @@ public class RrdpFetcher implements RepoFetcher {
         } catch (SnapshotNotModifiedException e) {
             lastUpdate.ifPresent(update -> metrics.success(update.serialAsLong(), update.collisionCount()));
             throw e;
-        } catch (RepoUpdateAbortedException e) {
-            metrics.timeout();
-            throw e;
         } catch (RRDPStructureException | FetcherException e) {
             metrics.failure();
             throw e;
-        } catch (RrdpHttpStrategy.HttpResponseException e) {
+        } catch (RrdpHttp.HttpResponseException e) {
+            log.error("HTTP error on {} {}: {}", e.getMethod(), e.getUri(), e.getStatusCode());
             metrics.failure();
             throw new RepoUpdateFailedException(e.getUri(), e.getClient(), e);
-        } catch (RrdpHttpStrategy.HttpTimeout e) {
+        } catch (RrdpHttp.HttpTimeout e) {
+            log.info("HTTP timeout on {} {}", e.getMethod(), e.getUri());
             metrics.timeout();
             throw new RepoUpdateAbortedException(e.getUri(), e.getClient(), e);
         }
     }
 
-    private class WebclientRrdpHttpStrategy implements RrdpHttpStrategy {
+    private class WebclientRrdpHttpStrategy implements RrdpHttp {
         private final RrdpConfig.RrdpRepositoryConfig config;
 
         public WebclientRrdpHttpStrategy(RrdpConfig.RrdpRepositoryConfig config) {
@@ -87,9 +85,8 @@ public class RrdpFetcher implements RepoFetcher {
                 var maybeRequest = Optional.ofNullable(e.getRequest());
 
                 // Can be either a HTTP non-2xx or a timeout
-                log.error("Web client error for {} {}: Can be HTTP non-200 or a timeout. For 2xx we assume it's a timeout.", maybeRequest.map(HttpRequest::getMethod), maybeRequest.map(HttpRequest::getURI), e);
+                log.error("Webclient error for {} {}: Can be HTTP non-200 or a timeout. For 2xx responses, assume it's a timeout reading the response.", maybeRequest.map(HttpRequest::getMethod), maybeRequest.map(HttpRequest::getURI), e);
                 if (e.getStatusCode().is2xxSuccessful()) {
-                    // Assume it's a timeout
                     throw new HttpTimeout(this, maybeRequest.map(HttpRequest::getMethod).orElse(null), uri, e);
                 } else {
                     throw new HttpResponseException(this, maybeRequest.map(HttpRequest::getMethod).orElse(null), uri, e.getStatusCode(), e);

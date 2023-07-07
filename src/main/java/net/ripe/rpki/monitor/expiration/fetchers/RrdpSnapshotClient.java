@@ -33,12 +33,12 @@ import java.util.stream.IntStream;
 @AllArgsConstructor
 @Slf4j
 public class RrdpSnapshotClient {
-    private final RrdpHttpStrategy httpClient;
+    private final RrdpHttp httpClient;
 
     /**
      * Load snapshot and validate hash
      */
-    byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws RRDPStructureException, RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout {
+    byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws RRDPStructureException, RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout {
         log.info("loading RRDP snapshot from {}", snapshotUrl);
 
         final byte[] snapshotBytes = httpClient.fetch(snapshotUrl);
@@ -52,7 +52,7 @@ public class RrdpSnapshotClient {
         return snapshotBytes;
     }
 
-    public RrdpSnapshotState fetchObjects(String notificationUrl, Optional<RrdpSnapshotState> previousState) throws RRDPStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException, RrdpHttpStrategy.HttpResponseException, RrdpHttpStrategy.HttpTimeout {
+    public RrdpSnapshotState fetchObjects(String notificationUrl, Optional<RrdpSnapshotState> previousState) throws RRDPStructureException, SnapshotNotModifiedException, RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout {
         try {
             final DocumentBuilder documentBuilder = XML.newDocumentBuilder();
 
@@ -98,7 +98,7 @@ public class RrdpSnapshotClient {
         } catch (IllegalStateException e) {
             if (e.getMessage().contains("Timeout")) {
                 log.info("Timeout while loading RRDP repo: details={} url={}", httpClient, notificationUrl);
-                throw new RepoUpdateAbortedException(notificationUrl, httpClient, e);
+                throw new RrdpHttp.HttpTimeout(httpClient, notificationUrl, e);
             } else {
                 throw e;
             }
