@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import lombok.Data;
 import lombok.Getter;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
@@ -15,6 +16,9 @@ public interface RrdpHttpStrategy {
         return "N/A";
     }
 
+    /**
+     * HTTP timeout: Not considered to be a critical failure for RRDP when it happens infrequently.
+     */
     @Getter
     final class HttpTimeout extends Exception {
         private final HttpMethod method;
@@ -33,6 +37,10 @@ public interface RrdpHttpStrategy {
 
         }
     }
+
+    /**
+     * An invalid HTTP response (any non-200). A failure that indicates a broken RRDP endpoint.
+     */
     @Getter
     final class HttpResponseException extends Exception {
         private final RrdpHttpStrategy client;
