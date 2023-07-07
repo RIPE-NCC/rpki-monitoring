@@ -90,13 +90,13 @@ public class RrdpFetcher implements RepoFetcher {
                 log.error("Web client error for {} {}: Can be HTTP non-200 or a timeout. For 2xx we assume it's a timeout.", maybeRequest.map(HttpRequest::getMethod), maybeRequest.map(HttpRequest::getURI), e);
                 if (e.getStatusCode().is2xxSuccessful()) {
                     // Assume it's a timeout
-                    throw new HttpTimeout(this, maybeRequest.map(HttpRequest::getMethod), uri, e);
+                    throw new HttpTimeout(this, maybeRequest.map(HttpRequest::getMethod).orElse(null), uri, e);
                 } else {
-                    throw new HttpResponseException(this, maybeRequest.map(HttpRequest::getMethod), uri, e.getStatusCode(), e);
+                    throw new HttpResponseException(this, maybeRequest.map(HttpRequest::getMethod).orElse(null), uri, e.getStatusCode(), e);
                 }
             } catch (WebClientRequestException e) {
                 // Only known cause is a timeout
-                throw new HttpTimeout(this, Optional.empty(), uri, e);
+                throw new HttpTimeout(this, uri, e);
             }
         }
 

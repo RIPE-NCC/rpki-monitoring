@@ -1,6 +1,5 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
@@ -18,33 +17,37 @@ public interface RrdpHttpStrategy {
 
     @Getter
     final class HttpTimeout extends Exception {
-        private final Optional<HttpMethod> method;
+        private final HttpMethod method;
         private final String uri;
 
         private final RrdpHttpStrategy client;
 
-        public HttpTimeout(RrdpHttpStrategy client, Optional<HttpMethod> method, String uri, Exception cause) {
+        public HttpTimeout(RrdpHttpStrategy client, HttpMethod method, String uri, Exception cause) {
             super(cause);
             this.client = client;
             this.method = method;
             this.uri = uri;
+        }
+        public HttpTimeout(RrdpHttpStrategy client, String uri, Exception cause) {
+            this(client, null, uri, cause);
+
         }
     }
     @Getter
     final class HttpResponseException extends Exception {
         private final RrdpHttpStrategy client;
 
-        private final Optional<HttpMethod> method;
+        private final HttpMethod method;
         private final HttpStatusCode statusCode;
 
         private final String uri;
 
-        public HttpResponseException(RrdpHttpStrategy client, Optional<HttpMethod> method, String uri, HttpStatusCode statusCode, Exception cause) {
+        public HttpResponseException(RrdpHttpStrategy client, HttpMethod method, String uri, HttpStatusCode statusCode, Exception cause) {
             super(cause);
             this.client = client;
             this.method = method;
             this.uri = uri;
             this.statusCode = statusCode;
         }
-    };
+    }
 }

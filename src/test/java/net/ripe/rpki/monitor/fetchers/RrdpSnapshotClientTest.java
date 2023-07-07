@@ -41,7 +41,7 @@ public class RrdpSnapshotClientTest {
         var res = subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty());
         assertThat(res.serialAsLong()).isEqualTo(1742L);
         assertThat(res.collisionCount()).isEqualTo(0);
-        assertThat(res.snapshotUrl().equals("https://rrdp.ripe.net/a2d845c4-5b91-4015-a2b7-988c03ce232a/1742/snapshot.xml"));
+        assertThat(res.snapshotUrl()).isEqualTo("https://rrdp.ripe.net/a2d845c4-5b91-4015-a2b7-988c03ce232a/1742/snapshot.xml");
     }
 
     @Test
