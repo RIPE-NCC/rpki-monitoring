@@ -106,11 +106,9 @@ public class RrdpSnapshotClient {
     }
 
     /**
-     * @precondition: sessionId is UUID version 4 - this check must be done before.
+     * @requires: sessionId is UUID version 4.
      */
     static void validateSnapshotStructure(BigInteger notificationSerial, UUID sessionId, String snapshotUrl, Element doc) throws XPathExpressionException, RRDPStructureException {
-        assert sessionId.version() == 4;
-
         // Check attributes of root snapshot element (mostly: that serial matches)
         var querySnapshot = XPathFactory.newDefaultInstance().newXPath().compile("/snapshot");
         var snapshotNodes = (NodeList) querySnapshot.evaluate(doc, XPathConstants.NODESET);
@@ -124,6 +122,7 @@ public class RrdpSnapshotClient {
                 var snapshotSerial = parseSerial(snapshotUrl, item);
                 var snapshotSessionId = validateSessionIdUUIDv4(snapshotUrl, item);
 
+                // transitively, equality implies that session-id argument is UUID version 4 as well.
                 if (!sessionId.equals(snapshotSessionId)) {
                     throw new RRDPStructureException(snapshotUrl, "contained session-id=%s, expected=%s".formatted(sessionId, snapshotSessionId));
                 }
