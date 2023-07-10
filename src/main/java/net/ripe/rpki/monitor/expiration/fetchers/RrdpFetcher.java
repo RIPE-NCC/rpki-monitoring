@@ -99,7 +99,7 @@ public class RrdpFetcher implements RepoFetcher {
         }
 
         @Override
-        public String overrideHostname(String url) {
+        public String transformHostname(String url) {
             return config.overrideHostname(url);
         }
 

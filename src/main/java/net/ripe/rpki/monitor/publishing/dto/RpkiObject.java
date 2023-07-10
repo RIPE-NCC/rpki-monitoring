@@ -1,10 +1,6 @@
 package net.ripe.rpki.monitor.publishing.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Value;
+import java.io.Serializable;
 
-@AllArgsConstructor
-@Value
-public class RpkiObject {
-    byte[] bytes;
+public record RpkiObject (byte[] bytes) implements Serializable {
 }

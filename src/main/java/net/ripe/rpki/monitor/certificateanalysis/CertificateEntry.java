@@ -2,19 +2,13 @@ package net.ripe.rpki.monitor.certificateanalysis;
 
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
-import net.ripe.rpki.commons.validation.ValidationResult;
 
-record CertificateEntry(String uri, X509ResourceCertificate certificate, ImmutableResourceSet resources) {
-
-    public CertificateEntry(String uri, X509ResourceCertificate certificate) {
-        this(uri, certificate, ImmutableResourceSet.of(certificate.getResources()));
+record CertificateEntry(String uri, X509ResourceCertificate certificate, ImmutableResourceSet resources, String reachabilityPath) {
+    public CertificateEntry(String uri, X509ResourceCertificate certificate, String path) {
+        this(uri, certificate, ImmutableResourceSet.of(certificate.getResources()), path);
     }
 
-    public static CertificateEntry ofEncodedResourceCertificate(String uri, byte[] encoded) {
-        ValidationResult validationResult = ValidationResult.withLocation(uri);
-        var parser = new X509ResourceCertificateParser();
-        parser.parse(validationResult, encoded);
-        return new CertificateEntry(uri, parser.getCertificate());
+    public static boolean areAncestors(CertificateEntry lhs, CertificateEntry rhs) {
+        return !lhs.reachabilityPath.equals(rhs.reachabilityPath) && (lhs.reachabilityPath.startsWith(rhs.reachabilityPath) || rhs.reachabilityPath.startsWith(lhs.reachabilityPath));
     }
 }

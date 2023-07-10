@@ -116,8 +116,8 @@ public class ObjectAndDateCollector {
             var objectUri = e.getKey();
             var object = e.getValue();
 
-            var statusAndObject = getDateFor(objectUri, object.getBytes());
-            maxObjectSize.getAndAccumulate(object.getBytes().length, Integer::max);
+            var statusAndObject = getDateFor(objectUri, object.bytes());
+            maxObjectSize.getAndAccumulate(object.bytes().length, Integer::max);
             if (ACCEPTED.equals(statusAndObject.getLeft())) {
                 passedObjects.incrementAndGet();
             }
@@ -128,7 +128,7 @@ public class ObjectAndDateCollector {
                 rejectedObjects.incrementAndGet();
             }
 
-            return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
+            return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.bytes())));
         }).flatMap(Optional::stream);
     }
 

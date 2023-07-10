@@ -1,7 +1,9 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Streams;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
@@ -18,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -26,6 +29,11 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
     private final ImmutableMap<String, RpkiObject> rpkiObjects;
 
     private final String certificateUrl;
+    private final String path;
+
+    public ExtractRpkiCertificateSpan(ImmutableMap<String, RpkiObject> rpkiObjects, String certificateUrl) {
+        this(rpkiObjects, certificateUrl, "/");
+    }
 
     private Optional<X509ResourceCertificate> parseCertificate(byte[] encoded) {
             ValidationResult validationResult = ValidationResult.withLocation(certificateUrl);
@@ -56,10 +64,10 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
             return Stream.empty();
         }
 
-        var maybeCertificate = parseCertificate(cert.getBytes());
+        var maybeCertificate = parseCertificate(cert.bytes());
 
         return maybeCertificate.map(certificate -> {
-            var thisEntry = new CertificateEntry(certificateUrl, certificate);
+            var thisEntry = new CertificateEntry(certificateUrl, certificate, path);
 
             return Stream.concat(
                     Stream.of(thisEntry),
@@ -77,11 +85,11 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
 
 
         var manifestParser = new ManifestCmsParser();
-        manifestParser.parse(manifestUrl, manifest.getBytes());
+        manifestParser.parse(manifestUrl, manifest.bytes());
 
         if (!manifestParser.isSuccess()) {
             log.error("Error when parsing {}", manifestUrl);
-            return Stream.of();
+            return Stream.empty();
         }
         return ForkJoinTask.invokeAll(createSubtasks(manifestUrl, manifestParser.getManifestCms()))
                         .stream()
@@ -96,8 +104,8 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
     }
 
     private Collection<ExtractRpkiCertificateSpan> createSubtasks(String manifestUrl, ManifestCms manifestCms) {
-        return manifestCms.getFileNames().stream().filter(name -> name.endsWith(".cer")).map(filename ->
-                new ExtractRpkiCertificateSpan(rpkiObjects, relativeUrl(manifestUrl, filename))
-        ).collect(Collectors.toList());
+        return Streams.mapWithIndex(manifestCms.getFileNames().stream().filter(name -> name.endsWith(".cer")), (filename, idx) ->
+                new ExtractRpkiCertificateSpan(rpkiObjects, relativeUrl(manifestUrl, filename), path + idx + "/")
+        ).toList();
     }
 }

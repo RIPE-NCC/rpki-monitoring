@@ -19,6 +19,11 @@ repositories {
     maven {
         url = uri('https://nexus.ripe.net/nexus/content/repositories/releases/')
     }
+    maven {
+        // READ ACCESS token specific for this repositories maven artifacts. These are public, but unfortunately anonymous
+        // access is not possible. Valid until 11-7-2024. NOT A SECRET.
+        url = uri('https://ties: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@maven.pkg.github.com/ties/java-rrdp-test-data')
+    }
 }
 
 dependencies {
@@ -36,8 +41,6 @@ dependencies {
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
-    implementation  'org.apache.commons:commons-collections4:4.4'
-
     // Metrics
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
@@ -47,6 +50,9 @@ dependencies {
     }
     testImplementation("org.assertj:assertj-core:3.24.2")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.11.0")
+
+    // RRDP snapshots for RIPE + APNIC
+    testImplementation 'com.github.ties:rrdp-test-data:0.2.0-SNAPSHOT'
 }
 
 java {
@@ -55,11 +61,21 @@ java {
     }
 }
 
+tasks.withType(Test).configureEach {
+    jvmArgs += "--enable-preview"
+}
+
+tasks.withType(JavaExec).configureEach {
+    jvmArgs += "--enable-preview"
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs << '-Xlint:all'
+    options.compilerArgs << '--enable-preview'
+            << '-Xlint:all'
             << '-Xlint:-processing'
             << '-Xlint:-serial'
+            << '-Xlint:-preview'
             << '-Werror'
 }
 
@@ -67,6 +83,8 @@ test {
     useJUnitPlatform()
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
     finalizedBy jacocoTestReport
+
+    maxHeapSize = '4g'
 }
 
 tasks.named('sonarqube').configure {

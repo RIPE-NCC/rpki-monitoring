@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatusCode;
 public interface RrdpHttp {
     byte[] fetch(String uri) throws HttpTimeout, HttpResponseException;
 
-    String overrideHostname(String url);
+    String transformHostname(String url);
 
     default String describe() {
         return "N/A";

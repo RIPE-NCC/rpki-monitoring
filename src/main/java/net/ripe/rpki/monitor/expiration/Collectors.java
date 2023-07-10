@@ -10,19 +10,14 @@ import net.ripe.rpki.monitor.expiration.fetchers.RrdpFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
-import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
-import static java.util.stream.Collectors.toList;
 
 @Component
 public class Collectors {
@@ -49,6 +44,7 @@ public class Collectors {
         this.repositoriesState = repositoriesState;
         this.tracer = tracer.orElse(Tracer.NOOP);
 
+        // We track only one of the RRDP repositories
         AtomicBoolean primaryRrdp = new AtomicBoolean(false);
 
         this.rrdpCollectors = config.getRrdpConfig().getTargets().stream().map(
@@ -56,12 +52,12 @@ public class Collectors {
                     if (primaryRrdp.compareAndSet(false, true)) {
                         return makeCollector(new RrdpFetcher(target, fetcherMetrics, webclientBuilder), certificateAnalysisService::process);
                     }
-                    return makeCollector(new RrdpFetcher(target, fetcherMetrics, webclientBuilder), objects -> {});
+                    return makeCollector(new RrdpFetcher(target, fetcherMetrics, webclientBuilder), o -> {});
                 }
-        ).collect(toList());
+        ).toList();
         this.rsyncCollectors = config.getRsyncConfig().getTargets().stream().map(
-                target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url(), fetcherMetrics), objects -> {})
-        ).collect(toList());
+                target -> makeCollector(new RsyncFetcher(config.getRsyncConfig(), target.name(), target.url(), fetcherMetrics), o -> {})
+        ).toList();
     }
 
     private ObjectAndDateCollector makeCollector(RepoFetcher fetcher, ObjectConsumer objectConsumer) {
