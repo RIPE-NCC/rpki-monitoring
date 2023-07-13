@@ -198,8 +198,6 @@ rsync:
   targets:
     - name: rsync
       url: rsync://rpki.ripe.net
-    - name: rsync-migrate
-      url: rsync://rpki-migrate.ripe.net
 
 core:
   enable: true
