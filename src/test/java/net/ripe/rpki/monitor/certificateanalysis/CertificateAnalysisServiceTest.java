@@ -46,14 +46,6 @@ public class CertificateAnalysisServiceTest {
     @BeforeEach
     void setUp() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException, RRDPStructureException, SnapshotNotModifiedException {
         config = new CertificateAnalysisConfig();
-        // Ignore RIPE NCC intermediate CAs
-        config.setIgnoredOverlaps(List.of(
-                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/[^/]+"), "intermediate CAs"),
-                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/DEFAULT/[^/]+"), "intermediate CAs"),
-                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/aca/.*"), "production CA manifest & crl"),
-                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/ta/.*"), "TA certificate")
-        ));
-        config.setRootCertificateUrl(RIPE_TRUST_ANCHOR_CERTIFICATE_URL);
     }
 
     @SneakyThrows
@@ -120,12 +112,16 @@ public class CertificateAnalysisServiceTest {
                 .hasSizeGreaterThan(5_000);
     }
 
+    /**
+     * Use APNIC because it has intermediate CAs as well as multiple child certificates in some nodes, which
+     * is a worse case for the algorithm than a "clean" tree.
+     */
     @Test
     void testCompare_apnic() {
+        config.setRootCertificateUrl(APNIC_TRUST_ANCHOR_CERTIFICATE_URL);
+
         var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
 
-        // use APNIC data because it has intermediate CAs
-        config.setRootCertificateUrl(APNIC_TRUST_ANCHOR_CERTIFICATE_URL);
         var overlaps = subject.processInternal(rpkiObjects("rrdp-content/apnic/notification.xml", "rrdp-content/apnic/snapshot.xml"));
 
         // Because of multiple active certificates for certain members (?)
@@ -135,9 +131,17 @@ public class CertificateAnalysisServiceTest {
 
     @Test
     void testCompare_ripe() {
+        // Ignore RIPE NCC intermediate CAs
+        config.setIgnoredOverlaps(List.of(
+                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/[^/]+"), "intermediate CAs"),
+                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/DEFAULT/[^/]+"), "intermediate CAs"),
+                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/aca/.*"), "production CA manifest & crl"),
+                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/ta/.*"), "TA certificate")
+        ));
+        config.setRootCertificateUrl(RIPE_TRUST_ANCHOR_CERTIFICATE_URL);
+
         var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
 
-        config.setRootCertificateUrl(RIPE_TRUST_ANCHOR_CERTIFICATE_URL);
         var overlaps = subject.processInternal(rpkiObjects("rrdp-content/ripe/notification.xml", "rrdp-content/ripe/snapshot.xml"));
 
         // Data without intermediate CAs has no overlaps.

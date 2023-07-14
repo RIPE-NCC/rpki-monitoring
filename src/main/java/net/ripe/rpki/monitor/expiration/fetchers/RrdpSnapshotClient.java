@@ -39,10 +39,10 @@ public class RrdpSnapshotClient {
      * Load snapshot and validate hash
      */
     byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws RRDPStructureException, RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout {
-        log.info("loading RRDP snapshot from {}", snapshotUrl);
+        log.info("loading RRDP snapshot from {} {}", snapshotUrl, httpClient.describe());
 
         final byte[] snapshotBytes = httpClient.fetch(snapshotUrl);
-        Verify.verifyNotNull(snapshotBytes);
+        Verify.verifyNotNull(snapshotBytes, "expected non-null snapshot content from %s %s".formatted(snapshotUrl, httpClient.describe()));
 
         final String realSnapshotHash = Sha256.asString(snapshotBytes);
         if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
@@ -147,7 +147,7 @@ public class RrdpSnapshotClient {
                 .range(0, publishedObjects.getLength())
                 .mapToObj(publishedObjects::item)
                 .map(item -> {
-                    var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
+                    var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue().intern();
                     var content = item.getTextContent();
 
                     try {

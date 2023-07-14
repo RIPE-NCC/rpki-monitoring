@@ -11,6 +11,7 @@ import org.springframework.http.HttpRequest;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Optional;
@@ -81,7 +82,10 @@ public class RrdpFetcher implements RepoFetcher {
         @Override
         public byte[] fetch(String uri) throws HttpResponseException, HttpTimeout {
             try {
-                return httpClient.get().uri(uri).retrieve().bodyToMono(byte[].class).block(config.getTotalRequestTimeout());
+                return httpClient.get().uri(uri)
+                        .retrieve()
+                        .bodyToMono(byte[].class)
+                        .block(config.getTotalRequestTimeout());
             } catch (WebClientResponseException e) {
                 var maybeRequest = Optional.ofNullable(e.getRequest());
 
@@ -105,7 +109,7 @@ public class RrdpFetcher implements RepoFetcher {
 
         @Override
         public String describe() {
-            return "override-host-name=" + config.getOverrideHostname() + "connect-to=" + config.getConnectTo().toString();
+            return (config.getOverrideHostname() != null ? "override-host-name=" + config.getOverrideHostname() + " ": "") + "connect-to=" + config.getConnectTo().toString();
         }
     }
 }
