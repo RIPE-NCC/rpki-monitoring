@@ -129,6 +129,8 @@ public class CertificateAnalysisServiceTest {
 
         var overlaps = subject.process(rpkiObjects("rrdp-content/apnic/notification.xml", "rrdp-content/apnic/snapshot.xml"));
 
+        CertificateAnalysisService.printOverlaps(overlaps);
+
         // Because of multiple active certificates for certain members (?)
         assertThat(overlaps).hasSizeGreaterThan(10);
 
