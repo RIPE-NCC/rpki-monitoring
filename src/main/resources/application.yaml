@@ -31,16 +31,9 @@ rsync:
       url: rsync://rpki.prepdev.ripe.net
 
 certificate.analysis:
+  enabled: true
   root-certificate-url: rsync://rpki.prepdev.ripe.net/ta/RIPE-NCC-TA-TEST.cer
-  ignored-overlaps:
-    - regex: 'rsync://.*/repository/[^/]+'
-      description: 'intermediate CAs'
-    - regex: 'rsync://.*/repository/DEFAULT/[^/]+'
-      description: 'intermediate CAs'
-    - regex: 'rsync://.*/repository/aca/.*'
-      description: 'production CA manifest & crl'
-    - regex: 'rsync://.*/ta/.*'
-      description: 'TA certificate'
+  ignored-overlaps: []
 
 expiry:
   # repository tags for which the regex matching is performed.
@@ -133,6 +126,12 @@ core:
   url: http://localhost:8080/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
+certificate.analysis:
+  enabled: true
+  root-certificate-url: rsync://rpki.prepdev.ripe.net/ta/RIPE-NCC-TA-TEST.cer
+  ignored-overlaps:
+    - regex: 'rsync://.*/repository/DEFAULT/[^/]+'
+      description: 'intermediate CAs'
 ---
 spring.config.activate.on-profile: prepdev
 
@@ -179,14 +178,8 @@ management:
 spring.config.activate.on-profile: production
 
 certificate.analysis:
+  enabled: true
   root-certificate-url: rsync://rpki.ripe.net/ta/ripe-ncc-ta.cer
-  ignored-overlaps:
-    - regex: 'rsync://.*/repository/[^/]+'
-      description: 'intermediate CAs'
-    - regex: 'rsync://.*/repository/aca/.*'
-      description: 'production CA manifest & crl'
-    - regex: 'rsync://.*/ta/.*'
-      description: 'TA certificate'
 
 rrdp:
   interval: 5M
@@ -258,6 +251,9 @@ rsync:
 core:
   enable: false
 
+certificate.analysis:
+  enabled: false
+
 management:
   tracing.enabled: true
 ---
@@ -293,3 +289,6 @@ rsync:
 
 core:
   enable: false
+
+certificate.analysis:
+  enabled: false

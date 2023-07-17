@@ -141,7 +141,6 @@ public class CertificateAnalysisServiceTest {
 
     @Test
     void testCompareAndTrackMetrics_ripe() {
-        // Ignore RIPE NCC intermediate CAs
         config.setRootCertificateUrl(RIPE_TRUST_ANCHOR_CERTIFICATE_URL);
 
         var overlaps = subject.process(rpkiObjects("rrdp-content/ripe/notification.xml", "rrdp-content/ripe/snapshot.xml"));

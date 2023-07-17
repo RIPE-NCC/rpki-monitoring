@@ -13,6 +13,8 @@ import java.util.regex.Pattern;
 public class CertificateAnalysisConfig {
     private List<IgnoredOverlap> ignoredOverlaps = List.of();
 
+    private boolean enabled;
+
     private String rootCertificateUrl;
 
     public record IgnoredOverlap(Pattern regex, String description) {}

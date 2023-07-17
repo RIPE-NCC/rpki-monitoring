@@ -15,6 +15,7 @@ import net.ripe.ipresource.etree.IpResourceIntervalStrategy;
 import net.ripe.ipresource.etree.NestedIntervalMap;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -26,6 +27,7 @@ import java.util.stream.Stream;
 
 @Slf4j
 @Service
+@ConditionalOnProperty(value = "certificate-analysis.enabled", havingValue = "true", matchIfMissing = true)
 public class CertificateAnalysisService {
     final CertificateAnalysisConfig config;
 
