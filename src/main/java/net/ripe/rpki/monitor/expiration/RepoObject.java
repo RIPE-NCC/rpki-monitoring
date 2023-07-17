@@ -11,7 +11,7 @@ import java.util.Date;
 
 @Value
 public class RepoObject implements Comparable<RepoObject>, HasHashAndUri {
-    private static Comparator<RepoObject> COMPARE_REPO_OBJECT = Comparator.comparing(RepoObject::getExpiration)
+    private static final Comparator<RepoObject> COMPARE_REPO_OBJECT = Comparator.comparing(RepoObject::getExpiration)
             .thenComparing(RepoObject::getCreation)
             .thenComparing(RepoObject::getUri)
             .thenComparing(RepoObject::getSha256);
