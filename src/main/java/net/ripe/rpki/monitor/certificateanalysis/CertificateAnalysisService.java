@@ -177,9 +177,9 @@ public class CertificateAnalysisService {
 
                     var symmetricDifference = symmetricDifference(cert1.resources(), cert2.resources());
 
-                    log.info("Found intersection between\n{} notBefore={} uri={} SIA={} and\n{} notBefore={} uri={} SIA={}.\nOverlap: {}. Symmetric difference: {}",
-                            cert1.certificate().getSubject(), cert1.certificate().getCertificate().getNotBefore(), cert1.uri(), cert1.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
-                            cert2.certificate().getSubject(), cert2.certificate().getCertificate().getNotBefore(), cert2.uri(), cert2.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
+                    log.info("Found intersection between\n{} {} notBefore={} notAfter={} uri={} SIA={} and\n{} {} notBefore={} notAfter={} uri={} SIA={}.\nOverlap: {}.\nSymmetric difference: {}",
+                            cert1.certificate().getSubject(), cert1.reachabilityPath(), cert1.certificate().getCertificate().getNotBefore(), cert1.certificate().getCertificate().getNotAfter(), cert1.uri(), cert1.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
+                            cert2.certificate().getSubject(), cert2.reachabilityPath(), cert2.certificate().getCertificate().getNotBefore(), cert2.certificate().getCertificate().getNotAfter(), cert2.uri(), cert2.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST),
                             intersection,
                             symmetricDifference.isEmpty() ? "∅" : symmetricDifference
                     );
