@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
 import com.google.common.collect.ImmutableMap;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -43,9 +44,16 @@ public class CertificateAnalysisServiceTest {
 
     private CertificateAnalysisConfig config;
 
+    private MeterRegistry registry;
+
+    private CertificateAnalysisService subject;
+
     @BeforeEach
     void setUp() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException, RRDPStructureException, SnapshotNotModifiedException {
         config = new CertificateAnalysisConfig();
+        registry = new SimpleMeterRegistry();
+
+        subject = new CertificateAnalysisService(config, Optional.empty(), registry);
     }
 
     @SneakyThrows
@@ -117,35 +125,35 @@ public class CertificateAnalysisServiceTest {
      * is a worse case for the algorithm than a "clean" tree.
      */
     @Test
-    void testCompare_apnic() {
+    void testCompareAndTrackMetrics_apnic() {
         config.setRootCertificateUrl(APNIC_TRUST_ANCHOR_CERTIFICATE_URL);
 
-        var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
-
-        var overlaps = subject.processInternal(rpkiObjects("rrdp-content/apnic/notification.xml", "rrdp-content/apnic/snapshot.xml"));
+        var overlaps = subject.process(rpkiObjects("rrdp-content/apnic/notification.xml", "rrdp-content/apnic/snapshot.xml"));
 
         // Because of multiple active certificates for certain members (?)
         assertThat(overlaps).hasSizeGreaterThan(10);
-        CertificateAnalysisService.printOverlaps(overlaps);
+
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.overlapping.certificate.count").gauge().value()).isGreaterThan(13);
+        // Implies: parent-child overlap is not counted.
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.overlapping.resource.count").gauge().value()).isGreaterThan(42);
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.certificate.count").gauge().value()).isGreaterThan(5_000);
     }
 
     @Test
-    void testCompare_ripe() {
+    void testCompareAndTrackMetrics_ripe() {
         // Ignore RIPE NCC intermediate CAs
-        config.setIgnoredOverlaps(List.of(
-                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/[^/]+"), "intermediate CAs"),
-                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/DEFAULT/[^/]+"), "intermediate CAs"),
-                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/repository/aca/.*"), "production CA manifest & crl"),
-                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://.*/ta/.*"), "TA certificate")
-        ));
         config.setRootCertificateUrl(RIPE_TRUST_ANCHOR_CERTIFICATE_URL);
 
-        var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
+        var overlaps = subject.process(rpkiObjects("rrdp-content/ripe/notification.xml", "rrdp-content/ripe/snapshot.xml"));
 
-        var overlaps = subject.processInternal(rpkiObjects("rrdp-content/ripe/notification.xml", "rrdp-content/ripe/snapshot.xml"));
+        // Two overlapping pairs at time of data creation
+        assertThat(overlaps).hasSize(2);
 
-        // Data without intermediate CAs has no overlaps.
-        assertThat(overlaps).isEmpty();
+        // Two pairs that consist of distincs certificates
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.overlapping.certificate.count").gauge().value()).isEqualTo(4);
+        // Implies: parent-child overlap is not counted.
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.overlapping.resource.count").gauge().value()).isEqualTo(2);
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.certificate.count").gauge().value()).isGreaterThan(20_000);
     }
 
     @Test
@@ -163,9 +171,10 @@ public class CertificateAnalysisServiceTest {
 
         var root = new CertificateEntry("root", null, ImmutableResourceSet.of(IpResource.ALL_IPV4_RESOURCES), "/");
         var childLhs = new CertificateEntry("lhs", null, TEST_NET_1, "/0/");
-        var childRhs = new CertificateEntry("rhs", null, TEST_NET_1, "/1/");
+        var childMid = new CertificateEntry("mid", null, TEST_NET_2, "/1/");
+        var childRhs = new CertificateEntry("rhs", null, TEST_NET_1, "/2/");
 
-        var overlaps = subject.compareCertificates(List.of(root, childLhs, childRhs));
+        var overlaps = subject.compareCertificates(List.of(root, childLhs, childMid, childRhs));
 
         // parent-child not detected, but the two children overlap
         assertThat(overlaps)

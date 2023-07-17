@@ -33,9 +33,9 @@ public class CertificateAnalysisService {
 
     final Timer certificateComparisonDuration;
 
-    final AtomicLong overlapResourceCount = new AtomicLong();
+    final AtomicLong overlappingResourceCount = new AtomicLong();
 
-    final AtomicLong overlapCertificatePairCount = new AtomicLong();
+    final AtomicLong overlappingCertificateCount = new AtomicLong();
 
     final AtomicLong totalCertificateCount = new AtomicLong();
 
@@ -45,19 +45,19 @@ public class CertificateAnalysisService {
             MeterRegistry meterRegistry) {
         this.tracer = maybeTracer.orElse(Tracer.NOOP);
         this.config = config;
-        certificateComparisonDuration = Timer.builder("rpki.monitor.certificate.analysis.comparison.duration")
+        certificateComparisonDuration = Timer.builder("rpkimonitoring.certificate.analysis.comparison.duration")
                 .description("Duration of certificate comparison (N^2)")
                 .maximumExpectedValue(Duration.ofSeconds(300))
                 .register(meterRegistry);
 
-        Gauge.builder("rpki.monitor.certificate.analysis.overlapping.certificate.pair.count", overlapCertificatePairCount::get)
-                .description("Number of certificates with overlaps")
+        Gauge.builder("rpkimonitoring.certificate.analysis.overlapping.certificate.count", overlappingCertificateCount::get)
+                .description("Number of certificates with overlaps (number, not number of pairs)")
                 .register(meterRegistry);
-        Gauge.builder("rpki.monitor.certificate.analysis.overlapping.resources.count", overlapResourceCount::get)
+        Gauge.builder("rpkimonitoring.certificate.analysis.overlapping.resource.count", overlappingResourceCount::get)
                 .description("Number of resources that overlap between certificates")
                 .register(meterRegistry);
 
-        Gauge.builder("rpki.monitor.certificate.analysis.certificate.count",totalCertificateCount::get)
+        Gauge.builder("rpkimonitoring.certificate.analysis.certificate.count",totalCertificateCount::get)
                 .description("Total number of certificates analysed")
                 .register(meterRegistry);
     }
@@ -71,7 +71,7 @@ public class CertificateAnalysisService {
      * @param rpkiObjectMap the objects
      */
 
-    public void process(ImmutableMap<String, RpkiObject> rpkiObjectMap) {
+    public Set<Set<CertificateEntry>> process(ImmutableMap<String, RpkiObject> rpkiObjectMap) {
         var overlaps = processInternal(rpkiObjectMap);
 
         if (overlaps.size() < 100) {
@@ -81,17 +81,20 @@ public class CertificateAnalysisService {
         }
 
         var overlappingResources = overlaps.stream().flatMap(Collection::stream).collect(IpResourceSet::new, (acc, rhs) -> acc.addAll(rhs.resources()), (comb, rhs) -> comb.addAll(rhs));
+        var overlappingCertCount = overlaps.stream().flatMap(Collection::stream).distinct().count();
         var overlappingResourceCount = overlappingResources.stream().count();
 
         // Update metrics
-        overlapCertificatePairCount.set(overlaps.size());
-        overlapResourceCount.set(overlappingResourceCount);
+        overlappingCertificateCount.set(overlappingCertCount);
+        this.overlappingResourceCount.set(overlappingResourceCount);
 
         if (overlappingResourceCount > 21) {
             log.info("Not printing {} resources overlapping between certificates.", overlappingResourceCount);
         } else {
             log.info("Overlap between certs: {}", overlappingResources);
         }
+
+        return overlaps;
     }
 
     @SuppressWarnings("try")
