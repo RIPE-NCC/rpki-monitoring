@@ -11,6 +11,7 @@ import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
+import net.ripe.rpki.commons.crypto.x509cert.X509RouterCertificate;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 
@@ -39,19 +40,13 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
             ValidationResult validationResult = ValidationResult.withLocation(certificateUrl);
             var cert = X509CertificateParser.parseCertificate(validationResult, encoded);
 
-            boolean router = cert.isRouter();
-            if (!router) {
-                var parser = new X509ResourceCertificateParser();
-                parser.parse(validationResult, encoded);
-                if (parser.isSuccess()) {
-                    return Optional.of(parser.getCertificate());
-                } else {
+            return switch (cert) {
+                case X509ResourceCertificate resourceCert: yield Optional.of(resourceCert);
+                case X509RouterCertificate __: yield Optional.empty();
+                case default:
                     log.error("Error when parsing {}", certificateUrl);
-                    return Optional.empty();
-                }
-            } else {
-                return Optional.empty();
-            }
+                    yield Optional.empty();
+            };
     }
 
 
