@@ -76,10 +76,12 @@ public class CertificateAnalysisService {
     public Set<Set<CertificateEntry>> process(ImmutableMap<String, RpkiObject> rpkiObjectMap) {
         var overlaps = processInternal(rpkiObjectMap);
 
-        if (overlaps.size() < 100) {
+        // After processing print a manageable, arbitrary number of overlaps
+        if (overlaps.size() < 21) {
             printOverlaps(overlaps);
         } else {
-            log.error("Too many overlaps ({}): Not printing.", overlaps.size());
+            log.error("Too many overlaps ({}): Not printing all overlaps.", overlaps.size());
+            printOverlaps(overlaps.stream().limit(21).toList());
         }
 
         var overlappingResources = overlaps.stream().flatMap(Collection::stream).collect(IpResourceSet::new, (acc, rhs) -> acc.addAll(rhs.resources()), (comb, rhs) -> comb.addAll(rhs));
@@ -167,7 +169,7 @@ public class CertificateAnalysisService {
         return overlaps;
     }
 
-    public static void printOverlaps(Set<Set<CertificateEntry>> overlaps) {
+    public static void printOverlaps(Iterable<Set<CertificateEntry>> overlaps) {
         overlaps.forEach(pair -> {
                     var iter = pair.iterator();
                     var cert1 = iter.next();
