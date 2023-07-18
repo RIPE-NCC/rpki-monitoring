@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.14.3
+
+  * Add certificate overlap analysis
+
 ## v0.14.2
 
   * Add rsyncit targets for production and prepdev
