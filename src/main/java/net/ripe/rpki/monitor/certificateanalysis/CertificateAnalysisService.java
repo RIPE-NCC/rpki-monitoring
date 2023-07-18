@@ -7,10 +7,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.tracing.Tracer;
 import lombok.extern.slf4j.Slf4j;
-import net.ripe.ipresource.ImmutableResourceSet;
-import net.ripe.ipresource.IpRange;
-import net.ripe.ipresource.IpResource;
-import net.ripe.ipresource.IpResourceSet;
+import net.ripe.ipresource.*;
 import net.ripe.ipresource.etree.IpResourceIntervalStrategy;
 import net.ripe.ipresource.etree.NestedIntervalMap;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
@@ -19,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -69,19 +67,25 @@ public class CertificateAnalysisService {
     }
 
     /**
-     * Process the objects and update the metrics
+     * Process the objects, filter the overlaps for our conditions on when to report, and update the metrics
      * @param rpkiObjectMap the objects
      */
+    public List<Set<CertificateEntry>> process(ImmutableMap<String, RpkiObject> rpkiObjectMap) {
+        var allOverlaps = processInternal(rpkiObjectMap);
 
-    public Set<Set<CertificateEntry>> process(ImmutableMap<String, RpkiObject> rpkiObjectMap) {
-        var overlaps = processInternal(rpkiObjectMap);
+        // Filter for inclusion criteria:
+        // - SIA on allow-list
+        // - Not in grace period that is caused by a keyroll
+        var overlaps = allOverlaps.stream()
+                .filter(config.hasOnlyTrackedSIA().and(config.hasAnyCertificateAfterGracePeriodStarts(Instant.now()).negate()))
+                .toList();
 
         // After processing print a manageable, arbitrary number of overlaps
         if (overlaps.size() < 21) {
-            printOverlaps(overlaps);
+            log.info("{} overlaps", overlaps.size());
         } else {
-            log.error("Too many overlaps ({}): Not printing all overlaps.", overlaps.size());
-            printOverlaps(overlaps.stream().limit(21).toList());
+            log.error("Too many overlaps ({}): Printing 3 sample overlaps:", overlaps.size());
+            printOverlaps(overlaps.stream().limit(3).toList());
         }
 
         var overlappingResources = overlaps.stream().flatMap(Collection::stream).collect(IpResourceSet::new, (acc, rhs) -> acc.addAll(rhs.resources()), (comb, rhs) -> comb.addAll(rhs));
@@ -94,13 +98,16 @@ public class CertificateAnalysisService {
 
         if (overlappingResourceCount > 21) {
             log.info("Not printing {} resources overlapping between certificates.", overlappingResourceCount);
-        } else {
+        } else if (overlappingCertCount > 0) {
             log.info("Overlap between certs: {}", overlappingResources);
         }
 
         return overlaps;
     }
 
+    /**
+     * Calculate the overlap <emph>without</emph> filtering for when to include the detected overlap.
+     */
     @SuppressWarnings("try")
     protected Set<Set<CertificateEntry>> processInternal(ImmutableMap<String, RpkiObject> rpkiObjectMap) {
         var span = this.tracer.nextSpan().name("certificate-analysis");
@@ -135,8 +142,17 @@ public class CertificateAnalysisService {
         }
     }
 
+    static <V> Stream<V> lookupAllOverlappingEntries(NestedIntervalMap<IpResource, V> map, IpResource resource) {
+        return Stream.concat(
+                map.findExactAndAllLessSpecific(resource).stream(),
+                map.findAllMoreSpecific(resource).stream()
+        );
+    }
+
     protected Set<Set<CertificateEntry>> compareCertificates(List<CertificateEntry> resourceCertificates) {
         // Build nested interval map for lookup.
+        // note that entries can not overlap -> normalise entries for prefixes.
+        // TODO: for ASNs overlap is also possible, consider and implement an approach.
         var nestedIntervalMap = new NestedIntervalMap<IpResource, Set<CertificateEntry>>(IpResourceIntervalStrategy.getInstance());
 
         resourceCertificates.forEach(entry -> {
@@ -149,13 +165,12 @@ public class CertificateAnalysisService {
         });
 
         Set<Set<CertificateEntry>> overlaps = resourceCertificates.stream().flatMap(cert -> {
-            var entriesStream = cert.resources().stream().flatMap(resource -> Stream.concat(
-                nestedIntervalMap.findAllMoreSpecific(resource).stream(),
-                nestedIntervalMap.findExactAndAllLessSpecific(resource).stream()
-            )).flatMap(Collection::stream).toList();
+            var entriesStream = cert.resources().stream().flatMap(ipr -> switch(ipr) {
+                case IpRange range -> range.splitToPrefixes().stream().flatMap(resource -> lookupAllOverlappingEntries(nestedIntervalMap, resource));
+                case IpResource resource -> lookupAllOverlappingEntries(nestedIntervalMap, resource);
+            }).flatMap(Collection::stream);
 
-            // filter out parent certificates
-            var nonParents = entriesStream.stream()
+            var nonParents = entriesStream
                     .filter(entry -> !CertificateEntry.areAncestors(cert, entry))
                     .collect(Collectors.toSet());
 
@@ -169,7 +184,7 @@ public class CertificateAnalysisService {
         return overlaps;
     }
 
-    public static void printOverlaps(Iterable<Set<CertificateEntry>> overlaps) {
+    public static void printOverlaps(Collection<Set<CertificateEntry>> overlaps) {
         overlaps.forEach(pair -> {
                     var iter = pair.iterator();
                     var cert1 = iter.next();
