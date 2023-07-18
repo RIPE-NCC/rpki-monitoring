@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.config.RrdpConfig;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpRequest;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Optional;
@@ -45,7 +47,7 @@ public class RrdpFetcher implements RepoFetcher {
     }
 
     @Override
-    public Map<String, RpkiObject> fetchObjects() throws RRDPStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException, RepoUpdateFailedException {
+    public ImmutableMap<String, RpkiObject> fetchObjects() throws RRDPStructureException, SnapshotNotModifiedException, RepoUpdateAbortedException, RepoUpdateFailedException {
         try {
             var update = rrdpSnapshotClient.fetchObjects(config.getNotificationUrl(), lastUpdate);
             metrics.success(update.serialAsLong(), update.collisionCount());
@@ -80,7 +82,10 @@ public class RrdpFetcher implements RepoFetcher {
         @Override
         public byte[] fetch(String uri) throws HttpResponseException, HttpTimeout {
             try {
-                return httpClient.get().uri(uri).retrieve().bodyToMono(byte[].class).block(config.getTotalRequestTimeout());
+                return httpClient.get().uri(uri)
+                        .retrieve()
+                        .bodyToMono(byte[].class)
+                        .block(config.getTotalRequestTimeout());
             } catch (WebClientResponseException e) {
                 var maybeRequest = Optional.ofNullable(e.getRequest());
 
@@ -98,13 +103,13 @@ public class RrdpFetcher implements RepoFetcher {
         }
 
         @Override
-        public String overrideHostname(String url) {
+        public String transformHostname(String url) {
             return config.overrideHostname(url);
         }
 
         @Override
         public String describe() {
-            return "override-host-name=" + config.getOverrideHostname() + "connect-to=" + config.getConnectTo().toString();
+            return (config.getOverrideHostname() != null ? "override-host-name=" + config.getOverrideHostname() + " ": "") + "connect-to=" + config.getConnectTo().toString();
         }
     }
 }

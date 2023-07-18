@@ -39,10 +39,10 @@ public class RrdpSnapshotClient {
      * Load snapshot and validate hash
      */
     byte[] loadSnapshot(String snapshotUrl, String desiredSnapshotHash) throws RRDPStructureException, RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout {
-        log.info("loading RRDP snapshot from {}", snapshotUrl);
+        log.info("loading RRDP snapshot from {} {}", snapshotUrl, httpClient.describe());
 
         final byte[] snapshotBytes = httpClient.fetch(snapshotUrl);
-        Verify.verifyNotNull(snapshotBytes);
+        Verify.verifyNotNull(snapshotBytes, "expected non-null snapshot content from %s %s".formatted(snapshotUrl, httpClient.describe()));
 
         final String realSnapshotHash = Sha256.asString(snapshotBytes);
         if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
@@ -64,7 +64,7 @@ public class RrdpSnapshotClient {
             var sessionIdUUID = validateSessionIdUUIDv4(notificationUrl, notificationXmlDoc.getDocumentElement());
 
             final Node snapshotTag = notificationXmlDoc.getDocumentElement().getElementsByTagName("snapshot").item(0);
-            final String snapshotUrl = httpClient.overrideHostname(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
+            final String snapshotUrl = httpClient.transformHostname(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
             final String desiredSnapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
 
             Verify.verifyNotNull(snapshotUrl);
@@ -147,7 +147,7 @@ public class RrdpSnapshotClient {
                 .range(0, publishedObjects.getLength())
                 .mapToObj(publishedObjects::item)
                 .map(item -> {
-                    var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue();
+                    var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue().intern();
                     var content = item.getTextContent();
 
                     try {
@@ -168,7 +168,7 @@ public class RrdpSnapshotClient {
                 .entrySet().stream()
                 .map(item -> {
                     if (item.getValue().size() > 1) {
-                        log.warn("Multiple objects for {}, keeping first element: {}", item.getKey(), item.getValue().stream().map(coll -> Sha256.asString(coll.getRight().getBytes())).collect(Collectors.joining(", ")));
+                        log.warn("Multiple objects for {}, keeping first element: {}", item.getKey(), item.getValue().stream().map(coll -> Sha256.asString(coll.getRight().bytes())).collect(Collectors.joining(", ")));
                         collisionCount.addAndGet(item.getValue().size() - 1);
                         return item.getValue().get(0);
                     }

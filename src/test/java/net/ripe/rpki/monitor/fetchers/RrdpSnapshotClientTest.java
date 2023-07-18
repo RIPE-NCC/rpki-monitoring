@@ -36,7 +36,7 @@ public class RrdpSnapshotClientTest {
             new ClassPathResource("rrdp/ripe-notification.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot.xml").getInputStream().readAllBytes()
         );
-        when(http.overrideHostname(any())).thenAnswer(i -> i.getArguments()[0]);
+        when(http.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
 
         var res = subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty());
         assertThat(res.serialAsLong()).isEqualTo(1742L);
@@ -51,7 +51,7 @@ public class RrdpSnapshotClientTest {
                 new ClassPathResource("rrdp/ripe-snapshot.xml").getInputStream().readAllBytes(),
                 new ClassPathResource("rrdp/ripe-notification.xml").getInputStream().readAllBytes()
         );
-        when(http.overrideHostname(any())).thenAnswer(i -> i.getArguments()[0]);
+        when(http.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
 
         var res = subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty());
 
@@ -65,7 +65,7 @@ public class RrdpSnapshotClientTest {
             new ClassPathResource("rrdp/ripe-notification-collision.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot-collision.xml").getInputStream().readAllBytes()
         );
-        when(http.overrideHostname(any())).thenAnswer(i -> i.getArguments()[0]);
+        when(http.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
 
         var res = subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty());
         assertThat(res.collisionCount()).isEqualTo(1);
@@ -76,7 +76,7 @@ public class RrdpSnapshotClientTest {
             new ClassPathResource("rrdp/ripe-notification.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot-collision.xml").getInputStream().readAllBytes()
         );
-        when(http.overrideHostname(any())).thenAnswer(i -> i.getArguments()[0]);
+        when(http.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
 
         assertThatThrownBy(() -> subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty()))
                 .asInstanceOf(InstanceOfAssertFactories.throwable(RepoUpdateFailedException.class));
@@ -88,7 +88,7 @@ public class RrdpSnapshotClientTest {
             new ClassPathResource("rrdp/ripe-notification-serial-2.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot.xml").getInputStream().readAllBytes()
         );
-        when(http.overrideHostname(any())).thenAnswer(i -> i.getArguments()[0]);
+        when(http.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
 
         assertThatThrownBy(() -> subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty()))
                 .asInstanceOf(InstanceOfAssertFactories.throwable(RRDPStructureException.class));
@@ -101,7 +101,7 @@ public class RrdpSnapshotClientTest {
             new ClassPathResource("rrdp/ripe-notification-session-mismatch.xml").getInputStream().readAllBytes(),
             new ClassPathResource("rrdp/ripe-snapshot-session-mismatch.xml").getInputStream().readAllBytes()
         );
-        when(http.overrideHostname(any())).thenAnswer(i -> i.getArguments()[0]);
+        when(http.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
 
         assertThatThrownBy(() -> subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty()))
                 .asInstanceOf(InstanceOfAssertFactories.throwable(RRDPStructureException.class));

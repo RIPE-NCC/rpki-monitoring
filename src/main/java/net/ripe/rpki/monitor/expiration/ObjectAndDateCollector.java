@@ -13,8 +13,11 @@ import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationResult;
+import net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisService;
+import net.ripe.rpki.monitor.certificateanalysis.ObjectConsumer;
 import net.ripe.rpki.monitor.expiration.fetchers.*;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
+import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.util.Sha256;
@@ -24,9 +27,11 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
 
@@ -36,6 +41,8 @@ public class ObjectAndDateCollector {
 
     private final RepoFetcher repoFetcher;
     private final CollectorUpdateMetrics collectorUpdateMetrics;
+
+    private final ObjectConsumer objectConsumer;
 
     private final Tracer tracer;
 
@@ -54,10 +61,12 @@ public class ObjectAndDateCollector {
             @NonNull final RepoFetcher repoFetcher,
             @NonNull CollectorUpdateMetrics metrics,
             @NonNull RepositoriesState repositoriesState,
+            @NonNull ObjectConsumer objectConsumer,
             @NonNull Tracer tracer) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
         this.repositoriesState = repositoriesState;
+        this.objectConsumer = objectConsumer;
         this.tracer = tracer;
     }
 
@@ -78,26 +87,12 @@ public class ObjectAndDateCollector {
         final var maxObjectSize = new AtomicInteger();
 
         try (Tracer.SpanInScope ignored = this.tracer.withSpan(span.start())) {
-            final var expirationSummary = repoFetcher.fetchObjects().entrySet().parallelStream().map(e -> {
-                var objectUri = e.getKey();
-                var object = e.getValue();
+            var rpkiObjects = repoFetcher.fetchObjects();
 
-                var statusAndObject = getDateFor(objectUri, object.getBytes());
-                maxObjectSize.getAndAccumulate(object.getBytes().length, Integer::max);
-                if (ACCEPTED.equals(statusAndObject.getLeft())) {
-                    passedObjects.incrementAndGet();
-                }
-                if (UNKNOWN.equals(statusAndObject.getLeft())) {
-                    unknownObjects.incrementAndGet();
-                }
-                if (REJECTED.equals(statusAndObject.getLeft())){
-                    rejectedObjects.incrementAndGet();
-                }
+            var expirationSummary = calculateExpirationSummary(passedObjects, unknownObjects, rejectedObjects, maxObjectSize, rpkiObjects);
+            span.event("expiration summary: done");
 
-                return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.getBytes())));
-            }).flatMap(Optional::stream);
-
-            span.event("objects processed");
+            objectConsumer.accept(rpkiObjects);
 
             repositoriesState.updateByTag(repoFetcher.meta().tag(), Instant.now(), expirationSummary.map(RepositoryEntry::from));
 
@@ -114,6 +109,27 @@ public class ObjectAndDateCollector {
             running.set(false);
             span.end();
         }
+    }
+
+    private Stream<RepoObject> calculateExpirationSummary(AtomicInteger passedObjects, AtomicInteger unknownObjects, AtomicInteger rejectedObjects, AtomicInteger maxObjectSize, Map<String, RpkiObject> rpkiObjects) {
+        return rpkiObjects.entrySet().parallelStream().map(e -> {
+            var objectUri = e.getKey();
+            var object = e.getValue();
+
+            var statusAndObject = getDateFor(objectUri, object.bytes());
+            maxObjectSize.getAndAccumulate(object.bytes().length, Integer::max);
+            if (ACCEPTED.equals(statusAndObject.getLeft())) {
+                passedObjects.incrementAndGet();
+            }
+            if (UNKNOWN.equals(statusAndObject.getLeft())) {
+                unknownObjects.incrementAndGet();
+            }
+            if (REJECTED.equals(statusAndObject.getLeft())){
+                rejectedObjects.incrementAndGet();
+            }
+
+            return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation(), validityPeriod.getExpiration(), objectUri, Sha256.asBytes(object.bytes())));
+        }).flatMap(Optional::stream);
     }
 
     /**

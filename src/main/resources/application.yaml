@@ -30,6 +30,11 @@ rsync:
     - name: rsync
       url: rsync://rpki.prepdev.ripe.net
 
+certificate.analysis:
+  enabled: true
+  root-certificate-url: rsync://rpki.prepdev.ripe.net/ta/RIPE-NCC-TA-TEST.cer
+  ignored-overlaps: []
+
 expiry:
   # repository tags for which the regex matching is performed.
   # not present -> all. empty list -> none. specific values -> only these.
@@ -72,7 +77,6 @@ logging:
   level:
     web: INFO
     net.ripe.rpki: DEBUG
-    reactor.netty.http: DEBUG
 
 management:
   tracing.enabled: false
@@ -122,6 +126,12 @@ core:
   url: http://localhost:8080/certification/
   api-key: BAD-TEST-D2Shtf2n5Bwh02P7
 
+certificate.analysis:
+  enabled: true
+  root-certificate-url: rsync://rpki.prepdev.ripe.net/ta/RIPE-NCC-TA-TEST.cer
+  ignored-overlaps:
+    - regex: 'rsync://.*/repository/DEFAULT/[^/]+'
+      description: 'intermediate CAs'
 ---
 spring.config.activate.on-profile: prepdev
 
@@ -166,6 +176,10 @@ management:
   tracing.enabled: true
 ---
 spring.config.activate.on-profile: production
+
+certificate.analysis:
+  enabled: true
+  root-certificate-url: rsync://rpki.ripe.net/ta/ripe-ncc-ta.cer
 
 rrdp:
   interval: 5M
@@ -237,6 +251,9 @@ rsync:
 core:
   enable: false
 
+certificate.analysis:
+  enabled: false
+
 management:
   tracing.enabled: true
 ---
@@ -272,3 +289,6 @@ rsync:
 
 core:
   enable: false
+
+certificate.analysis:
+  enabled: false
