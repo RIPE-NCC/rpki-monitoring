@@ -1,5 +1,14 @@
 ## HEAD
 
+## v0.14.2
+
+  * Add rsyncit targets for production and prepdev
+  * Remove beanstalk target from monitoring
+
+## v0.14.1
+
+  * Remove rsync migrate production host from monitoring
+
 ## v0.14.0
   * Improve RRDP implementation testability and quality.
 
