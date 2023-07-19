@@ -167,8 +167,6 @@ rsync:
       url: rsync://rsyncit-1.rpki.prepdev.ripe.net
     - name: rsyncit-2
       url: rsync://rsyncit-2.rpki.prepdev.ripe.net
-    - name: rsyncit-lb
-      url: rsync://rsyncit.rpki.prepdev.ripe.net
 
 core:
   enable: true
