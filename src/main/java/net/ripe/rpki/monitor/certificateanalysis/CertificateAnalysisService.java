@@ -12,6 +12,7 @@ import net.ripe.ipresource.etree.IpResourceIntervalStrategy;
 import net.ripe.ipresource.etree.NestedIntervalMap;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
+import net.ripe.rpki.monitor.util.IpResourceUtil;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -149,26 +150,21 @@ public class CertificateAnalysisService {
         );
     }
 
+
     protected Set<Set<CertificateEntry>> compareCertificates(List<CertificateEntry> resourceCertificates) {
         // Build nested interval map for lookup.
         // note that entries can not overlap -> normalise entries for prefixes.
         // TODO: for ASNs overlap is also possible, consider and implement an approach.
         var nestedIntervalMap = new NestedIntervalMap<IpResource, Set<CertificateEntry>>(IpResourceIntervalStrategy.getInstance());
 
-        resourceCertificates.forEach(entry -> {
-            entry.resources().forEach(resource -> {
-                switch (resource) {
-                    case IpRange range -> range.splitToPrefixes().forEach(prefix -> putAsSet(nestedIntervalMap, prefix, entry));
-                    case IpResource ipr -> putAsSet(nestedIntervalMap, ipr, entry);
-                }
-            });
-        });
+        resourceCertificates.forEach(entry ->
+            entry.resources().forEach(IpResourceUtil.forAllComponentResources((key) -> putAsSet(nestedIntervalMap, key, entry)))
+        );
 
         Set<Set<CertificateEntry>> overlaps = resourceCertificates.stream().flatMap(cert -> {
-            var entriesStream = cert.resources().stream().flatMap(ipr -> switch(ipr) {
-                case IpRange range -> range.splitToPrefixes().stream().flatMap(resource -> lookupAllOverlappingEntries(nestedIntervalMap, resource));
-                case IpResource resource -> lookupAllOverlappingEntries(nestedIntervalMap, resource);
-            }).flatMap(Collection::stream);
+            var entriesStream = cert.resources().stream()
+                    .flatMap(IpResourceUtil.flatMapComponentResources(resource -> lookupAllOverlappingEntries(nestedIntervalMap, resource)))
+                    .flatMap(Collection::stream);
 
             var nonParents = entriesStream
                     .filter(entry -> !CertificateEntry.areAncestors(cert, entry))
