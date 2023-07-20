@@ -11,6 +11,9 @@ spring:
   # Affects maximum HTTP response size
   codec.max-in-memory-size: 1GB
 
+# The number of collectors running in parallel has a huge influence on heap usage.
+collector.threads: 2
+
 rrdp:
   interval: 5M
   targets:
