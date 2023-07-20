@@ -42,10 +42,10 @@ public class ObjectsAboutToExpireCollectorJob extends QuartzJobBean {
             // be spawned on that pool as well.
             //
             // Use a semaphore instead.
-            collectors.parallelStream().forEach(collector -> objectCollectorJobTimer.record(() -> {
+            collectors.parallelStream().forEach(collector -> {
                 try {
                     sem.acquire();
-                    this.runCollector(collector);
+                    objectCollectorJobTimer.record(() -> this.runCollector(collector));
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 } finally {
