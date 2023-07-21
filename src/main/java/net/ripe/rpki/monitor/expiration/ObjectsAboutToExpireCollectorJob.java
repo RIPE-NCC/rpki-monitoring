@@ -47,11 +47,12 @@ public class ObjectsAboutToExpireCollectorJob extends QuartzJobBean {
                     sem.acquire();
                     objectCollectorJobTimer.record(() -> this.runCollector(collector));
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 } finally {
                     sem.release();
                 }
-            }));
+            });
         } catch (Exception e) {
             throw new JobExecutionException(e);
         }
