@@ -154,7 +154,6 @@ public class CertificateAnalysisService {
     protected Set<Set<CertificateEntry>> compareCertificates(List<CertificateEntry> resourceCertificates) {
         // Build nested interval map for lookup.
         // note that entries can not overlap -> normalise entries for prefixes.
-        // TODO: for ASNs overlap is also possible, consider and implement an approach.
         var nestedIntervalMap = new NestedIntervalMap<IpResource, Set<CertificateEntry>>(IpResourceIntervalStrategy.getInstance());
 
         resourceCertificates.forEach(entry ->
