@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Tracer;
 import lombok.Getter;
 import net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisService;
@@ -14,11 +15,13 @@ import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Getter
 @Component
 public class Collectors {
 
@@ -27,10 +30,12 @@ public class Collectors {
 
     private final Tracer tracer;
 
-    @Getter
     private final List<ObjectAndDateCollector> rrdpCollectors;
-    @Getter
     private final List<ObjectAndDateCollector> rsyncCollectors;
+
+    private final int numThreads;
+
+    private final MeterRegistry registry;
 
     @Autowired
     public Collectors(CollectorUpdateMetrics metrics,
@@ -39,10 +44,14 @@ public class Collectors {
                       FetcherMetrics fetcherMetrics,
                       WebClientBuilderFactory webclientBuilder,
                       CertificateAnalysisService certificateAnalysisService,
-                      Optional<Tracer> tracer) {
+                      @Value("${collector.threads}") int numThreads,
+                      Optional<Tracer> tracer,
+                      MeterRegistry registry) {
         this.metrics = metrics;
         this.repositoriesState = repositoriesState;
         this.tracer = tracer.orElse(Tracer.NOOP);
+        this.registry = registry;
+        this.numThreads = numThreads;
 
         // We track only one of the RRDP repositories
         AtomicBoolean primaryRrdp = new AtomicBoolean(false);

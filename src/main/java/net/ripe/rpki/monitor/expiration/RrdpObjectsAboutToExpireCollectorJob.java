@@ -20,7 +20,7 @@ public class RrdpObjectsAboutToExpireCollectorJob extends ObjectsAboutToExpireCo
 
     @Autowired
     public RrdpObjectsAboutToExpireCollectorJob(Collectors collectors) {
-        super(collectors.getRrdpCollectors());
+        super(collectors.getRrdpCollectors(), collectors.getNumThreads(), collectors.getRegistry());
     }
 
     @Bean("Rrdp_Expiration_Job_Detail")
