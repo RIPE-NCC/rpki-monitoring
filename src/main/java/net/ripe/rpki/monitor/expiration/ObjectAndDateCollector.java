@@ -198,14 +198,16 @@ public class ObjectAndDateCollector {
                     );
                 }
                 case Unknown -> {
-                    maybeLogObject(String.format("%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri),
-                                   "[{}-{}] Object at {} is unknown.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri);
+                    var hash = Sha256.asString(decoded);
+                    maybeLogObject(String.format("%s-%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
+                                   "[{}-{}-{}] Object at {} is unknown.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash);
                     yield Pair.of(UNKNOWN, Optional.empty());
                 }
             };
         } catch (Exception e) {
-            maybeLogObject(String.format("%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri),
-                           "[{}-{}] Object at {} rejected: {}.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, e.getMessage());
+            var hash = Sha256.asString(decoded);
+            maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
+                           "[{}-{}-{}] Object at {} rejected: {}.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash, e.getMessage());
             return Pair.of(REJECTED, Optional.empty());
         }
     }
