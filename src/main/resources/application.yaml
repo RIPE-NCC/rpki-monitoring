@@ -165,7 +165,7 @@ rsync:
   base-directory: /tmp/rsync/
   targets:
     - name: rsync
-      url: rsync://rpki.prepdev.ripe.net
+      url: rsync://rsync-1.rpki.prepdev.ripe.net
     - name: rsyncit-1
       url: rsync://rsyncit-1.rpki.prepdev.ripe.net
     - name: rsyncit-2
