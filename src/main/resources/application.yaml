@@ -36,6 +36,9 @@ rsync:
 certificate.analysis:
   enabled: true
   root-certificate-url: rsync://rpki.prepdev.ripe.net/ta/RIPE-NCC-TA-TEST.cer
+  tracked-sias:
+    - rsync://rpki\.(prepdev\.)?ripe\.net/.*
+  keyroll-publication-point-grace-period: 48H
   ignored-overlaps: []
 
 expiry:

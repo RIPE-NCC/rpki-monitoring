@@ -3,6 +3,10 @@
 ## v0.14.3
 
   * Add certificate overlap analysis
+  * Allow-list specific SIAs to alert on for overlap analysis
+  * Allow short-term overlap (keyroll)
+  * Limit concurrent fetches to `collector.threads` parallel fetches per repo
+    type.
 
 ## v0.14.2
 

@@ -7,6 +7,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResource;
+import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.monitor.expiration.fetchers.RRDPStructureException;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpHttp;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpSnapshotClient;
@@ -18,12 +19,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -141,10 +145,11 @@ public class CertificateAnalysisServiceTest {
     }
 
     @Test
-    void testCompareAndTrackMetrics_ripe() {
+    void testCompareAndTrackMetrics_ripe_andSIAFilter() {
         config.setRootCertificateUrl(RIPE_TRUST_ANCHOR_CERTIFICATE_URL);
+        var ripeObjects = rpkiObjects("rrdp-content/ripe/notification.xml", "rrdp-content/ripe/snapshot.xml");
 
-        var overlaps = subject.process(rpkiObjects("rrdp-content/ripe/notification.xml", "rrdp-content/ripe/snapshot.xml"));
+        var overlaps = subject.process(ripeObjects);
 
         // Two overlapping pairs at time of data creation
         assertThat(overlaps).hasSize(2);
@@ -154,8 +159,26 @@ public class CertificateAnalysisServiceTest {
         // Implies: parent-child overlap is not counted.
         assertThat(registry.get("rpkimonitoring.certificate.analysis.overlapping.resource.count").gauge().value()).isEqualTo(2);
         assertThat(registry.get("rpkimonitoring.certificate.analysis.certificate.count").gauge().value()).isGreaterThan(20_000);
-    }
 
+        var allSIAs = overlaps.stream()
+                .flatMap(Collection::stream)
+                .map(cert -> cert.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST))
+                .collect(Collectors.toSet());
+
+        // Note: filter out paas.rpki.ripe.net
+        config.setTrackedSias(List.of(Pattern.compile("rsync://rpki\\.ripe\\.net/.*")));
+        var overlapsWithFilter = subject.process(ripeObjects);
+        var siasWithFilter = overlapsWithFilter.stream()
+                .flatMap(Collection::stream)
+                .map(cert -> cert.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST))
+                .collect(Collectors.toSet());
+
+        // The overlaps that are present are due to delegated CAs with two different SIAs.
+        assertThat(overlapsWithFilter).hasSize(0);
+
+        // The overlaps of non-ripe.net SIAs has been filtered, so the number of distinct SIAs is lower.
+        assertThat(siasWithFilter).hasSizeLessThan(allSIAs.size());
+    }
     @Test
     void testSymmetricDifference() {
         var emptyDifferenceForFullOverlap = CertificateAnalysisService.symmetricDifference(ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES), ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES));
@@ -180,5 +203,27 @@ public class CertificateAnalysisServiceTest {
         assertThat(overlaps)
                 .contains(Set.of(childLhs, childRhs))
                 .noneMatch(overlap -> overlap.contains(root));
+    }
+
+    @Test
+    void testDetectsOverlap_sets_have_size_two() {
+        var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
+
+        // 3 certs have the same resources,
+        // so there could be a set of size 3 if you group by resource, however, we want pairs of
+        // overlapping certificates.
+        var childLhs = new CertificateEntry("lhs", null, TEST_NET_1, "/0/");
+        var childMid = new CertificateEntry("mid", null, TEST_NET_1, "/1/");
+        var childRhs = new CertificateEntry("rhs", null, TEST_NET_1, "/2/");
+
+        var overlaps = subject.compareCertificates(List.of(childLhs, childMid, childRhs));
+
+        assertThat(overlaps)
+                // all (3 choose 3) = 3 possible subsets of pairs.
+                .containsExactlyInAnyOrder(
+                        Set.of(childLhs, childMid),
+                        Set.of(childMid, childRhs),
+                        Set.of(childLhs, childRhs)
+                );
     }
 }
