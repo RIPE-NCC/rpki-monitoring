@@ -5,18 +5,50 @@ import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResource;
 import net.ripe.ipresource.IpResourceRange;
+import net.ripe.ipresource.IpResourceSet;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Slf4j
 public class IpResourseUtilTest {
+    // An IP address range that breaks into two prefixes, and an AS range that breaks
+    // into two components.
+    private static final IpResourceSet DECOMPOSABLE_RESOURCES = IpResourceSet.parse("10.0.0.0-10.0.2.255, AS64496-AS64498");
+
+    private static final List<IpResource> COMPONENT_RESOURCES = List.of(
+            IpResource.parse("10.0.0.0/23"),
+            IpResource.parse("10.0.2.0/24"),
+            IpResource.parse("AS64496-AS64497"),
+            IpResource.parse("AS64498")
+    );
+    @Test
+    void testForEachComponentResource() {
+        var components = Sets.newHashSet();
+        DECOMPOSABLE_RESOURCES.stream().forEach(IpResourceUtil.forEachComponentResource(components::add));
+
+        assertThat(components)
+                .containsExactlyInAnyOrderElementsOf(COMPONENT_RESOURCES);
+    }
+
+    @Test
+    void testFlatMapComponentResources() {
+        var components = DECOMPOSABLE_RESOURCES.stream()
+                .flatMap(IpResourceUtil.flatMapComponentResources(Stream::of))
+                .toList();
+
+        assertThat(components)
+                .containsExactlyInAnyOrderElementsOf(COMPONENT_RESOURCES);
+    }
+
     @Test
     void testSplitAsnRanges_singleton() {
         var singleElement = IpResource.parse("AS64496-64496");
@@ -27,9 +59,16 @@ public class IpResourseUtilTest {
 
     @Test
     void testSplitAsnRange_16b() {
+        // The documentation range is aligned on bit boundaries
+        var alignedRange = IpResource.parse("AS64496-64511");
+
+        assertThat(IpResourceUtil.splitToAsnBlocks(alignedRange))
+                .hasSize(1)
+                .containsExactly(alignedRange);
+
         // Not a documentation range, but documentation ranges are aligned for 16b ASNs
-        var alignedRange = IpResource.parse("AS64496-65520");
-        var splitRange = IpResourceUtil.splitToAsnBlocks(alignedRange);
+        var unAlignedRange = IpResource.parse("AS64496-65520");
+        var splitRange = IpResourceUtil.splitToAsnBlocks(unAlignedRange);
 
         assertThat(elementsOfSameSizeAreNotAdjacent(splitRange)).isTrue();
 
@@ -39,11 +78,19 @@ public class IpResourseUtilTest {
                 .anyMatch(res -> res.contains(IpResource.parse("AS64496")))
                 .anyMatch(res -> res.contains(IpResource.parse("AS65520")));
 
-        assertThat(ImmutableResourceSet.of(splitRange)).isEqualTo(ImmutableResourceSet.of(alignedRange));
+        assertThat(ImmutableResourceSet.of(splitRange)).isEqualTo(ImmutableResourceSet.of(unAlignedRange));
     }
 
     @Test
     void testSplitAsnRange_32b() {
+        // aligned documentation range at the beginning of 32b asn space
+        var alignedRange = IpResource.parse("AS65536-65551");
+
+        assertThat(IpResourceUtil.splitToAsnBlocks(alignedRange))
+                .hasSize(1)
+                .containsExactly(alignedRange);
+
+        // Now use the large, non-aligned documentation range
         var largeRange = IpResource.parse("AS4200000000-4294967294");
         var largeRangeSplits = IpResourceUtil.splitToAsnBlocks(largeRange);
 

@@ -16,7 +16,11 @@ import java.util.stream.Stream;
 
 @Slf4j
 public class IpResourceUtil {
-    public static <T> Consumer<IpResource> forAllComponentResources(@NonNull Consumer<IpResource> innerConsumer) {
+    /**
+     * Execute the inner consumer for each component resource of the input resource. These are the prefixes of an IP range,
+     * and the bit-aligned ranges of an ASN range or singleton.
+     */
+    public static <T> Consumer<IpResource> forEachComponentResource(@NonNull Consumer<IpResource> innerConsumer) {
         return resource -> {
             switch (resource) {
                 case null -> throw new IllegalArgumentException("Elements can not be null");
@@ -26,6 +30,9 @@ public class IpResourceUtil {
         };
     }
 
+    /**
+     * flatMap each component resource (prefixes of IP range, bit-aligned range of AS range) with the provided function.
+     */
     public static <T> Function<IpResource, Stream<T>> flatMapComponentResources(@NonNull Function<IpResource, Stream<T>> innerFunction) {
         return (IpResource resource) ->
             (switch(resource) {

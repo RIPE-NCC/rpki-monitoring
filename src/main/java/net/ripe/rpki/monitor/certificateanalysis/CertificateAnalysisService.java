@@ -157,7 +157,7 @@ public class CertificateAnalysisService {
         var nestedIntervalMap = new NestedIntervalMap<IpResource, Set<CertificateEntry>>(IpResourceIntervalStrategy.getInstance());
 
         resourceCertificates.forEach(entry ->
-            entry.resources().forEach(IpResourceUtil.forAllComponentResources((key) -> putAsSet(nestedIntervalMap, key, entry)))
+            entry.resources().forEach(IpResourceUtil.forEachComponentResource((key) -> putAsSet(nestedIntervalMap, key, entry)))
         );
 
         Set<Set<CertificateEntry>> overlaps = resourceCertificates.stream().flatMap(cert -> {
