@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.15.1
+
+  * Describe HTTP client in line about snapshot download
+
 ## v0.15.0
 
   * Log the rejected file's content
