@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.15.0
+
+  * Log the rejected file's content
+  * Use three threads when collecting
+
 ## v0.14.3
 
   * Add certificate overlap analysis

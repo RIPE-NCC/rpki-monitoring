@@ -12,7 +12,7 @@ spring:
   codec.max-in-memory-size: 1GB
 
 # The number of collectors running in parallel has a huge influence on heap usage.
-collector.threads: 2
+collector.threads: 3
 
 rrdp:
   interval: 5M
