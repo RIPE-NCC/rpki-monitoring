@@ -69,8 +69,10 @@ public class RrdpSnapshotClient {
 
             Verify.verifyNotNull(snapshotUrl);
             if (previousState.map(state -> state.snapshotUrl.equals(snapshotUrl)).orElse(false)) {
-                log.info("not updating: snapshot url {} is the same as during the last check.", snapshotUrl);
+                log.info("snapshot not modified: snapshot is the same as during the last check (url={} serial={} session={})", snapshotUrl, sessionIdUUID, notificationSerial);
                 throw new SnapshotNotModifiedException(snapshotUrl);
+            } else {
+                log.info("downloading snapshot: serial={} session={} url={}", notificationSerial, sessionIdUUID, snapshotUrl);
             }
 
             final byte[] snapshotContent = loadSnapshot(snapshotUrl, desiredSnapshotHash);

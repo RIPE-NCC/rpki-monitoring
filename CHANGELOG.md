@@ -4,6 +4,7 @@
 
   * Log the rejected file's content
   * Use three threads when collecting
+  * Log the snapshot serial and URL on update
 
 ## v0.14.3
 
