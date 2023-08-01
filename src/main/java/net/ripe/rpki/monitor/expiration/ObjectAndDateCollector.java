@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.hash.BloomFilter;
+import com.google.common.io.BaseEncoding;
 import io.micrometer.tracing.Tracer;
 import lombok.NonNull;
 import lombok.Value;
@@ -200,14 +201,14 @@ public class ObjectAndDateCollector {
                 case Unknown -> {
                     var hash = Sha256.asString(decoded);
                     maybeLogObject(String.format("%s-%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
-                                   "[{}-{}-{}] Object at {} is unknown.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash);
+                                   "[{}-{}] Object at {} sha256(body)={} is unknown.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash);
                     yield Pair.of(UNKNOWN, Optional.empty());
                 }
             };
         } catch (Exception e) {
             var hash = Sha256.asString(decoded);
             maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
-                           "[{}-{}-{}] Object at {} rejected: {}.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash, e.getMessage());
+                           "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash, e.getMessage(), BaseEncoding.base64().encode(decoded));
             return Pair.of(REJECTED, Optional.empty());
         }
     }
