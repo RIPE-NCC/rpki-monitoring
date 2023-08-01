@@ -62,11 +62,11 @@ public class RrdpFetcher implements RepoFetcher {
             metrics.failure();
             throw e;
         } catch (RrdpHttp.HttpResponseException e) {
-            log.error("HTTP error on {} {}: {}", e.getMethod(), e.getUri(), e.getStatusCode());
+            log.error("[{}] HTTP error on {} {}: {}", config.getName(), e.getMethod(), e.getUri(), e.getStatusCode());
             metrics.failure();
             throw new RepoUpdateFailedException(e.getUri(), e.getClient(), e);
         } catch (RrdpHttp.HttpTimeout e) {
-            log.info("HTTP timeout on {} {}", e.getMethod(), e.getUri());
+            log.info("[{}] HTTP timeout on {} {}", config.getName(), e.getMethod(), e.getUri());
             metrics.timeout();
             throw new RepoUpdateAbortedException(e.getUri(), e.getClient(), e);
         }
