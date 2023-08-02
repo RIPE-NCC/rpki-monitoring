@@ -112,16 +112,17 @@ public class RsyncFetcher implements RepoFetcher {
             // Gather all objects in path
             try (Stream<Path> paths = Files.walk(targetPath)) {
                 var res = paths.filter(Files::isRegularFile)
-                    .parallel()
-                    .map(f -> {
-                        // Object "appear" to be in the main repository, otherwise they will always
-                        // mismatch because of their URL.
-                        final String objectUri = f.toString().replace(targetPath.toString(), repositoryUrl);
-                        try {
-                            return Pair.of(objectUri, new RpkiObject(Files.readAllBytes(f)));
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                        .unordered()
+                        .parallel()
+                        .map(f -> {
+                            // Object "appear" to be in the main repository, otherwise they will always
+                            // mismatch because of their URL.
+                            final String objectUri = f.toString().replace(targetPath.toString(), repositoryUrl);
+                            try {
+                                return Pair.of(objectUri, new RpkiObject(Files.readAllBytes(f)));
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
                     }).collect(ImmutableMap.toImmutableMap(Pair::getKey, Pair::getValue));
                 metrics.success();
                 return res;

@@ -3,6 +3,8 @@
 ## v0.15.1
 
   * Describe HTTP client in line about snapshot download
+  * Fix a broken log line
+  * Log the hash of downloaded snapshot
 
 ## v0.15.0
 
