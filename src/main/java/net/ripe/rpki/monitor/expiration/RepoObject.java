@@ -1,34 +1,30 @@
 package net.ripe.rpki.monitor.expiration;
 
-import com.google.common.collect.ComparisonChain;
+import com.google.common.base.Preconditions;
 import com.google.common.hash.HashCode;
-import lombok.Value;
+import lombok.Getter;
 import net.ripe.rpki.monitor.HasHashAndUri;
 
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Date;
 
-@Value
-public class RepoObject implements Comparable<RepoObject>, HasHashAndUri {
-    private static final Comparator<RepoObject> COMPARE_REPO_OBJECT = Comparator.comparing(RepoObject::getExpiration)
-            .thenComparing(RepoObject::getCreation)
-            .thenComparing(RepoObject::getUri)
+public record RepoObject(Instant creation, Instant expiration, @Getter String uri, byte[] sha256) implements Comparable<RepoObject>, HasHashAndUri {
+    private static final Comparator<RepoObject> COMPARE_REPO_OBJECT = Comparator.comparing(RepoObject::expiration)
+            .thenComparing(RepoObject::creation)
+            .thenComparing(RepoObject::uri)
             .thenComparing(RepoObject::getSha256);
 
-    Date creation;
-    Date expiration;
-    String uri;
-    byte[] sha256;
-
+    public RepoObject {
+        Preconditions.checkArgument(sha256.length == 32, "sha256 hashes are 256b/8 bytes long");
+    }
     @Override
     public int compareTo(RepoObject o) {
         return COMPARE_REPO_OBJECT.compare(this, o);
     }
 
     public static RepoObject fictionalObjectValidAtInstant(final Instant then) {
-        var asDate = Date.from(then);
-        return new RepoObject(asDate, asDate, "NA", new byte[]{0});
+        return new RepoObject(then, then, "NA", new byte[32]);
     }
 
     public String getSha256() {

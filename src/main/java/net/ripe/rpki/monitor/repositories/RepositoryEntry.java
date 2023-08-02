@@ -27,8 +27,8 @@ public class RepositoryEntry implements HasHashAndUri {
         return new RepositoryEntry(
                 x.getUri().intern(),
                 x.getSha256().intern(),
-                Optional.ofNullable(x.getCreation()).map(Date::toInstant),
-                Optional.ofNullable(x.getExpiration()).map(Date::toInstant)
+                Optional.ofNullable(x.creation()),
+                Optional.ofNullable(x.expiration())
         );
     }
 
