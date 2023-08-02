@@ -1,5 +1,7 @@
 package net.ripe.rpki.monitor.repositories;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +23,7 @@ class RepositoryTrackerTest {
         public void test_size() {
             var object = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
-                    "0cf7574c4cfbe49b68fa4817828225592c4ef9a538ad617d42de26f6cc349b33",
+                    HashCode.fromString("0cf7574c4cfbe49b68fa4817828225592c4ef9a538ad617d42de26f6cc349b33").asBytes(),
                     Optional.of(t),
                     Optional.empty()
             );
@@ -36,7 +38,7 @@ class RepositoryTrackerTest {
         public void test_first_seen() {
             var object = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
-                    "a6c0ffd45b7a799fbd1a303cb4322a1387e74cb22b80c9c54ed4378f22a81f0f",
+                    HashCode.fromString("a6c0ffd45b7a799fbd1a303cb4322a1387e74cb22b80c9c54ed4378f22a81f0f").asBytes(),
                     Optional.of(t),
                     Optional.empty()
             );
@@ -53,13 +55,13 @@ class RepositoryTrackerTest {
         public void test_disposal() {
             var obj1 = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
-                    "a6c0ffd45b7a799fbd1a303cb4322a1387e74cb22b80c9c54ed4378f22a81f0f",
+                    HashCode.fromString("a6c0ffd45b7a799fbd1a303cb4322a1387e74cb22b80c9c54ed4378f22a81f0f").asBytes(),
                     Optional.of(t),
                     Optional.empty()
             );
             var obj2 = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
-                    "45cdf3f6082774e19fecf80817863c39e29a5a3646746125c55ed3209d3508ea",
+                    HashCode.fromString("45cdf3f6082774e19fecf80817863c39e29a5a3646746125c55ed3209d3508ea").asBytes(),
                     Optional.of(t),
                     Optional.empty()
             );
@@ -77,7 +79,7 @@ class RepositoryTrackerTest {
         public void test_get_object() {
             var object = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
-                    "45cdf3f6082774e19fecf80817863c39e29a5a3646746125c55ed3209d3508ea",
+                    HashCode.fromString("45cdf3f6082774e19fecf80817863c39e29a5a3646746125c55ed3209d3508ea").asBytes(),
                     Optional.of(t),
                     Optional.empty()
             );
@@ -93,24 +95,24 @@ class RepositoryTrackerTest {
         public void test_has_object() {
             var object = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
-                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    HashCode.fromString("6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1").asBytes(),
                     Optional.of(t),
                     Optional.of(t.plusSeconds(3600))
             );
-            var noTimestamps = new RepositoryEntry(object.getUri(), object.getSha256(), Optional.empty(), Optional.empty());
+            var noTimestamps = new RepositoryEntry(object.getUri(), object.sha256(), Optional.empty(), Optional.empty());
             var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object), Duration.ofSeconds(3600));
             var view = repo.view(t);
 
             assertThat(view.hasObject(object)).isTrue();
             assertThat(view.hasObject(noTimestamps)).isTrue();
-            assertThat(view.hasObject(RepositoryEntry.builder().sha256("unknown").uri(object.getUri()).build())).isFalse();
+            assertThat(view.hasObject(RepositoryEntry.builder().sha256(new byte[32]).uri(object.getUri()).build())).isFalse();
         }
 
         @Test
         public void test_inspect_object() {
             var object = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
-                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    HashCode.fromString("6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1").asBytes(),
                     Optional.of(t),
                     Optional.of(t.plusSeconds(3600))
             );
@@ -125,13 +127,13 @@ class RepositoryTrackerTest {
     class Expiration {
         RepositoryEntry openEnded = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
-                "6cfe9a0498cf15254b85f8b03fa727ec2d528fe590d2a202428542435a0a62f7",
+                HashCode.fromString("6cfe9a0498cf15254b85f8b03fa727ec2d528fe590d2a202428542435a0a62f7").asBytes(),
                 Optional.of(t),
                 Optional.empty()
         );
         RepositoryEntry expiresInOneHour = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
-                "6cfe9a0498cf15254b85f8b03fa727ec2d528fe590d2a202428542435a0a62f7",
+                HashCode.fromString("6cfe9a0498cf15254b85f8b03fa727ec2d528fe590d2a202428542435a0a62f7").asBytes(),
                 Optional.of(t),
                 Optional.of(t.plusSeconds(3600))
         );
@@ -157,13 +159,13 @@ class RepositoryTrackerTest {
     class Difference {
         RepositoryEntry newObject = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
-                "02c2a8e60fde7d630eb3b44c61b1b0326d6f664c9d3d4be6f5cef4393f8bd468",
+                HashCode.fromString("02c2a8e60fde7d630eb3b44c61b1b0326d6f664c9d3d4be6f5cef4393f8bd468").asBytes(),
                 Optional.of(t),
                 Optional.empty()
         );
         RepositoryEntry oldObject = new RepositoryEntry(
                 "rsync://example.com/repository/DEFAULT/xyz.cer",
-                "fbb8cef9856ddd08d351c2647dac92354ca61600f52bb56b7b0af7d504ee6ea4",
+                HashCode.fromString("fbb8cef9856ddd08d351c2647dac92354ca61600f52bb56b7b0af7d504ee6ea4").asBytes(),
                 Optional.of(t),
                 Optional.empty()
         );
@@ -196,8 +198,8 @@ class RepositoryTrackerTest {
 
         @Test
         public void test_ignore_object_timestamps() {
-            var coreObject = new RepositoryEntry(newObject.getUri(), newObject.getSha256(),Optional.empty(), Optional.empty());
-            var rrdpObject = new RepositoryEntry(newObject.getUri(), newObject.getSha256(), Optional.of(t), Optional.of(t.plusSeconds(3600 * 8)));
+            var coreObject = new RepositoryEntry(newObject.getUri(), newObject.sha256(),Optional.empty(), Optional.empty());
+            var rrdpObject = new RepositoryEntry(newObject.getUri(), newObject.sha256(), Optional.of(t), Optional.of(t.plusSeconds(3600 * 8)));
             var core = RepositoryTracker.with("core", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(coreObject), Duration.ofSeconds(3600));
             var rrdp = RepositoryTracker.with("rrdp", "https://example.com", RepositoryTracker.Type.RRDP, t, Stream.of(rrdpObject), Duration.ofSeconds(3600));
 
@@ -254,13 +256,13 @@ class RepositoryTrackerTest {
         public void test_unique_by_sha256_and_uri() {
             var object = new RepositoryEntry(
                     "rsync://example.com/repository/DEFAULT/xyz.cer",
-                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    HashCode.fromString("6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1").asBytes(),
                     Optional.of(t),
                     Optional.of(t.plusSeconds(3600))
             );
             var objectAtDiffPath = new RepositoryEntry(
                     "rsync://example.com/repository/data/xyz.cer",
-                    "6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1",
+                    HashCode.fromString("6b0b3985e254bcb00c0e20ad09747ac4799f294f2ebcce7d4d805e452e3297a1").asBytes(),
                     Optional.of(t),
                     Optional.of(t.plusSeconds(3600))
             );

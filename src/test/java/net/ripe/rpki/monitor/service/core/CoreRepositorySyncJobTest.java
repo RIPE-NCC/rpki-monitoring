@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.service.core;
 
+import com.google.common.hash.HashCode;
 import io.micrometer.observation.ObservationRegistry;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
@@ -24,7 +25,7 @@ class CoreRepositorySyncJobTest {
     @Test
     public void test_update_state_of_core() throws Exception {
         var object = PublishedObjectEntry.builder()
-                .sha256("51f83dd6a174889f29038686aca85c44b64b87a4f1ab702c5b531b3c5687fc0e")
+                .sha256(HashCode.fromString("51f83dd6a174889f29038686aca85c44b64b87a4f1ab702c5b531b3c5687fc0e").asBytes())
                 .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
                 .build();
         when(coreClientStub.getName()).thenReturn("core");

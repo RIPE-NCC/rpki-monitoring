@@ -1,5 +1,7 @@
 package net.ripe.rpki.monitor.publishing;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
@@ -47,15 +49,15 @@ public class PublishedObjectsSummaryTest {
         var objects = Stream.of(
                 RepositoryEntry.builder()
                     .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
-                    .sha256("a9d505c70f1fc166062d1c16f7f200df2d2f89a8377593b5a408daa376de9fe2")
+                    .sha256(HashCode.fromString("a9d505c70f1fc166062d1c16f7f200df2d2f89a8377593b5a408daa376de9fe2").asBytes())
                     .build(),
             RepositoryEntry.builder()
                 .uri("rsync://rpki.ripe.net/repository/DEFAULT/123.roa")
-                .sha256("a9d625c70f1fc166062d1c16f7f200df2d2f19a8377593b5a408daa376de9fe2")
+                .sha256(HashCode.fromString("a9d625c70f1fc166062d1c16f7f200df2d2f19a8377593b5a408daa376de9fe2").asBytes())
                 .build(),
             RepositoryEntry.builder()
                 .uri("rsync://rpki.ripe.net/repository/DEFAULT/abc.mft")
-                .sha256("6af51abb58e3d7d01f9e32ef62dbcb8ac13d91ef31194e20aabae796cf40c0d3")
+                .sha256(HashCode.fromString("6af51abb58e3d7d01f9e32ef62dbcb8ac13d91ef31194e20aabae796cf40c0d3").asBytes())
                 .build()
         );
         rrdp.update(now, objects);
@@ -89,7 +91,7 @@ public class PublishedObjectsSummaryTest {
     public void itShouldReportADifference_caused_by_core() {
         var objects = Stream.of(
             RepositoryEntry.builder()
-                .sha256("not-a-sha256-but-will-do")
+                .sha256(Hashing.sha256().hashUnencodedChars("not-a-sha256-but-will-do").asBytes())
                 .uri("rsync://example.org/index.txt")
                 .build());
         core.update(now.minus(minThreshold), objects);
@@ -121,7 +123,7 @@ public class PublishedObjectsSummaryTest {
     public void itShouldReportADifference_caused_by_rrdp_objects() {
         var objects = Stream.of(
                 RepositoryEntry.builder()
-                    .sha256("f19e8fbc6d520c06f3424ddf6a53cda830fc8ef4ca7074aa43ad97a42f946d50")
+                    .sha256(HashCode.fromString("f19e8fbc6d520c06f3424ddf6a53cda830fc8ef4ca7074aa43ad97a42f946d50").asBytes())
                     .uri("rsync://example.org/file.cer")
                     .build()
         );
@@ -147,7 +149,7 @@ public class PublishedObjectsSummaryTest {
     public void itShouldReportADifference_caused_by_rsync_objects() {
         var objects = Stream.of(
                 RepositoryEntry.builder()
-                        .sha256("f19e8fbc6d520c06f3424ddf6a53cda830fc8ef4ca7074aa43ad97a42f946d50")
+                        .sha256(HashCode.fromString("f19e8fbc6d520c06f3424ddf6a53cda830fc8ef4ca7074aa43ad97a42f946d50").asBytes())
                         .uri("rsync://example.org/file.cer")
                         .build()
         );
@@ -180,8 +182,8 @@ public class PublishedObjectsSummaryTest {
     @Test
     public void itShouldDoRsyncDiff() {
         var now = Instant.now();
-        var obj1 = RepositoryEntry.builder().uri("url1.cer").sha256("hash1").expiration(Optional.of(now)).build();
-        var obj2 = RepositoryEntry.builder().uri("url2.roa").sha256("hash2").expiration(Optional.of(now)).build();
+        var obj1 = RepositoryEntry.builder().uri("url1.cer").sha256(Hashing.sha256().hashUnencodedChars("hash1").asBytes()).expiration(Optional.of(now)).build();
+        var obj2 = RepositoryEntry.builder().uri("url2.roa").sha256(Hashing.sha256().hashUnencodedChars("hash2").asBytes()).expiration(Optional.of(now)).build();
 
         var beforeThreshold = now.minus(minThreshold);
 

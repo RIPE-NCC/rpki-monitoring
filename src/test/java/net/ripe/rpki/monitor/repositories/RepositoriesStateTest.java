@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.repositories;
 
+import com.google.common.hash.HashCode;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,7 @@ class RepositoriesStateTest {
     public void test_state_update() {
         var now = Instant.now();
         var entry = RepositoryEntry.builder()
-                .sha256("6248c142e1d153a4526f8709613cf4f1600d54d0a13c76d0ab4ed616aef5f0b4")
+                .sha256(HashCode.fromString("6248c142e1d153a4526f8709613cf4f1600d54d0a13c76d0ab4ed616aef5f0b4").asBytes())
                 .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
                 .build();
         var entries = Stream.of(entry);

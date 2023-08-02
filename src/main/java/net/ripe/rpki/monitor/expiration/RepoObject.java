@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.base.Preconditions;
 import com.google.common.hash.HashCode;
+import com.google.common.primitives.UnsignedBytes;
 import lombok.Getter;
 import net.ripe.rpki.monitor.HasHashAndUri;
 
@@ -13,7 +14,7 @@ public record RepoObject(Instant creation, Instant expiration, @Getter String ur
     private static final Comparator<RepoObject> COMPARE_REPO_OBJECT = Comparator.comparing(RepoObject::expiration)
             .thenComparing(RepoObject::creation)
             .thenComparing(RepoObject::uri)
-            .thenComparing(RepoObject::getSha256);
+            .thenComparing(Comparator.comparing(RepoObject::sha256, UnsignedBytes.lexicographicalComparator()));
 
     public RepoObject {
         Preconditions.checkArgument(sha256.length == 32, "sha256 hashes are 256b/8 bytes long");
@@ -25,9 +26,5 @@ public record RepoObject(Instant creation, Instant expiration, @Getter String ur
 
     public static RepoObject fictionalObjectValidAtInstant(final Instant then) {
         return new RepoObject(then, then, "NA", new byte[32]);
-    }
-
-    public String getSha256() {
-        return HashCode.fromBytes(sha256).toString();
     }
 }

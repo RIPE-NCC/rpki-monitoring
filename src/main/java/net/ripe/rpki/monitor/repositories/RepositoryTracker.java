@@ -226,7 +226,7 @@ public class RepositoryTracker {
          */
         public Set<RepositoryEntry> expiration(Instant t) {
             return entries()
-                    .filter(x -> x.getExpiration().map(expiration -> expiration.compareTo(t) < 0).orElse(false))
+                    .filter(x -> x.expiration().map(expiration -> expiration.isBefore(t)).orElse(false))
                     .collect(toSet());
         }
 
