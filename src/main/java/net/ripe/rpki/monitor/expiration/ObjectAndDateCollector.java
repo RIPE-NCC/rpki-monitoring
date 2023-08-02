@@ -208,7 +208,7 @@ public class ObjectAndDateCollector {
         } catch (Exception e) {
             var hash = Sha256.asString(decoded);
             maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
-                           "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash, e.getMessage(), BaseEncoding.base64().encode(decoded));
+                           "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, e.getMessage(), hash, BaseEncoding.base64().encode(decoded));
             return Pair.of(REJECTED, Optional.empty());
         }
     }

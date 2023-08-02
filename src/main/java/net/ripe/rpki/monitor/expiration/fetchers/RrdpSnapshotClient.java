@@ -47,6 +47,8 @@ public class RrdpSnapshotClient {
         final String realSnapshotHash = Sha256.asString(snapshotBytes);
         if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
             throw new RRDPStructureException(snapshotUrl, "with len(content) = %d had sha256(content) = %s, expected %s".formatted(snapshotBytes.length, realSnapshotHash, desiredSnapshotHash));
+        } else {
+            log.debug("verified snapshot hash: len(content)={} h(content)={} == {} for {} {}", snapshotBytes.length, realSnapshotHash, desiredSnapshotHash, snapshotUrl, httpClient.describe());
         }
 
         return snapshotBytes;
@@ -72,7 +74,7 @@ public class RrdpSnapshotClient {
                 log.info("snapshot not modified: snapshot is the same as during the last check (url={} serial={} session={} client={})", snapshotUrl, sessionIdUUID, notificationSerial, httpClient.describe());
                 throw new SnapshotNotModifiedException(snapshotUrl);
             } else {
-                log.info("downloading snapshot: serial={} session={} url={} client={}", notificationSerial, sessionIdUUID, snapshotUrl, httpClient.describe());
+                log.info("downloading snapshot: serial={} session={} url={} expected_hash={} client={}", notificationSerial, sessionIdUUID, snapshotUrl, desiredSnapshotHash, httpClient.describe());
             }
 
             final byte[] snapshotContent = loadSnapshot(snapshotUrl, desiredSnapshotHash);
@@ -148,6 +150,7 @@ public class RrdpSnapshotClient {
         var objects = IntStream
                 .range(0, publishedObjects.getLength())
                 .mapToObj(publishedObjects::item)
+                .unordered()
                 .map(item -> {
                     var objectUri = item.getAttributes().getNamedItem("uri").getNodeValue().intern();
                     var content = item.getTextContent();
@@ -167,7 +170,8 @@ public class RrdpSnapshotClient {
                 // the sources being monitored.
                 .collect(Collectors.groupingBy(Pair::getLeft))
                 // invariant: every group has at least 1 item
-                .entrySet().stream()
+                .entrySet()
+                .stream().unordered()
                 .map(item -> {
                     if (item.getValue().size() > 1) {
                         log.warn("Multiple objects for {}, keeping first element: {}", item.getKey(), item.getValue().stream().map(coll -> Sha256.asString(coll.getRight().bytes())).collect(Collectors.joining(", ")));
