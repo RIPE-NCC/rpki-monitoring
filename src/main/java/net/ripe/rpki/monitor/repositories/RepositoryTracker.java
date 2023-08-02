@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.repositories;
 
 import lombok.Getter;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
+import net.ripe.rpki.monitor.HasHashAndUri;
 import net.ripe.rpki.monitor.publishing.PublishedObjectsSummaryService;
 
 import java.time.Duration;
@@ -45,14 +46,32 @@ public class RepositoryTracker {
     }
 
     public record TrackedObject(RepositoryEntry entry, Instant firstSeen, Optional<Instant> disposedAt) {
-        public record Key(String sha256, String uri) {
+        public record Key(byte[] sha256, @Getter String uri) implements HasHashAndUri {
+            @Override
+            public int hashCode() {
+                int result = Objects.hash(uri);
+                result = 31 * result + Arrays.hashCode(sha256);
+                return result;
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                return switch (obj) {
+                    case Key key -> {
+                        yield Arrays.equals(sha256, key.sha256) && uri.equals(key.uri);
+                    }
+                    default -> {
+                        yield false;
+                    }
+                };
+            }
         }
 
         public static TrackedObject of(RepositoryEntry entry, Instant firstSeen) {
             return new TrackedObject(entry, firstSeen, Optional.empty());
         }
 
-        public static Key key(String sha256, String uri) {
+        public static Key key(byte[] sha256, String uri) {
             return new Key(sha256, uri);
         }
 
@@ -61,7 +80,7 @@ public class RepositoryTracker {
         }
 
         public Key key() {
-            return key(entry.getSha256(), entry.getUri());
+            return key(entry.sha256(), entry.getUri());
         }
 
         public RepositoryObjectType getObjectType() {
@@ -111,7 +130,7 @@ public class RepositoryTracker {
         var threshold = t.minus(gracePeriod);
         this.objects.getAndUpdate((objects) -> {
             var newObjects = entries
-                    .map(x -> TrackedObject.of(x, firstSeenAt(objects, x.getSha256(), x.getUri(), t)))
+                    .map(x -> TrackedObject.of(x, firstSeenAt(objects, x.sha256(), x.getUri(), t)))
                     .collect(toMap(TrackedObject::key, Function.identity()));
             var disposed = objects.values().stream()
                     .filter(x -> ! newObjects.containsKey(x.key()))
@@ -182,7 +201,7 @@ public class RepositoryTracker {
                 .collect(toSet());
     }
 
-    private static Instant firstSeenAt(Map<TrackedObject.Key, TrackedObject> objects, String sha256, String uri, Instant now) {
+    private static Instant firstSeenAt(Map<TrackedObject.Key, TrackedObject> objects, byte[] sha256, String uri, Instant now) {
         var previous = objects.get(TrackedObject.key(sha256, uri));
         return previous != null ? previous.firstSeen() : now;
     }
@@ -202,7 +221,7 @@ public class RepositoryTracker {
          * Get the repository entry with the given hash, or nothing if the repository
          * does not have such object.
          */
-        public Optional<RepositoryEntry> getObject(String sha256, String uri) {
+        public Optional<RepositoryEntry> getObject(byte[] sha256, String uri) {
             return Optional.ofNullable(objects.get(TrackedObject.key(sha256, uri)))
                     .filter(filter)
                     .map(TrackedObject::entry);
@@ -217,7 +236,7 @@ public class RepositoryTracker {
          * different paths in the repository.
          */
         public boolean hasObject(RepositoryEntry object) {
-            return getObject(object.getSha256(), object.getUri()).isPresent();
+            return getObject(object.sha256(), object.getUri()).isPresent();
         }
 
         /**

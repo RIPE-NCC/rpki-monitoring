@@ -86,9 +86,9 @@ class RepositoryTrackerTest {
             var repo = RepositoryTracker.with("tag", "https://example.com", RepositoryTracker.Type.CORE, t, Stream.of(object), Duration.ofSeconds(3600));
             var view = repo.view(t);
 
-            assertThat(view.getObject(object.getSha256(), object.getUri())).isEqualTo(Optional.of(object));
-            assertThat(view.getObject(object.getSha256(), "rsync://example.com/repository/path/to/xyz.cer")).isEmpty();
-            assertThat(view.getObject("unknown", object.getUri())).isEmpty();
+            assertThat(view.getObject(object.sha256(), object.getUri())).isEqualTo(Optional.of(object));
+            assertThat(view.getObject(object.sha256(), "rsync://example.com/repository/path/to/xyz.cer")).isEmpty();
+            assertThat(view.getObject(Hashing.sha256().hashUnencodedChars("MISSING").asBytes(), object.getUri())).isEmpty();
         }
 
         @Test
@@ -272,9 +272,9 @@ class RepositoryTrackerTest {
 
             assertThat(view.size()).isEqualTo(2);
             assertThat(view.hasObject(object)).isTrue();
-            assertThat(view.getObject(object.getSha256(), object.getUri())).hasValue(object);
+            assertThat(view.getObject(object.sha256(), object.getUri())).hasValue(object);
             assertThat(view.hasObject(objectAtDiffPath)).isTrue();
-            assertThat(view.getObject(objectAtDiffPath.getSha256(), objectAtDiffPath.getUri())).hasValue(objectAtDiffPath);
+            assertThat(view.getObject(objectAtDiffPath.sha256(), objectAtDiffPath.getUri())).hasValue(objectAtDiffPath);
         }
     }
 }
