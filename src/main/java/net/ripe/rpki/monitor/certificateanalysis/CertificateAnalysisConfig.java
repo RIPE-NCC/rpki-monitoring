@@ -56,7 +56,7 @@ public class CertificateAnalysisConfig {
                 .anyMatch(cert -> (keyrollPublicationPointGracePeriod != null && cert.getCertificate().getNotBefore().toInstant().isAfter(now.minus(keyrollPublicationPointGracePeriod))));
     }
 
-    public boolean isIgnoredFileName(String fileName) {
+    public boolean isFileInIgnoredOverlap(String fileName) {
         return ignoredOverlaps.stream().anyMatch(ignore -> ignore.regex.matcher(fileName).matches());
     }
 }

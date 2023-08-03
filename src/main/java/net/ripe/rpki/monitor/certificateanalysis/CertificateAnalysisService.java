@@ -1,7 +1,9 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import com.google.common.math.BigIntegerMath;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -16,10 +18,12 @@ import net.ripe.rpki.monitor.util.IpResourceUtil;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,6 +32,8 @@ import java.util.stream.Stream;
 @Service
 @ConditionalOnProperty(value = "certificate-analysis.enabled", havingValue = "true", matchIfMissing = true)
 public class CertificateAnalysisService {
+    public static final BigInteger MAX_PAIRS_PER_CERT = BigInteger.valueOf(128);
+    public static final int MAX_TOTAL_PAIRS = 65_536;
     final CertificateAnalysisConfig config;
 
     final Tracer tracer;
@@ -40,10 +46,15 @@ public class CertificateAnalysisService {
 
     final AtomicLong totalCertificateCount = new AtomicLong();
 
+    final Counter processedPassed;
+    final Counter processingFailed;
+
     public CertificateAnalysisService(
             CertificateAnalysisConfig config,
             Optional<Tracer> maybeTracer,
             MeterRegistry meterRegistry) {
+        Preconditions.checkState(MAX_PAIRS_PER_CERT.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) < 0, "Maximum number of pairs processed needs to be below long overflow");
+
         this.tracer = maybeTracer.orElse(Tracer.NOOP);
         this.config = config;
         certificateComparisonDuration = Timer.builder("rpkimonitoring.certificate.analysis.comparison.duration")
@@ -58,8 +69,17 @@ public class CertificateAnalysisService {
                 .description("Number of resources that overlap between certificates")
                 .register(meterRegistry);
 
-        Gauge.builder("rpkimonitoring.certificate.analysis.certificate.count",totalCertificateCount::get)
+        Gauge.builder("rpkimonitoring.certificate.analysis.certificate.count", totalCertificateCount::get)
                 .description("Total number of certificates analysed")
+                .register(meterRegistry);
+
+        processedPassed = Counter.builder("rpkimonitoring.certificate.analysis.runs")
+                .description("Number of analysis runs by status")
+                .tag("result", "success")
+                .register(meterRegistry);
+        processingFailed = Counter.builder("rpkimonitoring.certificate.analysis.runs")
+                .description("Number of analysis runs by status")
+                .tag("result", "failure")
                 .register(meterRegistry);
     }
 
@@ -118,16 +138,24 @@ public class CertificateAnalysisService {
         try (var ignored = this.tracer.withSpan(span.start())){
             // Top-down exploration via manifests
             var resourceCertificates = extractCertificateSpan(rpkiObjectMap)
-                    .filter(entry -> !config.isIgnoredFileName(entry.uri()))
+                    .filter(entry -> !config.isFileInIgnoredOverlap(entry.uri()))
                     .toList();
             totalCertificateCount.set(resourceCertificates.size());
             log.info("Expanded {} RPKI certificates", resourceCertificates.size());
 
-            return certificateComparisonDuration.record(() -> compareCertificates(resourceCertificates));
+            var res = certificateComparisonDuration.record(() -> compareCertificates(resourceCertificates));
+            processedPassed.increment();
+            return res;
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failed to explore objects.", e);
+            processingFailed.increment();
             throw new RuntimeException(e);
+        } catch (IllegalStateException e) {
+            log.error("Error while processing", e);
+            processingFailed.increment();
+            throw e;
         } finally {
+            // On exception, value ends up being 1
             span.end();
         }
     }
@@ -160,17 +188,45 @@ public class CertificateAnalysisService {
             entry.resources().forEach(IpResourceUtil.forEachComponentResource((key) -> putAsSet(nestedIntervalMap, key, entry)))
         );
 
-        Set<Set<CertificateEntry>> overlaps = resourceCertificates.stream().flatMap(cert -> {
+        final var totalOverlaps = new AtomicInteger();
+
+        Set<Set<CertificateEntry>> overlaps = resourceCertificates.stream().unordered().parallel().flatMap(cert -> {
+            if (totalOverlaps.get() > MAX_TOTAL_PAIRS) {
+                throw new IllegalStateException("Too many overlaps to process, aborted at " + totalOverlaps.get());
+            }
+
             var entriesStream = cert.resources().stream()
                     .flatMap(IpResourceUtil.flatMapComponentResources(resource -> lookupAllOverlappingEntries(nestedIntervalMap, resource)))
                     .flatMap(Collection::stream);
 
             var nonParents = entriesStream
                     .filter(entry -> !CertificateEntry.areAncestors(cert, entry))
-                    .collect(Collectors.toSet());
+                    .distinct()
+                    .toList();
+
 
             if (nonParents.size() > 1) {
-                return Sets.combinations(nonParents, 2).stream();
+                // precondition for binomial: n >= k
+                var numPairs = BigIntegerMath.binomial(nonParents.size(), 2);
+                if (numPairs.compareTo(MAX_PAIRS_PER_CERT) > 0) {
+                    log.error("Too many overlaps to process: ({} choose 2) = {}", nonParents.size(), numPairs.toString());
+                    log.info("Involved URIs: {}", nonParents.stream().map(CertificateEntry::uri).collect(Collectors.joining(", ")));
+                    return Stream.empty();
+                }
+
+                // pre-allocate the array
+                var res = new ArrayList<Set<CertificateEntry>>(numPairs.intValueExact());
+
+                for (int i=0; i < nonParents.size(); i++) {
+                    for (int j=0; j < i; j++) {
+                        res.add(Set.of(nonParents.get(i), nonParents.get(j)));
+                    }
+                }
+                // postcondition: n-choose-2 pairs
+                assert res.size() == numPairs.intValueExact();
+                totalOverlaps.addAndGet(numPairs.intValueExact());
+
+                return res.stream();
             }
             return Stream.empty();
         }).collect(Collectors.toSet());
