@@ -7,6 +7,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResource;
+import net.ripe.ipresource.IpResourceSet;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.monitor.expiration.fetchers.RRDPStructureException;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpHttp;
@@ -18,19 +19,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,6 +43,7 @@ public class CertificateAnalysisServiceTest {
 
     public static final String APNIC_TRUST_ANCHOR_CERTIFICATE_URL = "rsync://rpki.apnic.net/repository/apnic-rpki-root-iana-origin.cer";
     public static final String RIPE_TRUST_ANCHOR_CERTIFICATE_URL = "rsync://rpki.ripe.net/ta/ripe-ncc-ta.cer";
+    public static final ImmutableResourceSet ALL_IPv4_RESOURCE_SET = ImmutableResourceSet.of(IpResource.ALL_IPV4_RESOURCES);
 
     private CertificateAnalysisConfig config;
 
@@ -188,7 +184,7 @@ public class CertificateAnalysisServiceTest {
         var emptyDifferenceForFullOverlap = CertificateAnalysisService.symmetricDifference(ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES), ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES));
         assertThat(emptyDifferenceForFullOverlap).isEmpty();
 
-        var disjunctInputs = CertificateAnalysisService.symmetricDifference(ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES), ImmutableResourceSet.of(IpResource.ALL_IPV4_RESOURCES));
+        var disjunctInputs = CertificateAnalysisService.symmetricDifference(ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES), ALL_IPv4_RESOURCE_SET);
         assertThat(disjunctInputs).containsExactly(IpResource.ALL_AS_RESOURCES, IpResource.ALL_IPV4_RESOURCES);
     }
 
@@ -196,7 +192,7 @@ public class CertificateAnalysisServiceTest {
     void testDetectsOverlap_overlapping_children() {
         var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
 
-        var root = new CertificateEntry("root", null, ImmutableResourceSet.of(IpResource.ALL_IPV4_RESOURCES), "/");
+        var root = new CertificateEntry("root", null, ALL_IPv4_RESOURCE_SET, "/");
         var childLhs = new CertificateEntry("lhs", null, TEST_NET_1, "/0/");
         var childMid = new CertificateEntry("mid", null, TEST_NET_2, "/1/");
         var childRhs = new CertificateEntry("rhs", null, TEST_NET_1, "/2/");
@@ -207,6 +203,38 @@ public class CertificateAnalysisServiceTest {
         assertThat(overlaps)
                 .contains(Set.of(childLhs, childRhs))
                 .noneMatch(overlap -> overlap.contains(root));
+    }
+
+    @Test
+    void testAbortsOnManyOverlaps() {
+        var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
+
+        var root = new CertificateEntry("root", null, ALL_IPv4_RESOURCE_SET, "/");
+
+        // Have many overlaps, aborting individual certs
+        var certs = new ArrayList<CertificateEntry>();
+        certs.add(root);
+
+        IntStream.range(0, 32).forEach(i -> {
+            certs.add(new CertificateEntry("rsync://rsync.example.org/" + i + ".cer", null, ImmutableResourceSet.of(IpResource.parse((i % 255) + ".0.0.0/8")), "/" + i + "/"));
+        });
+
+        // should not throw but aborts all individual certs -> no result
+        assertThat(subject.compareCertificates(certs)).hasSize(0);
+
+        // Abort because of too many overlaps in total:
+        var certsHighTotal = new ArrayList<CertificateEntry>();
+        certsHighTotal.add(root);
+
+        IntStream.range(0, 128).forEach(i -> {
+            IntStream.range(0, 16).forEach(j -> {
+                certsHighTotal.add(new CertificateEntry("rsync://rsync.example.org/" + i + "/" + j + ".cer", null, ImmutableResourceSet.of(IpResource.parse((i % 255) + ".0.0.0/8")).remove(IpResource.parse((i % 255) + "." + (j % 255) + ".0.0/16")), "/" + i + "/" + j + "/"));
+            });
+        });
+
+        // Throws because it aborts completely
+        assertThatThrownBy(() -> subject.compareCertificates(certsHighTotal))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
