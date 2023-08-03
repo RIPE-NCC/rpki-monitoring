@@ -1,5 +1,8 @@
 ## HEAD
 
+## v0.16.0
+  * **Fix** memory explosion during certificate comparison with many overlaps.
+
 ## v0.15.1
 
   * Describe HTTP client in line about snapshot download
