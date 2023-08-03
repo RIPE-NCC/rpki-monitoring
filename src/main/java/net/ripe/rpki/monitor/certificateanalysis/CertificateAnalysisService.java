@@ -103,9 +103,9 @@ public class CertificateAnalysisService {
 
         // After processing print a manageable, arbitrary number of overlaps
         if (overlaps.size() < 21) {
-            log.info("{} overlaps", overlaps.size());
+            log.info("{} overlaps after filtering for checked SIAs and key-roll grace period.", overlaps.size());
         } else {
-            log.error("Too many overlaps ({}): Printing 3 sample overlaps:", overlaps.size());
+            log.error("Too many overlaps after filtering for checked SIAs and key-roll grace period ({}): Printing 3 sample overlaps:", overlaps.size());
             printOverlaps(overlaps.stream().limit(3).toList());
         }
 
