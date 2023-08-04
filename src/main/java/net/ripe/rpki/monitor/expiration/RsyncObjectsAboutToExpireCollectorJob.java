@@ -20,7 +20,7 @@ public class RsyncObjectsAboutToExpireCollectorJob extends ObjectsAboutToExpireC
 
     @Autowired
     public RsyncObjectsAboutToExpireCollectorJob(Collectors collectors) {
-        super(collectors.getRsyncCollectors(), collectors.getNumThreads(), collectors.getRegistry());
+        super(collectors.getRsyncCollectors(), collectors.getThreadLimiter(), collectors.getRegistry());
     }
 
     @Bean("Rsync_Expiration_Job_Detail")

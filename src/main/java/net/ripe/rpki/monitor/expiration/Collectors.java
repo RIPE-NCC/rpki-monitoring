@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Getter
@@ -33,7 +34,7 @@ public class Collectors {
     private final List<ObjectAndDateCollector> rrdpCollectors;
     private final List<ObjectAndDateCollector> rsyncCollectors;
 
-    private final int numThreads;
+    private final Semaphore threadLimiter;
 
     private final MeterRegistry registry;
 
@@ -51,7 +52,8 @@ public class Collectors {
         this.repositoriesState = repositoriesState;
         this.tracer = tracer.orElse(Tracer.NOOP);
         this.registry = registry;
-        this.numThreads = numThreads;
+
+        threadLimiter = new Semaphore(numThreads);
 
         // We track only one of the RRDP repositories
         AtomicBoolean primaryRrdp = new AtomicBoolean(false);

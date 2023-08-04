@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.16.3
+
+  * Raise default thread limit to 8 and share semaphore over types.
+
 ## v0.16.2
 
   * Store hashes as byte arrays instead of interned strings.
