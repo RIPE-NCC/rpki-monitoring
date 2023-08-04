@@ -33,11 +33,11 @@ class RepositoryEntryTest {
     public void test_from_PublishedObjectEntry() {
         var x = PublishedObjectEntry.builder()
                 .uri("rsync://rpki.ripe.net/repository/DEFAULT/xyz.cer")
-                .sha256(HashCode.fromString("781c4689f8c8cf65cfc00241c3dc75cb697df340be425ff4c2378b5de720f258").asBytes())
+                .sha256Hex("781c4689f8c8cf65cfc00241c3dc75cb697df340be425ff4c2378b5de720f258")
                 .build();
         var r = RepositoryEntry.from(x);
         assertThat(r.getUri()).isEqualTo(x.getUri());
-        assertThat(r.getSha256()).isEqualTo(x.getSha256());
+        assertThat(r.getSha256()).isEqualTo(x.sha256Hex());
         assertThat(r.expiration()).isEqualTo(Optional.empty());
     }
 }

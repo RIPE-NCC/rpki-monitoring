@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.16.5
+
+  * **hotfix:** parse hex sha256 hashes from core: prevents false positive
+    file difference.
+
 ## v0.16.4
 
   * Do not log missing manifests.
