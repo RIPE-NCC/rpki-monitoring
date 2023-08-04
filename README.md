@@ -93,12 +93,15 @@ docker build .
 docker run -p 9090:9090 --rm docker-registry.ripe.net/rpki/rpki-monitoring
 # Or for a profile that requires environment variables:
 docker run \
-	-e SPRING_PROFILES_ACTIVE=production \
-	-e CORE_ENABLE=false \
-	# or, with access to a rpki-core instance:
-	-e CORE_API_KEY=${RPKI_CORE_API_KEY} \
-	-p 9090:9090 \
-	--rm docker-registry.ripe.net/rpki/rpki-monitoring
+    -it \
+    --name rpki-monitoring \
+    -e SPRING_PROFILES_ACTIVE=production \
+    -e CORE_ENABLE=false \
+    -p 9090:9090 \
+    --rm docker-registry.ripe.net/rpki/rpki-monitoring
+
+# or, with access to a rpki-core instance, add:
+    -e CORE_API_KEY=${RPKI_CORE_API_KEY} \
 ```
 
 The base image for the CI build is set through environment variables.
