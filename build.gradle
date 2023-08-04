@@ -26,6 +26,10 @@ repositories {
     }
 }
 
+gitProperties {
+    failOnNoGitDirectory = false
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
     implementation 'org.springframework.boot:spring-boot-starter-web'

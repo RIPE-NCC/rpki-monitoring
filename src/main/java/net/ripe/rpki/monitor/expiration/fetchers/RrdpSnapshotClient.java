@@ -46,9 +46,9 @@ public class RrdpSnapshotClient {
 
         final String realSnapshotHash = Sha256.asString(snapshotBytes);
         if (!realSnapshotHash.equalsIgnoreCase(desiredSnapshotHash)) {
-            throw new RRDPStructureException(snapshotUrl, "with len(content) = %d had sha256(content) = %s, expected %s".formatted(snapshotBytes.length, realSnapshotHash, desiredSnapshotHash));
+            throw new RRDPStructureException(snapshotUrl, "with len(content) = %d had sha256(content) = %s, expected=%s".formatted(snapshotBytes.length, realSnapshotHash, desiredSnapshotHash));
         } else {
-            log.debug("verified snapshot hash: len(content)={} h(content)={} == {} for {} {}", snapshotBytes.length, realSnapshotHash, desiredSnapshotHash, snapshotUrl, httpClient.describe());
+            log.debug("verified snapshot hash: len(content)={} h(content)={} for {} {}", snapshotBytes.length, desiredSnapshotHash, snapshotUrl, httpClient.describe());
         }
 
         return snapshotBytes;

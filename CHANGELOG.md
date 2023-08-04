@@ -17,6 +17,7 @@
 ## v0.16.4
 
   * Do not log missing manifests.
+  * Add `Dockerfile` that does not rely on NCC internal images
 
 ## v0.16.3
 
