@@ -77,9 +77,9 @@ public class ObjectExpirationMetrics {
         }
 
         public void update(Instant now, RepositoryEntry object) {
-            object.getExpiration().ifPresent(expiration ->
+            object.expiration().ifPresent(expiration ->
                     expirationHistogram.record(now.until(expiration, ChronoUnit.SECONDS)));
-            object.getCreation().ifPresent(creation ->
+            object.creation().ifPresent(creation ->
                     creationHistogram.record(creation.until(now, ChronoUnit.SECONDS)));
         }
     }

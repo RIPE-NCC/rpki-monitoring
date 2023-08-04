@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.16.2
+
+  * Store hashes as byte arrays instead of interned strings.
+
 ## v0.16.1
 
   * Improve (CPU) performance of certificate analysis by removing resources

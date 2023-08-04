@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.publishing;
 
+import com.google.common.hash.HashCode;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
@@ -29,7 +30,7 @@ class PublishedObjectStatusControllerTest {
     ), Duration.ZERO);
     private final RepositoryEntry object = new RepositoryEntry(
             "rsync://example.com/repository/DEFAULT/xyz.cer",
-            "02c2a8e60fde7d630eb3b44c61b1b0326d6f664c9d3d4be6f5cef4393f8bd468",
+            HashCode.fromString("02c2a8e60fde7d630eb3b44c61b1b0326d6f664c9d3d4be6f5cef4393f8bd468").asBytes(),
             Optional.of(Instant.now()),
             Optional.empty()
     );

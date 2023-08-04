@@ -107,7 +107,7 @@ jib {
     // JVM memory is set from the environment - might be overridden in the
     // container configuration
     container.environment = [
-        JAVA_TOOL_OPTIONS: '-Xms3072m -Xmx3072m -Dcom.sun.management.jmxremote.port=5006 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false',
+        JAVA_TOOL_OPTIONS: '-Xms1024m -Xmx8192m -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=8686 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false',
         JDK_JAVA_OPTIONS: '--enable-preview'
     ]
 }

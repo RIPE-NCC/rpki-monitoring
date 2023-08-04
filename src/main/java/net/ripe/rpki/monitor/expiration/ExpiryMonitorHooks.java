@@ -93,7 +93,7 @@ public class ExpiryMonitorHooks {
 
             var unixTimeSeconds = Instant.now().getEpochSecond();
 
-            entries.filter(this::testRepositoryEntry).forEach(entry -> entry.getExpiration().ifPresentOrElse(expiration -> {
+            entries.filter(this::testRepositoryEntry).forEach(entry -> entry.expiration().ifPresentOrElse(expiration -> {
                 var secondsLeft = expiration.getEpochSecond()-unixTimeSeconds;
 
                 (secondsLeft < threshold ? below : above).incrementAndGet();
