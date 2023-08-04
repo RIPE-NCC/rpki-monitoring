@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.16.4
+
+  * Do not log missing manifests.
+
 ## v0.16.3
 
   * Raise default thread limit to 8 and share semaphore over types.

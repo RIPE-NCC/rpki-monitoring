@@ -75,7 +75,6 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
         var manifest = rpkiObjects.get(manifestUrl);
 
         if (manifest == null) {
-            log.debug("[{}] manifest at {} not found.", certificateUrl, manifestUrl);
             return Stream.empty();
         }
 
