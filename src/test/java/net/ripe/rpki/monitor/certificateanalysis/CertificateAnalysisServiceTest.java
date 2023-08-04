@@ -19,17 +19,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.net.URI;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.zip.GZIPInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -44,6 +44,7 @@ public class CertificateAnalysisServiceTest {
 
     public static final String APNIC_TRUST_ANCHOR_CERTIFICATE_URL = "rsync://rpki.apnic.net/repository/apnic-rpki-root-iana-origin.cer";
     public static final String RIPE_TRUST_ANCHOR_CERTIFICATE_URL = "rsync://rpki.ripe.net/ta/ripe-ncc-ta.cer";
+    public static final ImmutableResourceSet ALL_IPv4_RESOURCE_SET = ImmutableResourceSet.of(IpResource.ALL_IPV4_RESOURCES);
 
     private CertificateAnalysisConfig config;
 
@@ -60,13 +61,25 @@ public class CertificateAnalysisServiceTest {
     }
 
     @SneakyThrows
+    static byte[] readMaybeGzippedFile(String path) {
+        var resource = new ClassPathResource(path);
+
+        var tokens = resource.getFilename().split("\\.");
+
+        switch (tokens[tokens.length-1]) {
+            case "gz":
+                return new GZIPInputStream(resource.getInputStream()).readAllBytes();
+            default:
+                return resource.getInputStream().readAllBytes();
+        }
+    }
+
+    @SneakyThrows
     ImmutableMap<String, RpkiObject> rpkiObjects(String notificationClasspathPath, String snapshotClasspathPath) {
         // dirty setup to get RRDP objects from the mock data
         var mockHttp = mock(RrdpHttp.class);
-        when(mockHttp.fetch(any())).thenReturn(
-                new ClassPathResource(notificationClasspathPath).getInputStream().readAllBytes(),
-                new ClassPathResource(snapshotClasspathPath).getInputStream().readAllBytes()
-        );
+
+        when(mockHttp.fetch(any())).thenReturn(readMaybeGzippedFile(notificationClasspathPath), readMaybeGzippedFile(snapshotClasspathPath));
         when(mockHttp.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
 
         return new RrdpSnapshotClient(mockHttp).fetchObjects(RrdpSnapshotClientTest.EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty()).objects();
@@ -145,13 +158,13 @@ public class CertificateAnalysisServiceTest {
     }
 
     @Test
-    void testCompareAndTrackMetrics_ripe_andSIAFilter() {
+    void testCompareAndTrackMetrics_ripe() {
         config.setRootCertificateUrl(RIPE_TRUST_ANCHOR_CERTIFICATE_URL);
         var ripeObjects = rpkiObjects("rrdp-content/ripe/notification.xml", "rrdp-content/ripe/snapshot.xml");
 
         var overlaps = subject.process(ripeObjects);
 
-        // Two overlapping pairs at time of data creation
+        // Two overlapping pairs at time of data creation: delegated CAs in keyroll
         assertThat(overlaps).hasSize(2);
 
         // Two pairs that consist of distincs certificates
@@ -159,32 +172,49 @@ public class CertificateAnalysisServiceTest {
         // Implies: parent-child overlap is not counted.
         assertThat(registry.get("rpkimonitoring.certificate.analysis.overlapping.resource.count").gauge().value()).isEqualTo(2);
         assertThat(registry.get("rpkimonitoring.certificate.analysis.certificate.count").gauge().value()).isGreaterThan(20_000);
-
-        var allSIAs = overlaps.stream()
-                .flatMap(Collection::stream)
-                .map(cert -> cert.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST))
-                .collect(Collectors.toSet());
-
-        // Note: filter out paas.rpki.ripe.net
-        config.setTrackedSias(List.of(Pattern.compile("rsync://rpki\\.ripe\\.net/.*")));
-        var overlapsWithFilter = subject.process(ripeObjects);
-        var siasWithFilter = overlapsWithFilter.stream()
-                .flatMap(Collection::stream)
-                .map(cert -> cert.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST))
-                .collect(Collectors.toSet());
-
-        // The overlaps that are present are due to delegated CAs with two different SIAs.
-        assertThat(overlapsWithFilter).hasSize(0);
-
-        // The overlaps of non-ripe.net SIAs has been filtered, so the number of distinct SIAs is lower.
-        assertThat(siasWithFilter).hasSizeLessThan(allSIAs.size());
     }
+
+    private Set<URI> extractSIAs(List<Set<CertificateEntry>> setsOfEntries) {
+        return setsOfEntries.stream()
+                .flatMap(Collection::stream)
+                .map(cert -> cert.certificate().findFirstSubjectInformationAccessByMethod(X509CertificateInformationAccessDescriptor.ID_AD_RPKI_MANIFEST))
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Pilot has test data with intermediate CAs. Use this to tests all base cases (filtering overlapping files, SIA filtering, etc.) and the metrics.
+     */
+    @Test
+    void testCompareAndTrack_pilot_including_SIA_filter() throws ExecutionException, InterruptedException {
+        var objects = rpkiObjects("rrdp/pilot/notification.xml.gz", "rrdp/pilot/snapshot.xml.gz");
+
+        config.setRootCertificateUrl("rsync://localcert.ripe.net/ta/ripe-ncc-pilot.cer");
+        config.setIgnoredOverlaps(List.of(
+                new CertificateAnalysisConfig.IgnoredOverlap(Pattern.compile("rsync://localcert\\.ripe\\.net/repository/aca/[^/]*"), "")
+        ));
+
+        var overlaps = subject.process(objects);
+        var sias = extractSIAs(overlaps);
+
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.overlapping.certificate.count").gauge().value()).isGreaterThan(300);
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.overlapping.resource.count").gauge().value()).isGreaterThan(1_000).isLessThan(3000);
+        assertThat(registry.get("rpkimonitoring.certificate.analysis.certificate.count").gauge().value()).isEqualTo(504);
+
+        // **dirty**: filter out a large chunk of the pilot repo
+        config.setTrackedSias(List.of(Pattern.compile(".*/DEFAULT/[0-9].*")));
+        var overlapsWithFilter = subject.process(objects);
+        var filteredSias = extractSIAs(overlapsWithFilter);
+
+        assertThat(filteredSias).hasSizeLessThan(sias.size());
+        assertThat(sias).containsAll(filteredSias);
+    }
+
     @Test
     void testSymmetricDifference() {
         var emptyDifferenceForFullOverlap = CertificateAnalysisService.symmetricDifference(ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES), ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES));
         assertThat(emptyDifferenceForFullOverlap).isEmpty();
 
-        var disjunctInputs = CertificateAnalysisService.symmetricDifference(ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES), ImmutableResourceSet.of(IpResource.ALL_IPV4_RESOURCES));
+        var disjunctInputs = CertificateAnalysisService.symmetricDifference(ImmutableResourceSet.of(IpResource.ALL_AS_RESOURCES), ALL_IPv4_RESOURCE_SET);
         assertThat(disjunctInputs).containsExactly(IpResource.ALL_AS_RESOURCES, IpResource.ALL_IPV4_RESOURCES);
     }
 
@@ -192,7 +222,7 @@ public class CertificateAnalysisServiceTest {
     void testDetectsOverlap_overlapping_children() {
         var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
 
-        var root = new CertificateEntry("root", null, ImmutableResourceSet.of(IpResource.ALL_IPV4_RESOURCES), "/");
+        var root = new CertificateEntry("root", null, ALL_IPv4_RESOURCE_SET, "/");
         var childLhs = new CertificateEntry("lhs", null, TEST_NET_1, "/0/");
         var childMid = new CertificateEntry("mid", null, TEST_NET_2, "/1/");
         var childRhs = new CertificateEntry("rhs", null, TEST_NET_1, "/2/");
@@ -203,6 +233,38 @@ public class CertificateAnalysisServiceTest {
         assertThat(overlaps)
                 .contains(Set.of(childLhs, childRhs))
                 .noneMatch(overlap -> overlap.contains(root));
+    }
+
+    @Test
+    void testAbortsOnManyOverlaps() {
+        var subject = new CertificateAnalysisService(config, Optional.empty(), new SimpleMeterRegistry());
+
+        var root = new CertificateEntry("root", null, ALL_IPv4_RESOURCE_SET, "/");
+
+        // Have many overlaps, aborting individual certs
+        var certs = new ArrayList<CertificateEntry>();
+        certs.add(root);
+
+        IntStream.range(0, 32).forEach(i -> {
+            certs.add(new CertificateEntry("rsync://rsync.example.org/" + i + ".cer", null, ImmutableResourceSet.of(IpResource.parse((i % 255) + ".0.0.0/8")), "/" + i + "/"));
+        });
+
+        // should not throw but aborts all individual certs -> no result
+        assertThat(subject.compareCertificates(certs)).hasSize(0);
+
+        // Abort because of too many overlaps in total:
+        var certsHighTotal = new ArrayList<CertificateEntry>();
+        certsHighTotal.add(root);
+
+        IntStream.range(0, 128).forEach(i -> {
+            IntStream.range(0, 16).forEach(j -> {
+                certsHighTotal.add(new CertificateEntry("rsync://rsync.example.org/" + i + "/" + j + ".cer", null, ImmutableResourceSet.of(IpResource.parse((i % 255) + ".0.0.0/8")).remove(IpResource.parse((i % 255) + "." + (j % 255) + ".0.0/16")), "/" + i + "/" + j + "/"));
+            });
+        });
+
+        // Throws because it aborts completely
+        assertThatThrownBy(() -> subject.compareCertificates(certsHighTotal))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

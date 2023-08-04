@@ -178,6 +178,13 @@ core:
   enable: true
   url: https://core.rpki.prepdev.ripe.net/certification/
 
+certificate.analysis:
+  enabled: true
+  root-certificate-url: rsync://rpki.prepdev.ripe.net/ta/RIPE-NCC-TA-TEST.cer
+  ignored-overlaps:
+    - regex: 'rsync://.*/repository/DEFAULT/[^/]+'
+      description: 'intermediate CAs'
+
 management:
   tracing.enabled: true
 ---

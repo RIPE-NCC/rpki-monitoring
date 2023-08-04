@@ -49,4 +49,13 @@ public class CertificateEntryTest {
         assertThat(CertificateEntry.areAncestors(child, otherChild)).isFalse();
         assertThat(CertificateEntry.areAncestors(otherChild, child)).isFalse();
     }
+
+    @Test
+    public void testHashCode() {
+        var cert1 = new CertificateEntry("n1", mockCertificate, "/");
+        var cert2 = new CertificateEntry("n1", mockCertificate, "/");
+
+        assertThat(cert1).isEqualTo(cert2);
+        assertThat(cert1).hasSameHashCodeAs(cert2);
+    }
 }
