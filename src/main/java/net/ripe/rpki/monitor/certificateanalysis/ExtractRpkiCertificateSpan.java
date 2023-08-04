@@ -66,15 +66,16 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
 
             return Stream.concat(
                     Stream.of(thisEntry),
-                    computeForManifestUrl(certificate.getManifestUri().toString())
+                    computeForManifestUrl(certificateUrl, certificate.getManifestUri().toString())
             );
         }).orElse(Stream.empty());
     }
 
-    private Stream<CertificateEntry> computeForManifestUrl(String manifestUrl) {
+    private Stream<CertificateEntry> computeForManifestUrl(String certificateUrl, String manifestUrl) {
         var manifest = rpkiObjects.get(manifestUrl);
 
         if (manifest == null) {
+            log.debug("[{}] manifest at {} not found.", certificateUrl, manifestUrl);
             return Stream.empty();
         }
 
