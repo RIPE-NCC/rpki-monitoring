@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.16.1
+
+  * Improve (CPU) performance of certificate analysis by removing resources
+    from CertificateEntry hashCode.
+
 ## v0.16.0
   * **Fix** memory explosion during certificate comparison with many overlaps.
 

@@ -33,6 +33,6 @@ record CertificateEntry(@NonNull String uri, X509ResourceCertificate certificate
 
     @Override
     public int hashCode() {
-        return Objects.hash(uri, resources, reachabilityPath);
+        return Objects.hash(uri, reachabilityPath);
     }
 }
