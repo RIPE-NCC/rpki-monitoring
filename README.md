@@ -95,6 +95,8 @@ docker run -p 9090:9090 --rm docker-registry.ripe.net/rpki/rpki-monitoring
 docker run \
     -it \
     --name rpki-monitoring \
+    -v $(pwd):/export/ \
+    -e JAVA_TOOL_OPTIONS="-Xmx16128M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/export/dump.hprof -XX:+ExitOnOutOfMemoryError" \
     -e SPRING_PROFILES_ACTIVE=production \
     -e CORE_ENABLE=false \
     -p 9090:9090 \
