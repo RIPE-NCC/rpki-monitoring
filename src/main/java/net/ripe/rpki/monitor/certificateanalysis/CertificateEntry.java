@@ -33,6 +33,8 @@ record CertificateEntry(@NonNull String uri, X509ResourceCertificate certificate
 
     @Override
     public int hashCode() {
-        return Objects.hash(uri, resources, reachabilityPath);
+        // Do not include the resources. Underlying assumption: The resources
+        // for a certificate at a certain URL are constant within a run.
+        return Objects.hash(uri, reachabilityPath);
     }
 }
