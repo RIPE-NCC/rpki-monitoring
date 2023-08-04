@@ -15,17 +15,15 @@ public class ObjectsAboutToExpireCollectorJob extends QuartzJobBean {
     protected final List<ObjectAndDateCollector> collectors;
 
     private final Timer objectCollectorJobTimer;
-
     private final Semaphore sem;
 
-    public ObjectsAboutToExpireCollectorJob(List<ObjectAndDateCollector> collectors, int numThreads, MeterRegistry registry) {
+    public ObjectsAboutToExpireCollectorJob(List<ObjectAndDateCollector> collectors, Semaphore sem, MeterRegistry registry) {
         this.collectors = collectors;
-        this.sem = new Semaphore(numThreads);
+        this.sem = sem;
         objectCollectorJobTimer = Timer.builder("rpkimonitoring.collector.duration")
                 .publishPercentileHistogram()
                 .minimumExpectedValue(Duration.ofSeconds(2))
                 .maximumExpectedValue(Duration.ofMinutes(5))
-                .tag("threads", String.valueOf(numThreads))
                 .tag("type", this.getClass().getSimpleName())
                 .register(registry);
     }
