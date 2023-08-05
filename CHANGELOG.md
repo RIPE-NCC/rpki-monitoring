@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.16.6
+
+  * log the cause when a repo update is aborted, but continue fetching the
+    other repositories.
+
 ## v0.16.5
 
   * **hotfix:** parse hex sha256 hashes from core: prevents false positive
