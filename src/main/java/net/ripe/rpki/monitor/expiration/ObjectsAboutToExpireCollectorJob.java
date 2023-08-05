@@ -36,7 +36,7 @@ public class ObjectsAboutToExpireCollectorJob extends QuartzJobBean {
         try {
             collector.run();
         } catch (RepoUpdateFailedException e) {
-            log.error("repo update failed: {} (other collectors are continuing)", e.getMessage());
+            log.error("repo update failed, other collectors are continuing", e);
         }
     }
 
