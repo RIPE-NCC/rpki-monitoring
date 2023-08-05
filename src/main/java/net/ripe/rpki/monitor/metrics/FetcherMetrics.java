@@ -53,7 +53,7 @@ public class FetcherMetrics {
 
         private static Counter buildCounter(String url, String statusTag, MeterRegistry registry) {
             return Counter.builder("rpkimonitoring.fetcher.updated")
-                    .description("Number of fetches from the given URL")
+                    .description("Number of fetches from the given URL with the given status.")
                     .tag("status", statusTag)
                     .tag("url", url)
                     .register(registry);
