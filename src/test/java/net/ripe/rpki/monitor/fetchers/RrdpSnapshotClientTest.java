@@ -15,6 +15,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,8 +58,33 @@ public class RrdpSnapshotClientTest {
 
         var res = subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty());
 
+        // We pass the first fetch result into the second fetch
         assertThatThrownBy(() -> subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.of(res)))
                 .asInstanceOf(InstanceOfAssertFactories.throwable(SnapshotNotModifiedException.class));
+
+        then(http).should(times(2)).fetch(eq(EXAMPLE_ORG_NOTIFICATION_XML));
+        then(http).should(times(1)).fetch(eq("https://rrdp.ripe.net/a2d845c4-5b91-4015-a2b7-988c03ce232a/1742/snapshot.xml"));
+    }
+
+    @Test
+    void loadNotificationAndSnapshot_same_url_changed_hash() throws RrdpHttp.HttpResponseException, RrdpHttp.HttpTimeout, IOException, RRDPStructureException, RepoUpdateAbortedException, SnapshotNotModifiedException {
+        when(http.fetch(any())).thenReturn(
+                new ClassPathResource("rrdp/ripe-notification.xml").getInputStream().readAllBytes(),
+                new ClassPathResource("rrdp/ripe-snapshot.xml").getInputStream().readAllBytes(),
+                new ClassPathResource("rrdp/ripe-notification-1742-hash2.xml").getInputStream().readAllBytes(),
+                new ClassPathResource("rrdp/ripe-snapshot-1742-hash2.xml").getInputStream().readAllBytes()
+        );
+        when(http.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        // We pass the first fetch result into the second fetch
+        var res = subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty());
+        var res2 = subject.fetchObjects(EXAMPLE_ORG_NOTIFICATION_XML, Optional.of(res));
+
+        assertThat(res.snapshotHash()).isNotEqualTo(res2.snapshotHash());
+
+        // Snapshot is re-downloaded because hash differed
+        then(http).should(times(2)).fetch(eq(EXAMPLE_ORG_NOTIFICATION_XML));
+        then(http).should(times(2)).fetch(eq("https://rrdp.ripe.net/a2d845c4-5b91-4015-a2b7-988c03ce232a/1742/snapshot.xml"));
     }
 
     @Test

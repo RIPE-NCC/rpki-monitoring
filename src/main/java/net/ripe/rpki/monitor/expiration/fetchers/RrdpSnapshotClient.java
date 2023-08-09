@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration.fetchers;
 
+import com.google.common.base.Strings;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import lombok.AllArgsConstructor;
@@ -69,11 +70,19 @@ public class RrdpSnapshotClient {
             final String snapshotUrl = httpClient.transformHostname(snapshotTag.getAttributes().getNamedItem("uri").getNodeValue());
             final String desiredSnapshotHash = snapshotTag.getAttributes().getNamedItem("hash").getNodeValue();
 
-            Verify.verifyNotNull(snapshotUrl);
-            if (previousState.map(state -> state.snapshotUrl.equals(snapshotUrl)).orElse(false)) {
+            Verify.verify(!Strings.isNullOrEmpty(snapshotUrl));
+            Verify.verify(!Strings.isNullOrEmpty(desiredSnapshotHash));
+            if (previousState.map(state -> state.snapshotHash.equals(desiredSnapshotHash) && state.snapshotUrl.equals(snapshotUrl)).orElse(false)) {
                 log.info("snapshot not modified: snapshot is the same as during the last check (url={} serial={} session={} client={})", snapshotUrl, sessionIdUUID, notificationSerial, httpClient.describe());
                 throw new SnapshotNotModifiedException(snapshotUrl);
             } else {
+                previousState.ifPresent(prev -> {
+                    if (prev.snapshotHash.equals(desiredSnapshotHash)) {
+                        log.error("RRDP inconsistency: hash is equal ({}) but url differs; current={} != prev={}", desiredSnapshotHash, snapshotUrl, prev.snapshotUrl);
+                    } else if (prev.snapshotUrl.equals(snapshotUrl)) {
+                        log.error("RRDP inconsistency: url is equal ({}) but hash differs; current={} != prev={}", snapshotUrl, desiredSnapshotHash, prev.snapshotHash);
+                    }
+                });
                 log.info("downloading snapshot: serial={} session={} url={} expected_hash={} client={}", notificationSerial, sessionIdUUID, snapshotUrl, desiredSnapshotHash, httpClient.describe());
             }
 
@@ -89,6 +98,7 @@ public class RrdpSnapshotClient {
             return new RrdpSnapshotState(
                     snapshotUrl,
                     sessionIdUUID,
+                    desiredSnapshotHash,
                     notificationSerial,
                     processPublishElementResult.objects,
                     processPublishElementResult.collisionCount
@@ -210,7 +220,7 @@ public class RrdpSnapshotClient {
 
     record ProcessPublishElementResult(ImmutableMap<String, RpkiObject> objects, int collisionCount) {}
 
-    public record RrdpSnapshotState(String snapshotUrl, UUID sessionId, BigInteger serial, ImmutableMap<String, RpkiObject> objects, int collisionCount){
+    public record RrdpSnapshotState(String snapshotUrl, UUID sessionId, String snapshotHash, BigInteger serial, ImmutableMap<String, RpkiObject> objects, int collisionCount){
         public long serialAsLong() {
             return serial.mod(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact();
         }
