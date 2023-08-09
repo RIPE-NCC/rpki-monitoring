@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.16.7
+
+  * Scan RRDP every minute
+
 ## v0.16.6
 
   * log the cause when a repo update is aborted, but continue fetching the

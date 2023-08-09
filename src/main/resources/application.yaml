@@ -16,7 +16,7 @@ spring:
 collector.threads: 8
 
 rrdp:
-  interval: 5M
+  interval: 1M
   targets:
     - name: main
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
@@ -75,11 +75,6 @@ core:
   interval: 1m
   initial-delay: 10s
 
-published-objects:
-  # The interval at which a full diff on all repositories is collected. Incidentally
-  # this _also_ is the interval at which the core repository is tracked.
-  full-diff-interval: 5M
-
 logging:
   level:
     web: INFO
@@ -112,7 +107,7 @@ otel:
 spring.config.activate.on-profile: local
 
 rrdp:
-  interval: 5M
+  interval: 1M
   targets:
     - name: main
       notification-url: https://rrdp.ripe.net/notification.xml
@@ -143,7 +138,7 @@ certificate.analysis:
 spring.config.activate.on-profile: prepdev
 
 rrdp:
-  interval: 5M
+  interval: 1M
   targets:
     - name: main
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
@@ -196,7 +191,7 @@ certificate.analysis:
   root-certificate-url: rsync://rpki.ripe.net/ta/ripe-ncc-ta.cer
 
 rrdp:
-  interval: 5M
+  interval: 1M
   targets:
     - name: main
       notification-url: https://rrdp.ripe.net/notification.xml
@@ -239,7 +234,7 @@ core:
 spring.config.activate.on-profile: paas-prepdev
 
 rrdp:
-  interval: 5M
+  interval: 1M
   targets:
     - name: main
       notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
@@ -274,7 +269,7 @@ management:
 spring.config.activate.on-profile: paas-production
 
 rrdp:
-  interval: 5M
+  interval: 1M
   targets:
     - name: main
       notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
