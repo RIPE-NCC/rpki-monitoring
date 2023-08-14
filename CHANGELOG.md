@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.16.7
+
+  * Consolidate rsyncit targets to have a single target behind a load-balancer.
+
 ## v0.16.6
 
   * log the cause when a repo update is aborted, but continue fetching the
