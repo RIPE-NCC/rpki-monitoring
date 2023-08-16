@@ -3,6 +3,7 @@
 ## v0.16.7
 
   * Scan RRDP every minute
+  * Consolidate rsyncit targets to have a single target behind a load-balancer.
 
 ## v0.16.6
 

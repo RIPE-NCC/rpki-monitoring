@@ -165,10 +165,8 @@ rsync:
   targets:
     - name: rsync
       url: rsync://rsync-1.rpki.prepdev.ripe.net
-    - name: rsyncit-1
-      url: rsync://rsyncit-1.rpki.prepdev.ripe.net
-    - name: rsyncit-2
-      url: rsync://rsyncit-2.rpki.prepdev.ripe.net
+    - name: rsyncit
+      url: rsync://rsyncit.rpki.prepdev.ripe.net
 
 core:
   enable: true
@@ -221,10 +219,8 @@ rsync:
   targets:
     - name: rsync
       url: rsync://rpki.ripe.net
-    - name: rsyncit-1
-      url: rsync://rsyncit-1.rpki.ripe.net
-    - name: rsyncit-2
-      url: rsync://rsyncit-2.rpki.ripe.net
+    - name: rsyncit
+      url: rsync://rsyncit.rpki.ripe.net
 
 core:
   enable: true

@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'io.freefair.lombok' version '8.1.0'
+    id 'io.freefair.lombok' version '8.2.2'
     id 'org.springframework.boot' version '3.1.2'
     id 'com.gorylenko.gradle-git-properties' version '2.4.1'
     id 'jacoco'
@@ -12,7 +12,7 @@ apply plugin: 'java'
 apply plugin: 'io.spring.dependency-management'
 
 group = 'net.ripe.rpki'
-version = '0.14.3-SNAPSHOT'
+version = '0.16.8-SNAPSHOT'
 
 repositories {
     mavenCentral()
