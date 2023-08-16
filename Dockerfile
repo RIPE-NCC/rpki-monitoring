@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install --yes rsync
 RUN useradd app
 ADD . /app
 WORKDIR /app
+COPY src/main/resources/application.yaml build/resources/main/git.properties* src/main/resources/
 RUN gradle build --no-daemon \
     && find /app -name 'rpki-monitoring*.jar' -not -name '*plain*' -exec cp {} /app/app.jar \;
 

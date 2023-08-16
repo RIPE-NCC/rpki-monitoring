@@ -1,3 +1,4 @@
 build
+!build/resources/main/git.properties
 .git
 Dockerfile

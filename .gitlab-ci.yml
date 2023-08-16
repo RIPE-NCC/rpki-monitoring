@@ -112,6 +112,7 @@ build:image:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
+    - gradle generateGitProperties
     - docker build --label org.label-schema.vcs-ref="$CI_COMMIT_SHORT_SHA" --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
   rules:
