@@ -5,7 +5,6 @@ plugins {
     id 'com.gorylenko.gradle-git-properties' version '2.4.1'
     id 'jacoco'
     id 'org.sonarqube' version '4.3.0.3225'
-    id 'com.google.cloud.tools.jib' version '3.3.2'
 }
 
 apply plugin: 'java'
@@ -99,19 +98,4 @@ jacocoTestReport {
     reports {
         xml.required = true
     }
-}
-
-jib {
-    from {
-        image = 'docker-registry.ripe.net/swe/gitlab-ci/openjdk-rsync:jre-17'
-    }
-    to {
-        image = 'docker-registry.ripe.net/rpki/rpki-monitoring'
-    }
-    // JVM memory is set from the environment - might be overridden in the
-    // container configuration
-    container.environment = [
-        JAVA_TOOL_OPTIONS: '-Xms1024m -Xmx8192m -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=8686 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false',
-        JDK_JAVA_OPTIONS: '--enable-preview'
-    ]
 }

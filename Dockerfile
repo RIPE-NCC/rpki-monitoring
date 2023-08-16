@@ -1,9 +1,12 @@
 FROM gradle:jdk17-focal as builder
 
+RUN apt-get update && apt-get install --yes rsync
+
 RUN useradd app
 ADD . /app
 WORKDIR /app
-RUN apt-get update && apt-get install --yes rsync && gradle build --no-daemon && find /app -name rpki-monitoring\*.jar -not -name \*plain\* -exec cp {} /app/app.jar \;
+RUN gradle build --no-daemon \
+    && find /app -name 'rpki-monitoring*.jar' -not -name '*plain*' -exec cp {} /app/app.jar \;
 
 FROM eclipse-temurin:17-jdk-focal
 
