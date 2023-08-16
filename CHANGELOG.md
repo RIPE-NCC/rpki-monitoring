@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.17.0
+
+  * Switch base image to eclipse-temurin based on focal
+
 ## v0.16.7
 
   * Scan RRDP every minute
