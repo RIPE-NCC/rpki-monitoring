@@ -87,14 +87,23 @@ SPRING_PROFILES_ACIVE=local gradle clean bootRun
 ```
 # Build thin image, without explicitly creating a Dockerfile with multi-stage build
 gradle jibDockerBuild
+# Or build with Dockerfile that does not rely on base image
+docker build .
 # And run it
 docker run -p 9090:9090 --rm docker-registry.ripe.net/rpki/rpki-monitoring
 # Or for a profile that requires environment variables:
 docker run \
-	-e SPRING_PROFILES_ACTIVE=production \
-	-e CORE_API_KEY=${RPKI_CORE_API_KEY} \
-	-p 9090:9090 \
-	--rm docker-registry.ripe.net/rpki/rpki-monitoring
+    -it \
+    --name rpki-monitoring \
+    -v $(pwd):/export/ \
+    -e JAVA_TOOL_OPTIONS="-Xmx16128M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/export/dump.hprof -XX:+ExitOnOutOfMemoryError" \
+    -e SPRING_PROFILES_ACTIVE=production \
+    -e CORE_ENABLE=false \
+    -p 9090:9090 \
+    --rm docker-registry.ripe.net/rpki/rpki-monitoring
+
+# or, with access to a rpki-core instance, add:
+    -e CORE_API_KEY=${RPKI_CORE_API_KEY} \
 ```
 
 The base image for the CI build is set through environment variables.
