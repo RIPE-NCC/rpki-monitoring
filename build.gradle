@@ -16,12 +16,12 @@ version = '0.16.8-SNAPSHOT'
 repositories {
     mavenCentral()
     maven {
-        url = uri('https://nexus.ripe.net/nexus/content/repositories/releases/')
-    }
-    maven {
         // READ ACCESS token specific for this repositories maven artifacts. These are public, but unfortunately anonymous
         // access is not possible. Valid until 11-7-2024. NOT A SECRET.
         url = uri('https://ties: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@maven.pkg.github.com/ties/java-rrdp-test-data')
+    }
+    maven {
+        url = uri('https://nexus.ripe.net/nexus/content/repositories/releases/')
     }
 }
 
