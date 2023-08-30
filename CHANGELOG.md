@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.17.1
+
+  * 14.5 hour threshold before having alerting on top level CA/manifest expiry
+
 ## v0.17.0
 
   * Switch base image to eclipse-temurin based on focal
