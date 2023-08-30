@@ -57,7 +57,8 @@ expiry:
       labels:
         file_description: 'TA certificate'
     - regex: 'rsync://.*/repository/aca/.*'
-      threshold: 15H
+      # 14.5h
+      threshold: 870M
       labels:
         file_description: 'production CA manifest & crl'
 
