@@ -1,5 +1,7 @@
 package net.ripe.rpki.monitor.config;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,6 +37,17 @@ public class RrdpConfig {
         private Map<String, String> connectTo = Map.of();
 
         private Duration totalRequestTimeout = Duration.ofSeconds(60);
+
+        public String metricUrlTag() {
+            // Two aspects in the config affect the real repository we are tracking:
+            //   * overriding the hostname in subsequent requests
+            //   * connect-to support
+            var urlTag = Strings.isNullOrEmpty(this.getOverrideHostname()) ? this.getNotificationUrl() : String.format("%s@%s", this.getNotificationUrl(), this.getOverrideHostname());
+            var connectToTag = Joiner.on(", ").withKeyValueSeparator("=").join(this.getConnectTo());
+
+            var url = this.getConnectTo().isEmpty() ? urlTag : String.format("%s@%s", urlTag, connectToTag);
+            return url;
+        }
 
         /**
          * Override the hostname in the given URL according to this config.

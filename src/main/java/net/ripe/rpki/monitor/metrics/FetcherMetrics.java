@@ -1,7 +1,5 @@
 package net.ripe.rpki.monitor.metrics;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -29,14 +27,7 @@ public class FetcherMetrics {
     }
 
     public RRDPFetcherMetrics rrdp(RrdpConfig.RrdpRepositoryConfig config) {
-        // Two aspects in the config affect the real repository we are tracking:
-        //   * overriding the hostname in subsequent requests
-        //   * connect-to support
-        var urlTag = Strings.isNullOrEmpty(config.getOverrideHostname()) ? config.getNotificationUrl() : String.format("%s@%s", config.getNotificationUrl(), config.getOverrideHostname());
-        var connectToTag = Joiner.on(", ").withKeyValueSeparator("=").join(config.getConnectTo());
-
-        var url = config.getConnectTo().isEmpty() ? urlTag : String.format("%s@%s", urlTag, connectToTag);
-        return rrdpMetrics.computeIfAbsent(url, repoUrl -> new RRDPFetcherMetrics(repoUrl, registry));
+        return rrdpMetrics.computeIfAbsent(config.metricUrlTag(), repoUrl -> new RRDPFetcherMetrics(repoUrl, registry));
     }
 
     private static sealed class BaseFetcherMetrics {
