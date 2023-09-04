@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.17.2
+
+  * Match metric labels between RRDP serial and object metrics
+
 ## v0.17.1
 
   * 14.5 hour threshold before having alerting on top level CA/manifest expiry

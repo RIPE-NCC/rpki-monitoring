@@ -16,6 +16,8 @@ import net.ripe.rpki.monitor.fetchers.RrdpSnapshotClientTest;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
@@ -35,6 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
+@Execution(ExecutionMode.CONCURRENT)
 @Slf4j
 public class CertificateAnalysisServiceTest {
     public final static ImmutableResourceSet TEST_NET_1 = ImmutableResourceSet.parse("192.0.2.0/24");

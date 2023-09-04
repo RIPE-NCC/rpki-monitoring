@@ -43,7 +43,7 @@ public class RrdpFetcher implements RepoFetcher {
 
     @Override
     public Meta meta() {
-        return new Meta(config.getName(), config.getNotificationUrl());
+        return new Meta(config.getName(), config.metricUrlTag());
     }
 
     @Override
