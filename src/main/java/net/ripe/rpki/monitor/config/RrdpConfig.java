@@ -45,8 +45,7 @@ public class RrdpConfig {
             var urlTag = Strings.isNullOrEmpty(this.getOverrideHostname()) ? this.getNotificationUrl() : String.format("%s@%s", this.getNotificationUrl(), this.getOverrideHostname());
             var connectToTag = Joiner.on(", ").withKeyValueSeparator("=").join(this.getConnectTo());
 
-            var url = this.getConnectTo().isEmpty() ? urlTag : String.format("%s@%s", urlTag, connectToTag);
-            return url;
+            return this.getConnectTo().isEmpty() ? urlTag : "%s@%s".formatted(urlTag, connectToTag);
         }
 
         /**
