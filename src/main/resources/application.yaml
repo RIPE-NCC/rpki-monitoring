@@ -154,6 +154,9 @@ rrdp:
       notification-url: https://rrdp.prepdev.ripe.net/notification.xml
       connect-to:
         rrdp.prepdev.ripe.net: rrdp.prepdev.ripe.net.akamaized.net
+    - name: linode
+      notification-url: https://publish.linode.rpki.dev.ripe.net/notification.xml
+      override-hostname: publish.linode.rpki.dev.ripe.net
 
 rsync:
   repository-url: rsync://rpki.prepdev.ripe.net
