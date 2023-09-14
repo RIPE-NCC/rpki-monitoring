@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 public class CertificateAnalysisService {
     public static final BigInteger MAX_PAIRS_PER_CERT = BigInteger.valueOf(128);
     public static final int MAX_TOTAL_PAIRS = 65_536;
+    public static final int MAX_PRINTED_CERT_URLS = 50;
     final CertificateAnalysisConfig config;
 
     final Tracer tracer;
@@ -118,9 +119,14 @@ public class CertificateAnalysisService {
         this.overlappingResourceCount.set(overlappingResourceCount);
 
         if (overlappingResourceCount > 21) {
-            log.info("Not printing {} resources overlapping between certificates.", overlappingResourceCount);
-        } else if (overlappingCertCount > 0) {
-            log.info("Overlap between certs: {}", overlappingResources);
+            log.info("Not printing all {} resources overlapping between certificates. First 10: {}", overlappingResourceCount, overlappingResources.stream().limit(10));
+        } else {
+            log.info("Overlap resources between certificates: {}", overlappingResources);
+        }
+
+        if (overlappingCertCount > 0) {
+            var overlappingCerts = overlaps.stream().flatMap(Collection::stream).distinct().limit(MAX_PRINTED_CERT_URLS);
+            log.info("certificates with overlap (max: " + MAX_PRINTED_CERT_URLS + "): {}", overlappingCerts.map(CertificateEntry::uri).collect(Collectors.joining(", ")));
         }
 
         return overlaps;
