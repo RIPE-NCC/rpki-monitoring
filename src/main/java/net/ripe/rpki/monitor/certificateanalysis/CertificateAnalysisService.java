@@ -35,6 +35,7 @@ public class CertificateAnalysisService {
     public static final BigInteger MAX_PAIRS_PER_CERT = BigInteger.valueOf(128);
     public static final int MAX_TOTAL_PAIRS = 65_536;
     public static final int MAX_PRINTED_CERT_URLS = 50;
+    public static final int MAX_PRINTED_RESOURCES = 10;
     final CertificateAnalysisConfig config;
 
     final Tracer tracer;
@@ -118,10 +119,8 @@ public class CertificateAnalysisService {
         overlappingCertificateCount.set(overlappingCertCount);
         this.overlappingResourceCount.set(overlappingResourceCount);
 
-        if (overlappingResourceCount > 21) {
-            log.info("Not printing all {} resources overlapping between certificates. First 10: {}", overlappingResourceCount, overlappingResources.stream().limit(10));
-        } else {
-            log.info("Overlap resources between certificates: {}", overlappingResources);
+        if (overlappingResourceCount > 0) {
+            log.info("Overlapping resources between certificates (max: " + MAX_PRINTED_RESOURCES +"): {}", overlappingResources.stream().limit(MAX_PRINTED_RESOURCES).map(IpResource::toString).collect(Collectors.joining(", ")));
         }
 
         if (overlappingCertCount > 0) {
