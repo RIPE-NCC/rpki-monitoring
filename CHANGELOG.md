@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.17.3
+
+  * Print the first N overlapping resources and first M URIs of certificates
+    that have overlaps.
+
 ## v0.17.2
 
   * Match metric labels between RRDP serial and object metrics
