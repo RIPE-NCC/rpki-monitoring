@@ -37,7 +37,7 @@ dependencies {
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
-    implementation 'net.ripe.rpki:rpki-commons:1.34'
+    implementation 'net.ripe.rpki:rpki-commons:1.35'
 
     implementation 'io.micrometer:micrometer-observation'
     implementation 'io.micrometer:micrometer-registry-otlp'
