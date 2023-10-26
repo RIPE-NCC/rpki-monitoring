@@ -16,10 +16,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,7 +91,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
         assertThat(res.getLeft()).isEqualTo(ACCEPTED);
         assertThat(res.getRight()).hasValue(ObjectAndDateCollector.ObjectValidityPeriod.of(
                 DATE_FORMAT.parse("Mon Sep 16 07:44:45 CEST 2019"),
-                DATE_FORMAT.parse("Mon Sep 17 07:44:45 CEST 2019")
+                DATE_FORMAT.parse("Tue Sep 17 07:44:45 CEST 2019")
         ));
     }
 
