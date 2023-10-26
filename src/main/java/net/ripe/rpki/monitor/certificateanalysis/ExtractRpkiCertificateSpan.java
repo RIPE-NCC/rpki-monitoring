@@ -43,7 +43,7 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
             return switch (cert) {
                 case X509ResourceCertificate resourceCert: yield Optional.of(resourceCert);
                 case X509RouterCertificate __: yield Optional.empty();
-                case default:
+                default:
                     log.error("Error when parsing {}", certificateUrl);
                     yield Optional.empty();
             };

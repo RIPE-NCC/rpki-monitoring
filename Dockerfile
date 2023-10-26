@@ -1,4 +1,4 @@
-FROM gradle:jdk17-focal as builder
+FROM gradle:jdk21-jammy as builder
 
 RUN apt-get update && apt-get install --yes rsync
 
@@ -9,7 +9,7 @@ COPY src/main/resources/application.yaml build/resources/main/git.properties* sr
 RUN gradle build --no-daemon \
     && find /app -name 'rpki-monitoring*.jar' -not -name '*plain*' -exec cp {} /app/app.jar \;
 
-FROM eclipse-temurin:17.0.8_7-jdk-focal
+FROM eclipse-temurin:21_35-jre-jammy
 
 ENV TINI_VERSION v0.19.0
 
