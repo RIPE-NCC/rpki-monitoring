@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.18.0
+
+  * Use new rpki-commons with profile-15 aspa code
+
 ## v0.17.3
 
   * Print the first N overlapping resources and first M URIs of certificates
