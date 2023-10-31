@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'io.freefair.lombok' version '8.2.2'
+    id 'io.freefair.lombok' version '8.4'
     id 'org.springframework.boot' version '3.1.2'
     id 'com.gorylenko.gradle-git-properties' version '2.4.1'
     id 'jacoco'
@@ -60,7 +60,7 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -92,6 +92,11 @@ test {
 
 tasks.named('sonarqube').configure {
     it.dependsOn test
+}
+
+jacoco {
+    // 2023-10-26: Force version 0.8.11 for JDK 21
+    toolVersion = "0.8.11"
 }
 
 jacocoTestReport {
