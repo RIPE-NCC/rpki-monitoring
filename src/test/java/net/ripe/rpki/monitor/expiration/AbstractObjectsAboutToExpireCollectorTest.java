@@ -12,10 +12,12 @@ import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
 
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.*;
 
 import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
@@ -23,7 +25,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 class AbstractObjectsAboutToExpireCollectorTest {
-    public static final DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
+    public static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .appendPattern("EEE MMM dd HH:mm:ss zzz yyyy")
+            .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+            .toFormatter()
+            .withLocale(Locale.ENGLISH)
+            .withZone(ZoneOffset.UTC);
 
     private final RepositoriesState state = RepositoriesState.init(List.of(Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)), Duration.ZERO);
 
@@ -97,7 +107,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
 
     @Test
     public void itShouldRejectAnInvalidObject() throws ParseException {
-        final String crt = "MIIFvDCCBKSgAwIBAgIGAIJu9HJwMA0GCSqGSIb3DQEBCwUAMDMxMTAvBgNVBAMTKDJhOTRhOGRkNTU0YWU3MDEwNzIwOTljNzBiNjQwNzU1NWRkZGU2NjkwHhcNMjAxMjE1MDkwODQ0WhcNMjEwNzAxMDAwMDAwWjAzMTEwLwYDVQQDEyhmODNmYWVjOTNkNDAzZjM3MTM4MjNmYTM5YzdkMjdjNjJlOTIxNDcxMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA/IHmyx/JqwAWoeaitfODZbb0uh0hGviWbO7glD2m7xu3uAoxoccR7Zn2n4Fq/aN4fhMRdaYU10+If/j+llF7rXnZ/+Ux9soqBG44RWxohkOyn40RXW2Cn7+IACIRLGr1BUcvZczFMaW1X5jLz15b40yqImDC3u2tlMegsPKwkeE3Th9855i8gTajkOUYw9+xGDbmeavE+QovSh73nhAGkCsXITv+EPcM+14ZjakaeO/Wz2DXYQe278GBDhLvURS00Kf1fFLQrYE46SuMcuTy0MfSNox3QOPmQ9veOqQK1kdK8cFgZI7yLnkzyOJ4i3y1YpzbpxZkCd8NCRdD3WtVrQIDAQABo4IC1DCCAtAwHQYDVR0OBBYEFPg/rsk9QD83E4I/o5x9J8YukhRxMB8GA1UdIwQYMBaAFCqUqN1VSucBByCZxwtkB1Vd3eZpMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMGgGCCsGAQUFBwEBBFwwWjBYBggrBgEFBQcwAoZMcnN5bmM6Ly9ycGtpLnByZXBkZXYucmlwZS5uZXQvcmVwb3NpdG9yeS9hY2EvS3BTbzNWVks1d0VISUpuSEMyUUhWVjNkNW1rLmNlcjCCAUYGCCsGAQUFBwELBIIBODCCATQwZQYIKwYBBQUHMAWGWXJzeW5jOi8vcnBraS5wcmVwZGV2LnJpcGUubmV0L3JlcG9zaXRvcnkvREVGQVVMVC9iOS85NzBjZjAtOTI5OC00ZmYwLWJhZjUtMjEwYWUwNTY5YTQ1LzEvMIGFBggrBgEFBQcwCoZ5cnN5bmM6Ly9ycGtpLnByZXBkZXYucmlwZS5uZXQvcmVwb3NpdG9yeS9ERUZBVUxUL2I5Lzk3MGNmMC05Mjk4LTRmZjAtYmFmNS0yMTBhZTA1NjlhNDUvMS8xLUQtdXlUMUFQemNUZ2otam5IMG54aTZTRkhFLm1mdDBDBggrBgEFBQcwDYY3aHR0cDovL3B1Yi1zZXJ2ZXIuZWxhc3RpY2JlYW5zdGFsay5jb20vbm90aWZpY2F0aW9uLnhtbDBhBgNVHR8EWjBYMFagVKBShlByc3luYzovL3Jwa2kucHJlcGRldi5yaXBlLm5ldC9yZXBvc2l0b3J5L0RFRkFVTFQvS3BTbzNWVks1d0VISUpuSEMyUUhWVjNkNW1rLmNybDAYBgNVHSABAf8EDjAMMAoGCCsGAQUFBw4CMCAGCCsGAQUFBwEHAQH/BBEwDzANBAIAAjAHAwUDKgupADAaBggrBgEFBQcBCAEB/wQLMAmgBzAFAgMDJ3gwDQYJKoZIhvcNAQELBQADggEBALAjs71otZ/CnOV24FIwWPoK+MKVzRJatk0NWdgBX8K2OLQYMgOw97PK8lgapNA2t63JofLkXXNP1wFFAlhg0rubf+iCHlgRkzasFioKn8TNsMqptKJRUDQ1NPNwzpmL75M89NQu1axQAgq2h8FgtYojTkdwsiMQeGNJfnQv2Ps/HtPL0hd9RsswJnpmRDdazN8+bvLNGdCk6Jk2YJ5dVWD79LwrREFQ+xOYX/r+zp/1BEBo7uyp3p5kaWb3Y5CM5NpCz8W+fdMTPiyhVuFpsQ+GkeryOkEMmVUVF4W4WtA3jhKx5CQpLOK7948WWozzw1hu9tudlbIefHfby5aUbNY=";
+        final String crt = "DEADBEEF";
 
         final var res = collector.getDateFor("A.cer", Base64.getDecoder().decode(crt));
 
