@@ -27,6 +27,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.nio.charset.Charset;
 import java.time.Instant;
+import java.time.temporal.TemporalAccessor;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
@@ -259,6 +260,10 @@ public class ObjectAndDateCollector {
     public static class ObjectValidityPeriod {
         Date creation;
         Date expiration;
+
+        public static ObjectValidityPeriod of(TemporalAccessor creation, TemporalAccessor expiration) {
+            return ObjectValidityPeriod.of(Date.from(Instant.from(creation)), Date.from(Instant.from(expiration)));
+        }
     }
 
     private Pair<ObjectStatus, Optional<ObjectValidityPeriod>> acceptedObjectValidBetween(Date creation, Date expiration) {
