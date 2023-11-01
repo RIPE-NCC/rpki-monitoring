@@ -6,6 +6,7 @@ import io.micrometer.tracing.Tracer;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import net.ripe.rpki.commons.crypto.cms.GenericRpkiSignedObjectParser;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsParser;
 import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
@@ -14,7 +15,6 @@ import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationResult;
-import net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisService;
 import net.ripe.rpki.monitor.certificateanalysis.ObjectConsumer;
 import net.ripe.rpki.monitor.expiration.fetchers.*;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
@@ -209,7 +209,30 @@ public class ObjectAndDateCollector {
             var hash = Sha256.asString(decoded);
             maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
                            "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, e.getMessage(), hash, BaseEncoding.base64().encode(decoded));
-            return Pair.of(REJECTED, Optional.empty());
+            switch (objectType) {
+                // Assume there was a problem that caused the object to be syntactically invalid.
+                // Try to extract the validity period from the EE certificate for objects derived from a generic signed object.
+                //
+                // This would help during for example object profile changes (...)
+                case Aspa:
+                case Gbr:
+                case Manifest:
+                case Roa:
+                    return Pair.of(REJECTED, genericParseValidityPeriod(decoded));
+            }
+            return Pair.of(UNKNOWN, Optional.empty());
+        }
+    }
+
+    private Optional<ObjectValidityPeriod> genericParseValidityPeriod(byte[] decoded) {
+        try {
+            var parser = new GenericRpkiSignedObjectParser();
+            parser.parse(ValidationResult.withLocation("unknown"), decoded);
+            var validity = parser.getCertificate().getValidityPeriod();
+
+            return Optional.of(ObjectValidityPeriod.of(validity.getNotValidBefore().toDate(), validity.getNotValidAfter().toDate()));
+        } catch (Exception e) {
+            return Optional.empty();
         }
     }
 
