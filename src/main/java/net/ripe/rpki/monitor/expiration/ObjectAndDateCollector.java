@@ -221,7 +221,7 @@ public class ObjectAndDateCollector {
                 case Roa:
                     return Pair.of(REJECTED, genericParseValidityPeriod(decoded));
             }
-            return Pair.of(UNKNOWN, Optional.empty());
+            return Pair.of(REJECTED, Optional.empty());
         }
     }
 
