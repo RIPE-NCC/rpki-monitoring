@@ -38,6 +38,8 @@ public class Collectors {
 
     private final MeterRegistry registry;
 
+    private final AppConfig config;
+
     @Autowired
     public Collectors(CollectorUpdateMetrics metrics,
                       RepositoriesState repositoriesState,
@@ -48,6 +50,7 @@ public class Collectors {
                       @Value("${collector.threads}") int numThreads,
                       Optional<Tracer> tracer,
                       MeterRegistry registry) {
+        this.config = config;
         this.metrics = metrics;
         this.repositoriesState = repositoriesState;
         this.tracer = tracer.orElse(Tracer.NOOP);
@@ -72,6 +75,6 @@ public class Collectors {
     }
 
     private ObjectAndDateCollector makeCollector(RepoFetcher fetcher, ObjectConsumer objectConsumer) {
-        return new ObjectAndDateCollector(fetcher, metrics, repositoriesState, objectConsumer, tracer);
+        return new ObjectAndDateCollector(fetcher, metrics, repositoriesState, objectConsumer, tracer, config.getProperties().isAcceptAspaV1());
     }
 }

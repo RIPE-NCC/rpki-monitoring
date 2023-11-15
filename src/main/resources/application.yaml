@@ -68,6 +68,7 @@ server:
 
 rpkimonitor:
   internal-api-key-header: "ncc-internal-api-key"
+  accept-aspa-v1: false
 
 core:
   enable: true
@@ -233,6 +234,7 @@ core:
 ---
 spring.config.activate.on-profile: paas-prepdev
 
+
 rrdp:
   interval: 1M
   targets:
@@ -265,8 +267,12 @@ certificate.analysis:
 
 management:
   tracing.enabled: true
+
+rpkimonitor:
+  accept-aspa-v1: true
 ---
 spring.config.activate.on-profile: paas-production
+
 
 rrdp:
   interval: 1M
@@ -301,3 +307,6 @@ core:
 
 certificate.analysis:
   enabled: false
+
+rpkimonitor:
+  accept-aspa-v1: true

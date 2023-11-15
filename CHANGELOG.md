@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.18.1
+
+  * Do not treat v1 ASPA object as parse failures when `rpkimonitor.accept-aspa-v1: true`
+
 ## v0.18.0
 
   * Use new rpki-commons with profile-15 aspa code

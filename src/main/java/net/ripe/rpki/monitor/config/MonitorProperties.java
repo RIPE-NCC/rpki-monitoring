@@ -10,4 +10,6 @@ import org.springframework.context.annotation.Configuration;
 public class MonitorProperties {
     /** The api key header */
     private String internalApiKeyHeader;
+
+    private boolean acceptAspaV1 = false;
 }

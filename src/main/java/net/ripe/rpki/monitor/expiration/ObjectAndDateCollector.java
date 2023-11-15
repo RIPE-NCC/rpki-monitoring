@@ -4,7 +4,6 @@ import com.google.common.hash.BloomFilter;
 import com.google.common.io.BaseEncoding;
 import io.micrometer.tracing.Tracer;
 import lombok.NonNull;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.commons.crypto.cms.GenericRpkiSignedObjectParser;
 import net.ripe.rpki.commons.crypto.cms.aspa.AspaCmsParser;
@@ -14,6 +13,7 @@ import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
 import net.ripe.rpki.commons.crypto.crl.X509Crl;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
+import net.ripe.rpki.commons.validation.ValidationCheck;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.certificateanalysis.ObjectConsumer;
 import net.ripe.rpki.monitor.expiration.fetchers.*;
@@ -24,17 +24,21 @@ import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static net.ripe.rpki.commons.validation.ValidationString.ASPA_VERSION;
 import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
 
 
@@ -59,17 +63,21 @@ public class ObjectAndDateCollector {
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
+    private boolean acceptAspaV1;
+
     public ObjectAndDateCollector(
             @NonNull final RepoFetcher repoFetcher,
             @NonNull CollectorUpdateMetrics metrics,
             @NonNull RepositoriesState repositoriesState,
             @NonNull ObjectConsumer objectConsumer,
-            @NonNull Tracer tracer) {
+            @NonNull Tracer tracer,
+            boolean acceptAspaV1) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
         this.repositoriesState = repositoriesState;
         this.objectConsumer = objectConsumer;
         this.tracer = tracer;
+        this.acceptAspaV1 = acceptAspaV1;
     }
 
     @SuppressWarnings("try")
@@ -130,7 +138,7 @@ public class ObjectAndDateCollector {
                 rejectedObjects.incrementAndGet();
             }
 
-            return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.getCreation().toInstant(), validityPeriod.getExpiration().toInstant(), objectUri, Sha256.asBytes(object.bytes())));
+            return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.creation(), validityPeriod.creation(), objectUri, Sha256.asBytes(object.bytes())));
         }).flatMap(Optional::stream);
     }
 
@@ -157,7 +165,16 @@ public class ObjectAndDateCollector {
                 }
                 case Aspa -> {
                     var aspaCmsParser = new AspaCmsParser();
-                    aspaCmsParser.parse(ValidationResult.withLocation(objectUri), decoded);
+                    var validationResult = ValidationResult.withLocation(objectUri);
+                    aspaCmsParser.parse(validationResult, decoded);
+                    // Handle the case of a v1 ASPA if configured to.
+                    // This may be present in repositories that we monitor but do not control. In this case we do not
+                    // want to reject objects, but can no longer parse these either
+                    Predicate<ValidationCheck> isAspaV0Failure = check -> ASPA_VERSION.equals(check.getKey()) && Arrays.equals(new String[]{"0 [missing]"}, check.getParams());
+                    if (acceptAspaV1 && validationResult.getFailuresForAllLocations().stream().allMatch(isAspaV0Failure)) {
+                        yield Pair.of(ACCEPTED, genericParseValidityPeriod(decoded));
+                    }
+
                     var aspaCms = aspaCmsParser.getAspa();
                     yield acceptedObjectValidBetween(
                             aspaCms.getNotValidBefore().toDate(),
@@ -231,7 +248,7 @@ public class ObjectAndDateCollector {
             parser.parse(ValidationResult.withLocation("unknown"), decoded);
             var validity = parser.getCertificate().getValidityPeriod();
 
-            return Optional.of(ObjectValidityPeriod.of(validity.getNotValidBefore().toDate(), validity.getNotValidAfter().toDate()));
+            return Optional.of(new ObjectValidityPeriod(validity.getNotValidBefore().toDate().toInstant(), validity.getNotValidAfter().toDate().toInstant()));
         } catch (Exception e) {
             return Optional.empty();
         }
@@ -256,17 +273,13 @@ public class ObjectAndDateCollector {
         ACCEPTED, UNKNOWN, REJECTED
     }
 
-    @Value(staticConstructor = "of")
-    public static class ObjectValidityPeriod {
-        Date creation;
-        Date expiration;
-
+    public record ObjectValidityPeriod(Instant creation, Instant expiration) {
         public static ObjectValidityPeriod of(TemporalAccessor creation, TemporalAccessor expiration) {
-            return ObjectValidityPeriod.of(Date.from(Instant.from(creation)), Date.from(Instant.from(expiration)));
+            return new ObjectValidityPeriod(Instant.from(creation), Instant.from(expiration));
         }
     }
 
     private Pair<ObjectStatus, Optional<ObjectValidityPeriod>> acceptedObjectValidBetween(Date creation, Date expiration) {
-        return Pair.of(ACCEPTED, Optional.of(ObjectValidityPeriod.of(creation, expiration)));
+        return Pair.of(ACCEPTED, Optional.of(new ObjectValidityPeriod(creation.toInstant(), expiration.toInstant())));
     }
 }

@@ -42,7 +42,8 @@ class AbstractObjectsAboutToExpireCollectorTest {
             mock(CollectorUpdateMetrics.class),
             state,
             (objects) -> {},
-            Tracer.NOOP
+            Tracer.NOOP,
+            false
     );
 
     @Test
@@ -67,6 +68,34 @@ class AbstractObjectsAboutToExpireCollectorTest {
                 DATE_FORMAT.parse("Mon Oct 23 12:25:41 CEST 2023"),
                 DATE_FORMAT.parse("Mon Oct 21 12:30:41 CEST 2024")
         ));
+    }
+
+    @Test
+    void itShouldAcceptAspaV1IfRequired() throws ParseException {
+        var aspaProfile13 = "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";
+        var aspaProfile13Validity = ObjectAndDateCollector.ObjectValidityPeriod.of(
+                DATE_FORMAT.parse("Thu Nov 11 11:14:00 UTC 2021"),
+                DATE_FORMAT.parse("Thu Nov 10 11:19:00 UTC 2022")
+        );
+
+        // By default, the version mismatch is rejected
+        final var rejectedByNonAccepting = collector.getDateFor("A.asa", Base64.getDecoder().decode(aspaProfile13));
+        assertThat(rejectedByNonAccepting.getLeft()).isEqualTo(REJECTED);
+        assertThat(rejectedByNonAccepting.getRight()).hasValue(aspaProfile13Validity);
+
+        ObjectAndDateCollector acceptingCollector = new ObjectAndDateCollector(
+                new NoopRepoFetcher("noop", "https://rrdp.ripe.net"),
+                mock(CollectorUpdateMetrics.class),
+                state,
+                (objects) -> {},
+                Tracer.NOOP,
+                true
+        );
+
+        // But the accepting collector accepts it
+        final var res = acceptingCollector.getDateFor("A.asa", Base64.getDecoder().decode(aspaProfile13));
+        assertThat(res.getLeft()).isEqualTo(ACCEPTED);
+        assertThat(res.getRight()).hasValue(aspaProfile13Validity);
     }
 
     @Test
