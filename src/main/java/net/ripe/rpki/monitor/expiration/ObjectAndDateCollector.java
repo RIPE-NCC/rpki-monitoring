@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static net.ripe.rpki.commons.validation.ValidationString.ASPA_VERSION;
@@ -169,7 +170,8 @@ public class ObjectAndDateCollector {
                     // Handle the case of a v1 ASPA if configured to.
                     // This may be present in repositories that we monitor but do not control. In this case we do not
                     // want to reject objects, but can no longer parse these either
-                    if (acceptAspaV1 && validationResult.getFailuresForAllLocations().stream().allMatch(check -> ASPA_VERSION.equals(check.getKey()) && Arrays.equals(new String[]{"0 [missing]"}, check.getParams()))) {
+                    Predicate<ValidationCheck> isAspaPre15Failure = check -> ASPA_VERSION.equals(check.getKey()) && Arrays.equals(new String[]{"0 [missing]"}, check.getParams());
+                    if (acceptAspaV1 && validationResult.getFailuresForAllLocations().stream().allMatch(isAspaPre15Failure)) {
                         yield Pair.of(ACCEPTED, genericParseValidityPeriod(decoded));
                     }
 
