@@ -1,24 +1,18 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
-import com.google.common.collect.ImmutableMap;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResource;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.monitor.expiration.fetchers.RRDPStructureException;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpHttp;
-import net.ripe.rpki.monitor.expiration.fetchers.RrdpSnapshotClient;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
-import net.ripe.rpki.monitor.fetchers.RrdpSnapshotClientTest;
-import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 import java.net.URI;
@@ -28,13 +22,12 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.zip.GZIPInputStream;
 
+import static net.ripe.rpki.monitor.util.RrdpSampleContentUtil.rpkiObjects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 @Execution(ExecutionMode.CONCURRENT)
@@ -61,31 +54,6 @@ public class CertificateAnalysisServiceTest {
         registry = new SimpleMeterRegistry();
 
         subject = new CertificateAnalysisService(config, Optional.empty(), registry);
-    }
-
-    @SneakyThrows
-    static byte[] readMaybeGzippedFile(String path) {
-        var resource = new ClassPathResource(path);
-
-        var tokens = resource.getFilename().split("\\.");
-
-        switch (tokens[tokens.length-1]) {
-            case "gz":
-                return new GZIPInputStream(resource.getInputStream()).readAllBytes();
-            default:
-                return resource.getInputStream().readAllBytes();
-        }
-    }
-
-    @SneakyThrows
-    ImmutableMap<String, RpkiObject> rpkiObjects(String notificationClasspathPath, String snapshotClasspathPath) {
-        // dirty setup to get RRDP objects from the mock data
-        var mockHttp = mock(RrdpHttp.class);
-
-        when(mockHttp.fetch(any())).thenReturn(readMaybeGzippedFile(notificationClasspathPath), readMaybeGzippedFile(snapshotClasspathPath));
-        when(mockHttp.transformHostname(any())).thenAnswer(i -> i.getArguments()[0]);
-
-        return new RrdpSnapshotClient(mockHttp).fetchObjects(RrdpSnapshotClientTest.EXAMPLE_ORG_NOTIFICATION_XML, Optional.empty()).objects();
     }
 
     @Test

@@ -14,13 +14,17 @@ import org.junit.jupiter.api.Test;
 
 import java.text.ParseException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static net.ripe.rpki.monitor.expiration.ObjectAndDateCollector.ObjectStatus.*;
+import static net.ripe.rpki.monitor.util.RrdpSampleContentUtil.rpkiObjects;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -45,6 +49,48 @@ class AbstractObjectsAboutToExpireCollectorTest {
             Tracer.NOOP,
             false
     );
+
+    @Test
+    public void itShouldCalculateMinimalExpirationSummary() throws ParseException {
+        var objects = rpkiObjects("rrdp-content/apnic/notification.xml", "rrdp-content/apnic/snapshot.xml");
+
+        var passed = new AtomicInteger();
+        var rejected = new AtomicInteger();
+        var unknown = new AtomicInteger();
+        var maxObjectSize = new AtomicInteger();
+
+        var res = collector.calculateExpirationSummary(passed, rejected, unknown, maxObjectSize, objects).toList();
+
+        assertThat(passed.get() + rejected.get() + unknown.get()).isEqualTo(objects.size());
+        assertThat(maxObjectSize.get()).isGreaterThan(10_240).isLessThan(4_096_000);
+
+        assertThat(res).hasSize(objects.size());
+
+        // summary has distinct URIs and all URIs from input are present in output.
+        var summaryUris = res.stream().map(x -> x.getUri()).collect(Collectors.toSet());
+        assertThat(summaryUris).hasSize(objects.size());
+        assertThat(summaryUris).allSatisfy(uri -> assertThat(objects.containsKey(uri)));
+
+        // for all objects, the expiration is after creation
+        // time window is implementation dependent
+        assertThat(res).allSatisfy(x -> assertThat(x.expiration()).isAfter(x.creation()));
+
+        // we have various types of objects and each type has 100 objects or more
+        var countByExtension = res.stream().map(x -> {
+            var tokens = x.uri().split("\\.");
+            return tokens[tokens.length-1];
+        }).collect(Collectors.groupingBy(x -> x, Collectors.counting()));
+        // Will need to change when we refresh the data and tak/aspa/gbr are added
+        assertThat(countByExtension.keySet()).containsExactlyInAnyOrder("cer", "mft", "roa", "crl");
+        assertThat(countByExtension).allSatisfy((_, count) -> assertThat(count).isGreaterThan(100));
+
+        // more than 10% of objects is valid for more than a month (effectively: certificates)
+        assertThat(res).filteredOn(x -> x.expiration().isAfter(Instant.now().plus(Duration.ofDays(30))))
+                // more than 10%
+                .hasSizeGreaterThan(objects.size() / 10)
+                // but less than 50% (because every cert has a manifest and we assume there is at least one .roa)
+                .hasSizeLessThan((int)(0.5*objects.size()));
+    }
 
     @Test
     public void itShouldGetCerNotAfterDate() throws ParseException {
