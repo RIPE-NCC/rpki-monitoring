@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.18.2
+
+  * hotfix: Use _expiration_ for expiration instead of creation.
+
 ## v0.18.1
 
   * Do not treat v1 ASPA object as parse failures when `rpkimonitor.accept-aspa-v1: true`
