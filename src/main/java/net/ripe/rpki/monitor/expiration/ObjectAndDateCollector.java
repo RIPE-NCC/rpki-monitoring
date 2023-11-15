@@ -170,8 +170,8 @@ public class ObjectAndDateCollector {
                     // Handle the case of a v1 ASPA if configured to.
                     // This may be present in repositories that we monitor but do not control. In this case we do not
                     // want to reject objects, but can no longer parse these either
-                    Predicate<ValidationCheck> isAspaPre15Failure = check -> ASPA_VERSION.equals(check.getKey()) && Arrays.equals(new String[]{"0 [missing]"}, check.getParams());
-                    if (acceptAspaV1 && validationResult.getFailuresForAllLocations().stream().allMatch(isAspaPre15Failure)) {
+                    Predicate<ValidationCheck> isAspaV0Failure = check -> ASPA_VERSION.equals(check.getKey()) && Arrays.equals(new String[]{"0 [missing]"}, check.getParams());
+                    if (acceptAspaV1 && validationResult.getFailuresForAllLocations().stream().allMatch(isAspaV0Failure)) {
                         yield Pair.of(ACCEPTED, genericParseValidityPeriod(decoded));
                     }
 
