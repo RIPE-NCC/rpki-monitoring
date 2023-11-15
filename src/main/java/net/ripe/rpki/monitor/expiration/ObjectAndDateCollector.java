@@ -138,7 +138,7 @@ public class ObjectAndDateCollector {
                 rejectedObjects.incrementAndGet();
             }
 
-            return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.creation(), validityPeriod.creation(), objectUri, Sha256.asBytes(object.bytes())));
+            return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.creation(), validityPeriod.expiration(), objectUri, Sha256.asBytes(object.bytes())));
         }).flatMap(Optional::stream);
     }
 
