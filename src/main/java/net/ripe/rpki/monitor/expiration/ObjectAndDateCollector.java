@@ -1,5 +1,6 @@
 package net.ripe.rpki.monitor.expiration;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.BloomFilter;
 import com.google.common.io.BaseEncoding;
 import io.micrometer.tracing.Tracer;
@@ -121,7 +122,8 @@ public class ObjectAndDateCollector {
         }
     }
 
-    private Stream<RepoObject> calculateExpirationSummary(AtomicInteger passedObjects, AtomicInteger unknownObjects, AtomicInteger rejectedObjects, AtomicInteger maxObjectSize, Map<String, RpkiObject> rpkiObjects) {
+    @VisibleForTesting
+    Stream<RepoObject> calculateExpirationSummary(AtomicInteger passedObjects, AtomicInteger unknownObjects, AtomicInteger rejectedObjects, AtomicInteger maxObjectSize, Map<String, RpkiObject> rpkiObjects) {
         return rpkiObjects.entrySet().parallelStream().map(e -> {
             var objectUri = e.getKey();
             var object = e.getValue();
