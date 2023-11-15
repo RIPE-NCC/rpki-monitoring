@@ -39,7 +39,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         var collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
         repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getRepositoryUrl(), RepositoryTracker.Type.RSYNC)), Duration.ZERO);
-        subject = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositories, objects -> {}, Tracer.NOOP);
+        subject = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositories, objects -> {}, Tracer.NOOP, false);
     }
 
     @Test

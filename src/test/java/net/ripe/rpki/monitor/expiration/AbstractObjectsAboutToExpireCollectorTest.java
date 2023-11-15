@@ -42,7 +42,8 @@ class AbstractObjectsAboutToExpireCollectorTest {
             mock(CollectorUpdateMetrics.class),
             state,
             (objects) -> {},
-            Tracer.NOOP
+            Tracer.NOOP,
+            false
     );
 
     @Test
