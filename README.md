@@ -54,7 +54,9 @@ application startup
 ...
 ```
 
-Optionally use `JAVA_TOOL_OPTIONS` to provide JVM arguments such as
+**The main endpoint** is `/actuator/prometheus`.
+
+Optionally, use `JAVA_TOOL_OPTIONS` to provide JVM arguments such as
 `JAVA_TOOL_OPTIONS="-Xmx16128M` to adjust the amount of memory available.
 
 To adjust the configuration, either change `application.yaml` and rebuild. Or,
@@ -68,6 +70,10 @@ and shows the available options.
 
 ## Endpoints
 
+### Metrics
+
+`/actuator/prometheus` contains a prometheus endpoint.
+
 ### Differences
 
 __Difference in published objects__
@@ -76,7 +82,7 @@ __Difference in published objects__
 /published-object-diffs
 ```
 
-This runs the differences between all trackers and update the metrics.
+This runs the differences between all trackers and updates the metrics.
 
 __Difference between 2 repositories__
 
@@ -118,7 +124,7 @@ As `<uri>` must be encoded, an easy way of calling this with `curl` is to set
 `data-urlencode` with a `GET` request. For example:
 
 ```
-> curl -G 'http://uncore-1.rpki.ripe.net:9090/core/inspect' --data-urlencode 'uri=<uri>'
+> curl -G 'http://localhost:9090/core/inspect' --data-urlencode 'uri=<uri>'
 ```
 
 __List objects__
@@ -139,21 +145,20 @@ gradle bootRun
 # Or with remote debugging (5005):
 gradle bootRun --debug-jvm
 # Select a profile and set needed settings through an environment var
+# CORE_API_KEY: Only used when combined with https://github.com/RIPE-NCC/rpki-core
 export CORE_API_KEY=$(cat ~/src/ripe-portal/conf/application.production.conf | grep authorisation-service | sed -e "s/.*= \"\(.*\)\"/\1/")
 SPRING_PROFILES_ACTIVE=production gradle bootRun
 # Or
-SPRING_PROFILES_ACIVE=local gradle clean bootRun
+CORE_ENABLE=false SPRING_PROFILES_ACIVE=local gradle clean bootRun
 ```
 
 #### With Docker
 
 ```
-# Build thin image, without explicitly creating a Dockerfile with multi-stage build
-gradle jibDockerBuild
 # Or build with Dockerfile that does not rely on base image
-docker build .
+docker build . -t rpki-monitoring
 # And run it
-docker run -p 9090:9090 --rm docker-registry.ripe.net/rpki/rpki-monitoring
+docker run -p 9090:9090 --rm rpki-monitoring
 # Or for a profile that requires environment variables:
 docker run \
     -it \
@@ -163,14 +168,8 @@ docker run \
     -e SPRING_PROFILES_ACTIVE=production \
     -e CORE_ENABLE=false \
     -p 9090:9090 \
-    --rm docker-registry.ripe.net/rpki/rpki-monitoring
+    --rm rpki-monitoring
 
 # or, with access to a rpki-core instance, add:
     -e CORE_API_KEY=${RPKI_CORE_API_KEY} \
-```
-
-The base image for the CI build is set through environment variables.
-```
-    - gradle jib -Pjib.from.image=$DOCKER_IMAGE --image=$CI_REGISTRY_IMAGE:latest
-    - gradle jib -Pjib.from.image=$DOCKER_IMAGE_DEBUG --image=$CI_REGISTRY_IMAGE:debug
 ```
