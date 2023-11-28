@@ -51,6 +51,9 @@ To adjust the configuration, either change `application.yaml` and rebuild. Or,
   2. set the `SPRING_CONFIG_ADDITIONAL_LOCATION=file:/[path in container.(properties|yaml)`
   3. and set `SPRING_PROFILES_ACTIVE=[profile name]`.
 
+The file in `src/main/resources/application.yaml` is the default configuration
+and shows the available options.
+
 ## Endpoints
 
 ### Differences
