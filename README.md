@@ -32,6 +32,14 @@ It then creates metrics for:
 
 The preferred way to run rpki-monitoring is in a docker container. This docker
 container contains java and rsync.
+
+**Resources required**
+rpki-monitoring is a multi-threaded java application. The resource usage
+depends on both the size of the repositories monitored, as well as the size of
+each repository. To monitor the production repository infrastructure of the
+RIPE NCC
+
+
 ```
 $ ./gradlew generateGitProperties
 $ docker build . -t rpki-monitoring-main
@@ -40,16 +48,20 @@ $ docker build . -t rpki-monitoring-main
 Successfully built 637dd34a2284
 Successfully tagged rpki-monitoring-main:latest
 # note: using the tag here, alternatively, use the hash
-$ docker run --rm -p 9090:9090 rpki-monitoring-main:latest
+$ docker run --rm -e CORE_ENABLE=false -p 9090:9090 rpki-monitoring-main:latest
 ...
 application startup
 ...
 ```
 
+Optionally use `JAVA_TOOL_OPTIONS` to provide JVM arguments such as
+`JAVA_TOOL_OPTIONS="-Xmx16128M` to adjust the amount of memory available.
+
 To adjust the configuration, either change `application.yaml` and rebuild. Or,
   1. mount a volume with an additional yaml file with configuration,
   2. set the `SPRING_CONFIG_ADDITIONAL_LOCATION=file:/[path in container.(properties|yaml)`
   3. and set `SPRING_PROFILES_ACTIVE=[profile name]`.
+  4. optionally set `JAVA_TOOL_OPTIONS`
 
 The file in `src/main/resources/application.yaml` is the default configuration
 and shows the available options.
