@@ -37,7 +37,7 @@ container contains java and rsync.
 rpki-monitoring is a multi-threaded java application. The resource usage
 depends on both the size of the repositories monitored, as well as the size of
 each repository. To monitor the production repository infrastructure of the
-RIPE NCC
+RIPE NCC rpki-monitoring needs 16GB of memory.
 
 
 ```
