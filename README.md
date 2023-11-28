@@ -1,7 +1,55 @@
 # rpki-monitoring
 
-RPKI monitoring is deployed through gitlab as a docker container. It is available
-on `uncore-{1,2}.rpki.(environment?).ripe.net:9090`.
+
+rpki-monitoring is a tool for RPKI CA and repository operators. The development
+of rpki-monitoring at the RIPE NCC was motivated by an incident where RPKI
+objects expired. After covering this initial gap, more data for _prospective_
+alerts for RPKI operators was added.
+
+This is a valuable component for monitoring RPKI repositories, especially when
+the infrastructure gets complicated (multiple locations for RRDP repositories,
+multiple rsync nodes, etc).
+
+rpki-monitoring fetches data from (multiple) rsync or RRDP repositories and
+potentially an API endpoint providing a ground truth (for example, the state of
+a CA system).
+
+It then creates metrics for:
+  * When the first objects are about to expire (both for all objects and for
+    paths matching a regex).
+  * The number of objects "created" in the last [time window].
+  * The number of objects in (repository) `x` that are not in `y`.
+  * [optionally]: The number of certificates that have overlapping IP resources.
+  * In turn, these metrics are the basis for alerts on:
+  * Consistency: Check that objects in the CA system are eventually in repositories.
+  * Consistency: Check that all repositories contain the same objects.
+  * Liveliness: Check that objects are created.
+  * Liveliness: Check that objects are not about to expire (in general).
+  * Liveliness: Check that objects from the offline-signing process are not about to expire.
+  * Correctness: Check that certificates do not overlap for an extended period.
+
+## Deployment
+
+The preferred way to run rpki-monitoring is in a docker container. This docker
+container contains java and rsync.
+```
+$ ./gradlew generateGitProperties
+$ docker build . -t rpki-monitoring-main
+...
+ ---> 637dd34a2284
+Successfully built 637dd34a2284
+Successfully tagged rpki-monitoring-main:latest
+# note: using the tag here, alternatively, use the hash
+$ docker run --rm -p 9090:9090 rpki-monitoring-main:latest
+...
+application startup
+...
+```
+
+To adjust the configuration, either change `application.yaml` and rebuild. Or,
+  1. mount a volume with an additional yaml file with configuration,
+  2. set the `SPRING_CONFIG_ADDITIONAL_LOCATION=file:/[path in container.(properties|yaml)`
+  3. and set `SPRING_PROFILES_ACTIVE=[profile name]`.
 
 ## Endpoints
 
