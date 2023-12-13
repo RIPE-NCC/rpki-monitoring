@@ -149,7 +149,7 @@ gradle bootRun --debug-jvm
 export CORE_API_KEY=$(cat ~/src/ripe-portal/conf/application.production.conf | grep authorisation-service | sed -e "s/.*= \"\(.*\)\"/\1/")
 SPRING_PROFILES_ACTIVE=production gradle bootRun
 # Or
-CORE_ENABLE=false SPRING_PROFILES_ACIVE=local gradle clean bootRun
+CORE_ENABLE=false SPRING_PROFILES_ACTIVE=local gradle clean bootRun
 ```
 
 #### With Docker
