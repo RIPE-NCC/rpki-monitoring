@@ -192,6 +192,9 @@ spring.config.activate.on-profile: production
 certificate.analysis:
   enabled: true
   root-certificate-url: rsync://rpki.ripe.net/ta/ripe-ncc-ta.cer
+  ignored-overlaps:
+    - regex: 'rsync://rpki\.ripe\.net/repository/2a7dd1d787d793e4c8af56e197d4eed92af6ba13\.cer'
+      description: 'Duplicate all resources CA created when keyroll was initiated on 11-12-2023. Remove exception when keyroll is finished.'
 
 rrdp:
   interval: 1M
