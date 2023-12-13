@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.18.4
+
+  * hotfix: fix path of duplicate all resources CA; after more debugging a different certificate must be ignored.
+
 ## v0.18.3
 
   * hotfix: ignore duplicate all resources CA; to be removed when keyroll is finished.
