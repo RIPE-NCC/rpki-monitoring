@@ -11,7 +11,7 @@ apply plugin: 'java'
 apply plugin: 'io.spring.dependency-management'
 
 group = 'net.ripe.rpki'
-version = '0.18.4'
+version = '0.18.5-SNAPSHOT'
 
 repositories {
     mavenCentral()
