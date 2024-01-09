@@ -1,6 +1,5 @@
 # rpki-monitoring
 
-
 rpki-monitoring is a tool for RPKI CA and repository operators. The development
 of rpki-monitoring at the RIPE NCC was motivated by an incident where RPKI
 objects expired. After covering this initial gap, more data for _prospective_
@@ -27,6 +26,16 @@ It then creates metrics for:
   * Liveliness: Check that objects are not about to expire (in general).
   * Liveliness: Check that objects from the offline-signing process are not about to expire.
   * Correctness: Check that certificates do not overlap for an extended period.
+
+
+## License
+
+Copyright (c) 2020-2024 RIPE NCC
+All rights reserved.
+
+This software, including all its separate source codes, is licensed under the
+terms of the BSD 3-Clause License. If a copy of the license was not distributed
+to you, you can obtain one at https://github.com/RIPE-NCC/rpki-monitoring/blob/main/LICENSE.txt
 
 ## Deployment
 
