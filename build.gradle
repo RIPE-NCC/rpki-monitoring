@@ -17,8 +17,8 @@ repositories {
     mavenCentral()
     maven {
         // READ ACCESS token specific for this repositories maven artifacts. These are public, but unfortunately anonymous
-        // access is not possible. Valid until 11-7-2024. NOT A SECRET.
-        url = uri('https://ties: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@maven.pkg.github.com/ties/java-rrdp-test-data')
+        // access is not possible. Valid until 10-1-2025. NOT A SECRET.
+        url = uri('https://ties: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@maven.pkg.github.com/ties/java-rrdp-test-data')
     }
     maven {
         url = uri('https://nexus.ripe.net/nexus/content/repositories/releases/')
