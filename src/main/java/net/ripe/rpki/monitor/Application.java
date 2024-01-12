@@ -5,6 +5,7 @@ import io.micrometer.common.KeyValues;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.semconv.ResourceAttributes;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisService;
