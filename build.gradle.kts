@@ -69,7 +69,7 @@ java {
     }
 }
 
-tasks.compileJava {
+tasks.withType<JavaCompile>() {
     options.encoding = "UTF-8"
     options.compilerArgs.addAll(listOf(
             "--enable-preview",
@@ -79,6 +79,10 @@ tasks.compileJava {
             "-Xlint:-preview",
             "-Werror"
     ))
+}
+
+tasks.withType<JavaExec>() {
+    jvmArgs("--enable-preview")
 }
 
 tasks.test {
