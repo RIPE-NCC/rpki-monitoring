@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.x.y
+
+  * Gradle configuration now done in Kotlin.
+
 ## v0.18.4
 
   * hotfix: fix path of duplicate all resources CA; after more debugging a different certificate must be ignored.
