@@ -77,6 +77,35 @@ To adjust the configuration, either change `application.yaml` and rebuild. Or,
 The file in `src/main/resources/application.yaml` is the default configuration
 and shows the available options.
 
+## Alerts
+
+The metrics from this tool can be used for various alerts. One core use case is
+monitoring the expiry of objects. You can set different thresholds for
+different files in the config. The alerts then look like this:
+
+```yaml
+      - alert: ObjectMatchingRegexAboutToExpire
+        expr: >
+          rpkimonitoring_expiry_matcher_objects{comparison="below", uri!~".*paas.*"} > 0
+        annotations:
+          description: >
+            {{ $labels.group }} {{ $labels.file_description}} files ({{ $value }})
+            expire in {{ $labels.threshold }} in {{ $labels.uri }} ({{ $labels.key }}).
+            regex: {{ $labels.regex }}
+          summary: "{{ $value }} {{ $labels.group }} {{ $labels.file_description}} expire in {{ $labels.threshold }} in {{ $labels.uri }}"
+        labels:
+          severity: P2
+      - alert: ObjectsAboutToExpireMetricMissing
+        expr:  absent_over_time(rpkimonitoring_collector_expiration_seconds_bucket{le="46800.0", url!~".*\\.paas\\..*"}[3h])
+        annotations:
+          description: >
+            Metric for objects close to expiry from rpki-monitoring is missing
+            with time threshold {{ $labels.le }}: We are not monitoring for object expiry.
+          summary: "Metric for objects close to expiry with threshold {{ $labels.le }} from rpki-monitoring is missing."
+        labels:
+          severity: P3
+```
+
 ## Endpoints
 
 ### Metrics
