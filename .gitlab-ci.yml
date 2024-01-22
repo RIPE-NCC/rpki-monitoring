@@ -213,6 +213,7 @@ release:tag:
               \"arg\": [\"docker.container_up\"],
               \"kwarg\": {
                 \"pillar\": {
+                  \"update_containers\": true,
                   \"vars\": {
                     \"container\": \"${CONTAINER_NAME}\",
                     \"health_endpoint\": \"${READINESS_URL}\",
