@@ -1,8 +1,8 @@
 ## HEAD
 
 ## v0.x.y
-
-  * Gradle configuration now done in Kotlin.
+  * Gradle configuration is now done in Kotlin.
+  * Various configuration changes.
 
 ## v0.18.4
 
