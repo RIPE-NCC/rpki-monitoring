@@ -1,6 +1,8 @@
 ## HEAD
 
 ## v0.19.0
+  * Use new flag on deploy to update container. Hotfixes a change to internal
+    infrastructure that was not communicated by the platform team.
 
 ## v0.18.5
   * Gradle configuration is now done in Kotlin.
