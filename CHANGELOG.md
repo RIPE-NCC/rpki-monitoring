@@ -1,6 +1,8 @@
 ## HEAD
 
-## v0.x.y
+## v0.19.0
+
+## v0.18.5
   * Gradle configuration is now done in Kotlin.
   * Various configuration changes.
 
