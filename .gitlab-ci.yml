@@ -155,8 +155,9 @@ release:tag:
 # image with a fixed tag that matches the tag in pillar configuration
 # (e.g. ':latest' or the name of the environment).
 #
-# Then Salt must apply the 'docker.container_up' target on the system. This will
-# pull the new image, stop the old container and start a new one.
+# Then Salt must apply the 'docker' target on the system with
+# `update_containers` set. This will pull the new image, stop the old container
+# and start a new one.
 #
 # The following variables are required as input for this job.
 #
@@ -210,15 +211,10 @@ release:tag:
               \"fun\": \"state.apply\",
               \"tgt_type\": \"glob\",
               \"tgt\": \"${TARGET_HOST}\",
-              \"arg\": [\"docker.container_up\"],
+              \"arg\": [\"docker\"],
               \"kwarg\": {
                 \"pillar\": {
-                  \"update_containers\": true,
-                  \"vars\": {
-                    \"container\": \"${CONTAINER_NAME}\",
-                    \"health_endpoint\": \"${READINESS_URL}\",
-                    \"drain_time\": \"30\"
-                  }
+                  \"update_containers\": true
                 }
               }
             }]
