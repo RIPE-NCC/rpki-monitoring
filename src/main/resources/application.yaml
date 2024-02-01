@@ -168,8 +168,6 @@ rsync:
   interval: 5M
   base-directory: /tmp/rsync/
   targets:
-    - name: rsync
-      url: rsync://rsync-1.rpki.prepdev.ripe.net
     - name: rsyncit
       url: rsync://rsyncit.rpki.prepdev.ripe.net
 
