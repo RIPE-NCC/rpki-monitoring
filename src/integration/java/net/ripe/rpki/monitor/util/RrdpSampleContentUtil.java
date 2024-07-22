@@ -2,7 +2,6 @@ package net.ripe.rpki.monitor.util;
 
 import com.google.common.collect.ImmutableMap;
 import lombok.SneakyThrows;
-import net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisServiceTest;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpHttp;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpSnapshotClient;
 import net.ripe.rpki.monitor.fetchers.RrdpSnapshotClientTest;

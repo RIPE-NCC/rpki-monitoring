@@ -85,7 +85,25 @@ tasks.withType<JavaExec>() {
     jvmArgs("--enable-preview")
 }
 
-tasks.test {
+sourceSets {
+    create("integration") {
+        java.srcDir("src/integration/java")
+        resources.srcDir("src/integration/resources")
+        compileClasspath += sourceSets["main"].output + sourceSets["test"].output
+        runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
+    }
+}
+
+configurations {
+    val integrationImplementation by getting {
+        extendsFrom(testImplementation.get())
+    }
+    val integrationRuntimeOnly by getting {
+        extendsFrom(testRuntimeOnly.get())
+    }
+}
+
+tasks.withType<Test> {
     jvmArgs("--enable-preview")
 
     useJUnitPlatform()
@@ -93,6 +111,18 @@ tasks.test {
     finalizedBy(tasks.jacocoTestReport)
 
     maxHeapSize = "4g"
+}
+
+tasks.register<Test> ("integrationTest") {
+     description = "Run system integration tests. Requires network access.";
+     group = "verification"
+     testClassesDirs = sourceSets["integration"].output.classesDirs
+     classpath = sourceSets["integration"].runtimeClasspath
+     mustRunAfter(tasks.test)
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("integrationTest"))
 }
 
 tasks.sonarqube {
