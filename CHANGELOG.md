@@ -1,5 +1,9 @@
 ## HEAD
 
+## v0.20.0
+  * Improve use of RRDP data during integration tests.
+  * Monitor RRDP PAAS repositories through CDN locations.
+
 ## v0.19.0
   * Use new flag on deploy to update container. Hotfixes a change to internal
     infrastructure that was not communicated by the platform team.
