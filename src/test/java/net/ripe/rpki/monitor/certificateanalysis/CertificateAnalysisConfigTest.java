@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisTestData.TEST_NET_1;
+import static net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisTestValues.TEST_NET_1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
