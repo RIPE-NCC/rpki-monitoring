@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "net.ripe.rpki"
-version = "0.18.5-SNAPSHOT"
+version = "0.20.0"
 
 repositories {
     mavenCentral()
