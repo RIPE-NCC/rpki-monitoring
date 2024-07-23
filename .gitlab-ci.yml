@@ -34,7 +34,6 @@ include:
 # runtime for each build is more reliable since the runtime is completely
 # isolated from any previous builds.
 variables:
-  WHITESOURCE_PRODUCT: "ba-shared-teams"
   DEBIAN_FRONTEND: noninteractive
   GRADLE_USER_HOME: "${CI_PROJECT_DIR}/.gradle/"
   GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
