@@ -7,7 +7,7 @@ import net.ripe.ipresource.ImmutableResourceSet;
 import net.ripe.ipresource.IpResource;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateInformationAccessDescriptor;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpSnapshotClient;
-import net.ripe.rpki.monitor.util.RrdpSampleContentUtil;
+import net.ripe.rpki.monitor.util.RrdpContent;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -42,11 +42,11 @@ public class CertificateAnalysisServiceIT {
 
     @BeforeAll
     static void fetchRrdpData() {
-        apnicSnapshot = RrdpSampleContentUtil.prefetch(RrdpSampleContentUtil.TrustAnchor.APNIC);
+        apnicSnapshot = RrdpContent.prefetch(RrdpContent.TrustAnchor.APNIC);
         Assumptions.assumeTrue(apnicSnapshot != null, "Could not fetch APNIC RRDP data set");
-        ripeSnapshot = RrdpSampleContentUtil.prefetch(RrdpSampleContentUtil.TrustAnchor.RIPE);
+        ripeSnapshot = RrdpContent.prefetch(RrdpContent.TrustAnchor.RIPE);
         Assumptions.assumeTrue(ripeSnapshot != null, "Could not fetch RIPE RRDP data set");
-        ripePilotSnapshot = RrdpSampleContentUtil.prefetch(RrdpSampleContentUtil.TrustAnchor.RIPE_PILOT);
+        ripePilotSnapshot = RrdpContent.prefetch(RrdpContent.TrustAnchor.RIPE_PILOT);
         Assumptions.assumeTrue(ripePilotSnapshot != null, "Could not fetch RIPE Pilot RRDP data set");
     }
 

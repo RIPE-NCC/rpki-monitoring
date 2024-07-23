@@ -9,7 +9,7 @@ import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
-import net.ripe.rpki.monitor.util.RrdpSampleContentUtil;
+import net.ripe.rpki.monitor.util.RrdpContent;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static net.ripe.rpki.monitor.util.RrdpSampleContentUtil.prefetch;
+import static net.ripe.rpki.monitor.util.RrdpContent.prefetch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -52,7 +52,7 @@ class AbstractObjectsAboutToExpireCollectorIT {
 
     @BeforeAll
     static void fetchRrdpData() {
-        rrdpSnapshot = prefetch(RrdpSampleContentUtil.TrustAnchor.RIPE);
+        rrdpSnapshot = prefetch(RrdpContent.TrustAnchor.RIPE);
         Assumptions.assumeTrue(rrdpSnapshot != null, "Could not fetch RIPE RRDP data set");
     }
 

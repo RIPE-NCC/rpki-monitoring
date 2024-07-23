@@ -1,6 +1,7 @@
 package net.ripe.rpki.monitor.util;
 
 import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpHttp;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpSnapshotClient;
 
@@ -16,15 +17,15 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
-public class RrdpSampleContentUtil {
+@UtilityClass
+public class RrdpContent {
     public static RrdpSnapshotClient.RrdpSnapshotState prefetch(TrustAnchor ta) {
         var http = new CachedRrdpHttp();
 
         var client = new RrdpSnapshotClient(http);
         try {
-            return client.fetchObjects(ta.notificationXml(), Optional.empty());
+            return client.fetchObjects(ta.notificationUri(), Optional.empty());
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -42,7 +43,7 @@ public class RrdpSampleContentUtil {
             this.notificationUri = notificationUri;
         }
 
-        public String notificationXml() {
+        public String notificationUri() {
             return notificationUri;
         }
     }
