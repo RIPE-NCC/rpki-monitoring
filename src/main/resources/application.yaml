@@ -247,6 +247,14 @@ rrdp:
     - name: krill-internal
       notification-url: https://internal.paas.rpki.prepdev.ripe.net/notification.xml
       override-hostname: internal.paas.rpki.prepdev.ripe.net
+    - name: cloudflare
+      notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
+      connect-to:
+        rrdp.paas.rpki.prepdev.ripe.net: rrdp.paas.rpki.prepdev.ripe.net.cdn.cloudflare.net
+    - name: akamai
+      notification-url: https://rrdp.paas.rpki.prepdev.ripe.net/notification.xml
+      connect-to:
+        rrdp.paas.rpki.prepdev.ripe.net: rrdp.paas.rpki.prepdev.ripe.net.akamaized.net
 
 rsync:
   repository-url: rsync://rsync.paas.rpki.prepdev.ripe.net
@@ -290,6 +298,10 @@ rrdp:
       notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
       connect-to:
         rrdp.paas.rpki.ripe.net: rrdp.paas.rpki.ripe.net.cdn.cloudflare.net
+    - name: akamai
+      notification-url: https://rrdp.paas.rpki.ripe.net/notification.xml
+      connect-to:
+        rrdp.paas.rpki.ripe.net: rrdp.paas.rpki.ripe.net.akamaized.net
 
 rsync:
   repository-url: rsync://rsync.paas.rpki.ripe.net
