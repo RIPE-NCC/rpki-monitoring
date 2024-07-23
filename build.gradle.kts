@@ -18,13 +18,6 @@ version = "0.18.5-SNAPSHOT"
 repositories {
     mavenCentral()
     maven {
-        // READ ACCESS token specific for this repositories maven artifacts. These are public, but unfortunately anonymous
-        // access is not possible. Valid until 10-1-2025. NOT A SECRET.
-        //
-        // Obfuscated due to github security scanning.
-        url = uri("https://ties:" + String(byteArrayOf(103, 105, 116, 104, 117, 98, 95, 112, 97, 116, 95, 49, 49, 65, 65, 66, 81, 84, 69, 81, 48, 112, 66, 120, 79, 48, 67, 101, 75, 83, 112, 69, 83, 95, 85, 121, 119, 120, 114, 116, 122, 53, 55, 76, 90, 117, 117, 51, 100, 71, 68, 86, 82, 107, 99, 107, 113, 102, 102, 103, 78, 106, 74, 119, 77, 54, 81, 54, 53, 50, 114, 76, 75, 109, 103, 75, 85, 86, 71, 86, 86, 85, 89, 53, 54, 53, 55, 84, 69, 90, 103, 54, 113), StandardCharsets.UTF_8) + "@maven.pkg.github.com/ties/java-rrdp-test-data")
-    }
-    maven {
         url = uri("https://nexus.ripe.net/nexus/content/repositories/releases/")
     }
 }
@@ -57,9 +50,6 @@ dependencies {
     }
     testImplementation("org.assertj:assertj-core:3.25.3")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
-
-    // RRDP snapshots for RIPE + APNIC
-    testImplementation("com.github.ties:rrdp-test-data:0.2.0-SNAPSHOT")
 }
 
 java {
@@ -85,7 +75,25 @@ tasks.withType<JavaExec>() {
     jvmArgs("--enable-preview")
 }
 
-tasks.test {
+sourceSets {
+    create("integration") {
+        java.srcDir("src/integration/java")
+        resources.srcDir("src/integration/resources")
+        compileClasspath += sourceSets["main"].output + sourceSets["test"].output
+        runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
+    }
+}
+
+configurations {
+    val integrationImplementation by getting {
+        extendsFrom(testImplementation.get())
+    }
+    val integrationRuntimeOnly by getting {
+        extendsFrom(testRuntimeOnly.get())
+    }
+}
+
+tasks.withType<Test> {
     jvmArgs("--enable-preview")
 
     useJUnitPlatform()
@@ -93,6 +101,18 @@ tasks.test {
     finalizedBy(tasks.jacocoTestReport)
 
     maxHeapSize = "4g"
+}
+
+tasks.register<Test> ("integrationTest") {
+     description = "Run system integration tests. Requires network access.";
+     group = "verification"
+     testClassesDirs = sourceSets["integration"].output.classesDirs
+     classpath = sourceSets["integration"].runtimeClasspath
+     mustRunAfter(tasks.test)
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("integrationTest"))
 }
 
 tasks.sonarqube {
