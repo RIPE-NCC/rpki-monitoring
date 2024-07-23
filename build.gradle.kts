@@ -9,7 +9,7 @@ plugins {
     jacoco
     id("org.sonarqube") version "5.1.0.4882"
 
-    id("io.spring.dependency-management") version "1.1.5"
+    id("io.spring.dependency-management") version "1.1.6"
 }
 
 group = "net.ripe.rpki"
