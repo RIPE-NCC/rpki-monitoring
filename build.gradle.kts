@@ -120,7 +120,6 @@ tasks.sonarqube {
 }
 
 jacoco {
-    // 2023-10-26: Force version 0.8.11 for JDK 21
     toolVersion = "0.8.12"
 }
 
