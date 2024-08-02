@@ -1,10 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "enabled": true,
+  "autoApprove": true,
+  "extends": [
+    "config:base",
+    "group:recommended"
+  ],
+  "schedule": "after 8am and before 1pm every weekday",
   "dependencyDashboard": true,
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": true
+  },
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "minimumReleaseAge": "3 days",
       "automerge": true
     }
   ]
