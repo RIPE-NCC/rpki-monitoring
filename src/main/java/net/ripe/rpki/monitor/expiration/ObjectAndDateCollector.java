@@ -218,6 +218,20 @@ public class ObjectAndDateCollector {
                             ghostbusterCms.getNotValidAfter().toDate()
                     );
                 }
+                case SignedChecklist -> {
+                    var hash = Sha256.asString(decoded);
+                    maybeLogObject(String.format("%s-%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
+                            "[{}-{}] Object {} sha256(body)={} is a signed check list and is not yet supported.",
+                            repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash);
+                    yield Pair.of(UNKNOWN, Optional.empty());
+                }
+                case TrustAnchorKey -> {
+                    var hash = Sha256.asString(decoded);
+                    maybeLogObject(String.format("%s-%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
+                            "[{}-{}] Object {} sha256(body)={} is a trust anchor key and is not yet supported.",
+                            repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash);
+                    yield Pair.of(UNKNOWN, Optional.empty());
+                }
                 case Unknown -> {
                     var hash = Sha256.asString(decoded);
                     maybeLogObject(String.format("%s-%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
