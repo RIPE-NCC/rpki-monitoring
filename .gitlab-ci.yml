@@ -231,6 +231,7 @@ deploy:prepdev:
   environment:
     name: prepdev
     url: https://uncore-1.rpki.prepdev.ripe.net:9090/actuator/info
+  allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - when: manual
@@ -264,6 +265,7 @@ deploy:paas-prepdev:
   environment:
     name: paas-prepdev
     url: https://monitoring-1.paas.rpki.prepdev.ripe.net:9090/actuator/info
+  allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - when: manual
