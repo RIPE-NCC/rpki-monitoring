@@ -195,7 +195,7 @@ release:tag:
         -H 'Accept: application/x-yaml' \
         -d username="${SALT_API_USERNAME}" \
         -d password="${SALT_API_PASSWORD}" \
-        -d eauth='pam'
+        -d eauth='ldap'
 
     - echo "Updating '${TARGET_CONTAINER}' container via salt on ${TARGET_HOST}"
     - >
