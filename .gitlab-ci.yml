@@ -206,7 +206,7 @@ release:tag:
               \"timeout\": 120,
               \"failhard\": \"True\",
               \"client\": \"local_batch\",
-              \"batch-size\": \"25%\",
+              \"batch\": \"25%\",
               \"fun\": \"state.apply\",
               \"tgt_type\": \"glob\",
               \"tgt\": \"${TARGET_HOST}\",
