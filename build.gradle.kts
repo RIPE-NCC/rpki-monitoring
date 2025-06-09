@@ -5,7 +5,7 @@ plugins {
     java
     id("io.freefair.lombok") version "8.4"
     id("org.springframework.boot") version "3.2.1"
-    id("com.gorylenko.gradle-git-properties") version "2.4.2"
+    id("com.gorylenko.gradle-git-properties") version "2.5.0"
     jacoco
     id("org.sonarqube") version "6.0.1.5171"
 
