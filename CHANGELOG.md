@@ -1,5 +1,8 @@
 ## HEAD
 
+## v0.21.0
+  * Dependency updates
+
 ## v0.20.0
   * Improve use of RRDP data during integration tests.
   * Monitor RRDP PAAS repositories through CDN locations.
