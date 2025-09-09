@@ -3,9 +3,9 @@ package net.ripe.rpki.monitor;
 import com.google.common.base.Joiner;
 import io.micrometer.common.KeyValues;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.resources.Resource;
-import io.opentelemetry.semconv.ResourceAttributes;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.ripe.rpki.monitor.certificateanalysis.CertificateAnalysisService;
@@ -31,6 +31,7 @@ import org.springframework.web.reactive.function.client.*;
 import java.time.Instant;
 import java.util.*;
 
+import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;
 import static java.util.stream.Collectors.toSet;
 
 
@@ -72,8 +73,8 @@ public class Application {
             String applicationName = environment.getProperty("spring.application.name", "unknown");
             builder.setResource(Resource.create(
                     Attributes.of(
-                            ResourceAttributes.SERVICE_NAME, applicationName,
-                            ResourceAttributes.DEPLOYMENT_ENVIRONMENT, Joiner.on("-").join(environment.getActiveProfiles())
+                            SERVICE_NAME, applicationName,
+                            AttributeKey.stringKey("deployment.environment.name"), Joiner.on("-").join(environment.getActiveProfiles())
                     )
             ));
         };
