@@ -68,8 +68,8 @@ public record WebClientBuilderFactory(EventLoopGroup eventLoopGroup, WebClient.B
                         .completeOncePreferredResolved(false)
                         .resolvedAddressTypes(ResolvedAddressTypes.IPV6_PREFERRED)
                         // next two are REQUIRED
-                        .eventLoop(eventLoopGroup().next())
-                        .channelFactory(NioDatagramChannel::new)
+                        .eventLoop(eventLoopGroup.next())
+                        .datagramChannelFactory(NioDatagramChannel::new)
         );
 
         return forHttpClient(initialHttpClientConfig().resolver(connectToResolver));
