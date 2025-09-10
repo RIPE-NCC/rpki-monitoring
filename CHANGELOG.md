@@ -1,5 +1,10 @@
 ## HEAD
 
+## v0.22.0
+  * Update spring-boot to 3.5
+  * Build with Gradle 9
+  * Build and run on Java 24
+
 ## v0.21.0
   * Dependency updates
 
