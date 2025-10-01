@@ -127,17 +127,6 @@ release:latest:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - when: manual
 
-release:tag:
-  stage: release
-  needs: ["build:image"]
-  script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:${CI_COMMIT_TAG#rpki-monitoring-}
-    - docker push $CI_REGISTRY_IMAGE:${CI_COMMIT_TAG#rpki-monitoring-}
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^rpki-monitoring-v\d+\.\d+\.\d+/'
-
 #
 # Update a Salt-managed container with a new version of an image.
 #
@@ -240,8 +229,8 @@ deploy:production:
     name: production
     url: https://uncore-1.rpki.prepdev.ripe.net:9090/actuator/info
   rules:
-    # Only deploy tags to production (automatically)
-    - if: '$CI_COMMIT_TAG =~ /^rpki-monitoring-v\d+\.\d+\.\d+/'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
 
 # PAAS deployments
 deploy:paas-prepdev:
@@ -274,8 +263,8 @@ deploy:paas-production:
     name: paas-production
     url: https://monitoring-1.paas.rpki.ripe.net:9090/actuator/info
   rules:
-    # Only deploy tags to production (automatically)
-    - if: '$CI_COMMIT_TAG =~ /^rpki-monitoring-v\d+\.\d+\.\d+/'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
 
 review:
   # optional
