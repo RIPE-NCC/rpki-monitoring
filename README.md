@@ -30,7 +30,7 @@ It then creates metrics for:
 
 ## License
 
-Copyright (c) 2020-2024 RIPE NCC
+Copyright (c) RIPE NCC
 All rights reserved.
 
 This software, including all its separate source codes, is licensed under the
