@@ -12,7 +12,10 @@ import net.ripe.rpki.commons.crypto.cms.ghostbuster.GhostbustersCmsParser;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.cms.roa.RoaCmsParser;
 import net.ripe.rpki.commons.crypto.crl.X509Crl;
+import net.ripe.rpki.commons.crypto.x509cert.AbstractX509CertificateWrapper;
+import net.ripe.rpki.commons.crypto.x509cert.X509CertificateParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
+import net.ripe.rpki.commons.crypto.x509cert.X509RouterCertificateParser;
 import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationCheck;
 import net.ripe.rpki.commons.validation.ValidationResult;
@@ -25,7 +28,6 @@ import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.util.Sha256;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.charset.Charset;
 import java.time.Instant;
@@ -55,7 +57,7 @@ public class ObjectAndDateCollector {
 
     /**
      * Bloom filter with 0.5% false positives (and no false negatives) at 100K objects to reduce logging.
-     *
+     * <p>
      * Using 3% at 10K would log 0,03*40000=1200 lines per time the repo is checked if a repo containing 40K files is
      * completely rejected (and the behaviour does not degrade due to being over capacity).
      */
@@ -136,7 +138,7 @@ public class ObjectAndDateCollector {
             if (UNKNOWN.equals(statusAndObject.getLeft())) {
                 unknownObjects.incrementAndGet();
             }
-            if (REJECTED.equals(statusAndObject.getLeft())){
+            if (REJECTED.equals(statusAndObject.getLeft())) {
                 rejectedObjects.incrementAndGet();
             }
 
@@ -148,7 +150,7 @@ public class ObjectAndDateCollector {
      * Find the end of the validity period for the provided object.
      *
      * @param objectUri uri of object to decode
-     * @param decoded content of the object
+     * @param decoded   content of the object
      * @return (was parseable, option[expiration data of object, if applicable])
      */
     Pair<ObjectStatus, Optional<ObjectValidityPeriod>> getDateFor(final String objectUri, final byte[] decoded) {
@@ -193,13 +195,14 @@ public class ObjectAndDateCollector {
                     );
                 }
                 case Certificate -> {
-                    X509ResourceCertificateParser x509CertificateParser = new X509ResourceCertificateParser();
-                    x509CertificateParser.parse(ValidationResult.withLocation(objectUri), decoded);
-                    final var cert = x509CertificateParser.getCertificate().getCertificate();
-                    yield acceptedObjectValidBetween(
-                            cert.getNotBefore(),
-                            cert.getNotAfter()
-                    );
+                    // A certificate may be either a CA certificate or a router (BGPSec) certificate.
+                    // Parsing a router certificate with a CA parser will fail, and vice versa,
+                    // so try CA first and fall back to router.
+                    try {
+                        yield parseWith(new X509ResourceCertificateParser(), objectUri, decoded);
+                    } catch (Exception e) {
+                        yield parseWith(new X509RouterCertificateParser(), objectUri, decoded);
+                    }
                 }
                 case Crl -> {
                     final X509Crl x509Crl = X509Crl.parseDerEncoded(decoded, ValidationResult.withLocation(objectUri));
@@ -235,14 +238,14 @@ public class ObjectAndDateCollector {
                 case Unknown -> {
                     var hash = Sha256.asString(decoded);
                     maybeLogObject(String.format("%s-%s-%s-%s-unknown", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
-                                   "[{}-{}] Object at {} sha256(body)={} is unknown.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash);
+                            "[{}-{}] Object at {} sha256(body)={} is unknown.", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash);
                     yield Pair.of(UNKNOWN, Optional.empty());
                 }
             };
         } catch (Exception e) {
             var hash = Sha256.asString(decoded);
             maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
-                           "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, e.getMessage(), hash, BaseEncoding.base64().encode(decoded));
+                    "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, e.getMessage(), hash, BaseEncoding.base64().encode(decoded));
             switch (objectType) {
                 // Assume there was a problem that caused the object to be syntactically invalid.
                 // Try to extract the validity period from the EE certificate for objects derived from a generic signed object.
@@ -256,6 +259,16 @@ public class ObjectAndDateCollector {
             }
             return Pair.of(REJECTED, Optional.empty());
         }
+    }
+
+    private <T extends AbstractX509CertificateWrapper> Pair<ObjectStatus, Optional<ObjectValidityPeriod>> parseWith(
+            X509CertificateParser<T> parser, String objectUri, byte[] decoded) {
+        parser.parse(ValidationResult.withLocation(objectUri), decoded);
+        final var cert = parser.getCertificate().getCertificate();
+        return acceptedObjectValidBetween(
+                cert.getNotBefore(),
+                cert.getNotAfter()
+        );
     }
 
     private Optional<ObjectValidityPeriod> genericParseValidityPeriod(byte[] decoded) {
@@ -274,8 +287,9 @@ public class ObjectAndDateCollector {
      * Log a message about an object if it (likely) has nog been logged before.
      *
      * <b>likely:</b> because a bloomfilter does not give guarantees about non-presence
-     * @param key key to set in the bloom filter
-     * @param message message - passed to log.info
+     *
+     * @param key       key to set in the bloom filter
+     * @param message   message - passed to log.info
      * @param arguments arguments passed to log.info
      */
     private void maybeLogObject(final String key, final String message, Object... arguments) {
