@@ -197,7 +197,7 @@ public class ObjectAndDateCollector {
                 case Certificate -> {
                     // A certificate may be either a CA certificate or a router (BGPSec) certificate.
                     // Parsing a router certificate with a CA parser will fail, and vice versa,
-                    // so try CA first abd fall back to router.
+                    // so try CA first and fall back to router.
                     try {
                         yield parseWith(new X509ResourceCertificateParser(), objectUri, decoded);
                     } catch (Exception e) {
