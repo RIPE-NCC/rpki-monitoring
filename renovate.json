@@ -15,8 +15,10 @@
   },
   "packageRules": [
     {
+      "minimumReleaseAge": "3 days"
+    },
+    {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "minimumReleaseAge": "3 days",
       "automerge": true
     }
   ]
