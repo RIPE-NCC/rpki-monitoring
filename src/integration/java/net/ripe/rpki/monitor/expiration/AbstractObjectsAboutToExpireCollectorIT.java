@@ -87,8 +87,14 @@ class AbstractObjectsAboutToExpireCollectorIT {
             return tokens[tokens.length-1];
         }).collect(Collectors.groupingBy(x -> x, Collectors.counting()));
         // Will need to change when we refresh the data and tak/aspa/gbr are added
-        assertThat(countByExtension.keySet()).containsExactlyInAnyOrder("cer", "mft", "roa", "crl");
-        assertThat(countByExtension).allSatisfy((_, count) -> assertThat(count).isGreaterThan(100));
+        assertThat(countByExtension.keySet()).containsExactlyInAnyOrder("asa", "cer", "mft", "roa", "crl");
+        assertThat(countByExtension).allSatisfy((type, count) -> {
+            if ("asa".equals(type)) {
+                assertThat(count).isGreaterThan(0);
+            } else {
+                assertThat(count).isGreaterThan(100);
+            }
+        });
 
         // at least 50% of objects is valid for more than a month (effectively: certificates)
         assertThat(res).filteredOn(x -> x.expiration().isAfter(Instant.now().plus(Duration.ofDays(30))))
