@@ -1,6 +1,6 @@
-FROM gradle:9-jdk24-noble as builder
+FROM gradle:9-jdk25-corretto as builder
 
-RUN apt-get update && apt-get install --yes rsync
+RUN dnf install -y rsync && dnf clean all
 
 RUN useradd app
 ADD . /app
@@ -9,15 +9,13 @@ COPY src/main/resources/application.yaml build/resources/main/git.properties* sr
 RUN gradle build --no-daemon \
     && find /app -name 'rpki-monitoring*.jar' -not -name '*plain*' -exec cp {} /app/app.jar \;
 
-FROM eclipse-temurin:24-jre-noble
+FROM eclipse-temurin:25-jre-alpine
 
-ENV TINI_VERSION v0.19.0
+RUN apk add tini rsync
 
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
-
-RUN useradd app && apt-get update && apt-get install --yes rsync && rm -rf /var/lib/apt/lists/* && mkdir /app
+RUN adduser -D app
+RUN mkdir /app
 COPY --from=builder /app/app.jar /app/
 
+ENTRYPOINT ["/tini", "--"]
 CMD ["/opt/java/openjdk/bin/java", "--enable-preview", "-jar", "/app/app.jar"]
