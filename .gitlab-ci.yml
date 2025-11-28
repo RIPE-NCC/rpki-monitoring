@@ -1,7 +1,6 @@
 stages:
   - build
   - test
-  - qa
   - package
   - release
   - deploy
@@ -92,7 +91,7 @@ test:
         - build/test-results/test/*.xml
 
 sonarqube:
-  stage: qa
+  stage: security
   # Use artifacts of test step, which creates coverage reports
   dependencies:
     - test
