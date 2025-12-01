@@ -53,9 +53,9 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_25
+    sourceCompatibility = JavaVersion.VERSION_24
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(24)
     }
 }
 
