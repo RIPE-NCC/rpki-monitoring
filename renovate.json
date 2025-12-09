@@ -9,14 +9,12 @@
   "schedule": "after 8am and before 1pm every weekday",
   "dependencyDashboard": true,
   "osvVulnerabilityAlerts": true,
+  "minimumReleaseAge": "3 days",
   "vulnerabilityAlerts": {
     "labels": ["security"],
     "automerge": true
   },
   "packageRules": [
-    {
-      "minimumReleaseAge": "3 days"
-    },
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
