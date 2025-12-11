@@ -1,7 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "enabled": true,
-  "autoApprove": true,
   "extends": [
     "config:base",
     "group:recommended"
@@ -10,8 +9,9 @@
   "dependencyDashboard": true,
   "osvVulnerabilityAlerts": true,
   "minimumReleaseAge": "3 days",
+  "labels": ["renovatebot:dependencies"],
   "vulnerabilityAlerts": {
-    "labels": ["security"],
+    "labels": ["renovatebot:security"],
     "automerge": true
   },
   "packageRules": [
