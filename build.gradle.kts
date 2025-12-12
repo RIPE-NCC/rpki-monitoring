@@ -4,7 +4,7 @@ import java.util.*
 plugins {
     java
     id("io.freefair.lombok") version "9.1.0"
-    id("org.springframework.boot") version "3.5.7"
+    id("org.springframework.boot") version "3.5.8"
     id("com.gorylenko.gradle-git-properties") version "2.5.4"
     jacoco
     id("org.sonarqube") version "7.2.0.6526"
