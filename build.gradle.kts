@@ -85,12 +85,20 @@ sourceSets {
 }
 
 configurations {
+    compileClasspath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+
     val integrationImplementation by getting {
         extendsFrom(testImplementation.get())
     }
     val integrationRuntimeOnly by getting {
         extendsFrom(testRuntimeOnly.get())
     }
+}
+
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 tasks.withType<Test> {
