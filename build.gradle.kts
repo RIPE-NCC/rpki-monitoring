@@ -7,7 +7,7 @@ plugins {
     id("org.springframework.boot") version "3.5.8"
     id("com.gorylenko.gradle-git-properties") version "2.5.4"
     jacoco
-    id("org.sonarqube") version "7.2.1.6560"
+    id("org.sonarqube") version "7.2.2.6593"
 
     id("io.spring.dependency-management") version "1.1.7"
 }
