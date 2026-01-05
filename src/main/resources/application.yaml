@@ -53,7 +53,7 @@ expiry:
       labels:
         file_description: 'products of offline CA'
     - regex: 'rsync://.*/ta/.*'
-      # 30 days -- TA certificates are valid for 90 days from now on, so warn earlier
+      # 30 days -- TA certificates are valid for 90 days from now on
       threshold: 30D
       labels:
         file_description: 'TA certificate'
