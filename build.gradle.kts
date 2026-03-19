@@ -3,7 +3,7 @@ import java.util.*
 
 plugins {
     java
-    id("io.freefair.lombok") version "9.1.0"
+    id("io.freefair.lombok") version "9.2.0"
     id("org.springframework.boot") version "3.5.11"
     id("com.gorylenko.gradle-git-properties") version "2.5.7"
     jacoco
