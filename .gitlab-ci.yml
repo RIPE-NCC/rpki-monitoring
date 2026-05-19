@@ -12,11 +12,6 @@ include:
   - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
   # Use gitlab security scanning iff it is available.
   - template: Dependency-Scanning.gitlab-ci.yml
-  # Mend
-  - project: 'swe/gitlab-ci'
-    file: '/templates/mend-scanning.yml'
-  - project: 'swe/gitlab-ci'
-    file: '/templates/mend-generate-badge.yml'
   - project: swe/gitlab-support
     file: /templates/security.yml
     inputs:
