@@ -49,7 +49,7 @@ dependencies {
         exclude("org.junit.vintage", "junit-vintage-engine")
     }
     testImplementation("org.assertj:assertj-core:3.27.7")
-    testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.4.0")
 }
 
 java {
