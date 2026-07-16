@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableMap;
 import io.micrometer.tracing.Tracer;
+import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpSnapshotClient;
@@ -47,7 +48,7 @@ class AbstractObjectsAboutToExpireCollectorIT {
             state,
             (objects) -> {},
             Tracer.NOOP,
-            false
+            new AppConfig()
     );
 
     @BeforeAll
@@ -63,9 +64,10 @@ class AbstractObjectsAboutToExpireCollectorIT {
         var passed = new AtomicInteger();
         var rejected = new AtomicInteger();
         var unknown = new AtomicInteger();
+        var ignore = new AtomicInteger();
         var maxObjectSize = new AtomicInteger();
 
-        var res = collector.calculateExpirationSummary(passed, rejected, unknown, maxObjectSize, objects).toList();
+        var res = collector.calculateExpirationSummary(passed, rejected, unknown, ignore, maxObjectSize, objects).toList();
 
         assertThat(passed.get() + rejected.get() + unknown.get()).isEqualTo(objects.size());
         assertThat(maxObjectSize.get()).isGreaterThan(10_240).isLessThan(4_096_000);

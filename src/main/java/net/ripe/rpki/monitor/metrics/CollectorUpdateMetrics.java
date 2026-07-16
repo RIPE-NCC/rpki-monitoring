@@ -75,6 +75,7 @@ public class CollectorUpdateMetrics {
         private final AtomicLong passedObjectCount = new AtomicLong();
         private final AtomicLong unknownObjectCount = new AtomicLong();
         private final AtomicLong rejectedObjectCount = new AtomicLong();
+        private final AtomicLong ignoredObjectCount = new AtomicLong();
 
         private final AtomicLong maxObjectSize = new AtomicLong();
 
@@ -117,7 +118,7 @@ public class CollectorUpdateMetrics {
                     .register(registry);
         }
 
-        public ExecutionStatus objectCount(int passed, int rejected, int unknown, long maxSize) {
+        public ExecutionStatus objectCount(int passed, int rejected, int unknown, int ignored, long maxSize) {
             // Lazy init metrics to never have metrics that always stay at 0.
             if (!initialisedCounters) {
                 Gauge.builder(COLLECTOR_COUNT_METRIC, passedObjectCount::get)
@@ -144,6 +145,14 @@ public class CollectorUpdateMetrics {
                         .tag(STATUS, "unknown")
                         .register(registry);
 
+                Gauge.builder(COLLECTOR_COUNT_METRIC, ignoredObjectCount::get)
+                        .description(COLLECTOR_COUNT_DESCRIPTION)
+                        .tag(COLLECTOR, collectorName)
+                        .tag(NAME, repoTag)
+                        .tag(URL, repoUrl)
+                        .tag(STATUS, "ignored")
+                        .register(registry);
+
                 Gauge.builder(COLLECTOR_MAX_SIZE_METRIC, maxObjectSize::get)
                         .description(COLLECTOR_MAX_SIZE_DESCRIPTION)
                         .baseUnit("bytes")
@@ -164,7 +173,7 @@ public class CollectorUpdateMetrics {
         }
 
         public void zeroCounters() {
-            objectCount(0, 0, 0, 0);
+            objectCount(0, 0, 0, 0, 0);
         }
     }
 }

@@ -47,7 +47,9 @@ public class CoreClient {
             var res = Optional.ofNullable(
                     httpClient.get().uri("/api/published-objects").retrieve().bodyToMono(PublishedObjectEntry[].class).block(httpTotalTimeout)
             ).orElse(new PublishedObjectEntry[0]);
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), name, "published-objects").objectCount(res.length, 0, 0, 0);
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), name, "published-objects")
+                    .objectCount(res.length, 0, 0, 0, 0);
+
             return Arrays.asList(res);
         } catch (Exception e) {
             collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), name, "published-objects").zeroCounters();

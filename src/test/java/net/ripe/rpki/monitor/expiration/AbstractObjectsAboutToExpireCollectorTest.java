@@ -2,6 +2,8 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableMap;
 import io.micrometer.tracing.Tracer;
+import net.ripe.rpki.monitor.config.AppConfig;
+import net.ripe.rpki.monitor.config.MonitorProperties;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
@@ -45,7 +47,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
             state,
             (objects) -> {},
             Tracer.NOOP,
-            false
+            new AppConfig()
     );
 
     @Test
@@ -85,13 +87,17 @@ class AbstractObjectsAboutToExpireCollectorTest {
         assertThat(rejectedByNonAccepting.getLeft()).isEqualTo(REJECTED);
         assertThat(rejectedByNonAccepting.getRight()).hasValue(aspaProfile13Validity);
 
+        var appConfig = new AppConfig();
+        var monitorProperties = new MonitorProperties();
+        monitorProperties.setAcceptAspaV1(true);
+        appConfig.setProperties(monitorProperties);
         ObjectAndDateCollector acceptingCollector = new ObjectAndDateCollector(
                 new NoopRepoFetcher("noop", "https://rrdp.ripe.net"),
                 mock(CollectorUpdateMetrics.class),
                 state,
                 (objects) -> {},
                 Tracer.NOOP,
-                true
+                appConfig
         );
 
         // But the accepting collector accepts it

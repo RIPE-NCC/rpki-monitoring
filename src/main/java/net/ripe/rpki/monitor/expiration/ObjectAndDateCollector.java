@@ -20,6 +20,7 @@ import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.commons.validation.ValidationCheck;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.certificateanalysis.ObjectConsumer;
+import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.*;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
@@ -65,8 +66,9 @@ public class ObjectAndDateCollector {
     private final RepositoriesState repositoriesState;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AppConfig config;
 
-    private boolean acceptAspaV1;
+    private final boolean acceptAspaV1;
 
     public ObjectAndDateCollector(
             @NonNull final RepoFetcher repoFetcher,
@@ -74,13 +76,14 @@ public class ObjectAndDateCollector {
             @NonNull RepositoriesState repositoriesState,
             @NonNull ObjectConsumer objectConsumer,
             @NonNull Tracer tracer,
-            boolean acceptAspaV1) {
+            AppConfig config) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
         this.repositoriesState = repositoriesState;
         this.objectConsumer = objectConsumer;
         this.tracer = tracer;
-        this.acceptAspaV1 = acceptAspaV1;
+        this.acceptAspaV1 = config.getProperties() != null && config.getProperties().isAcceptAspaV1();
+        this.config = config;
     }
 
     @SuppressWarnings("try")
@@ -94,29 +97,34 @@ public class ObjectAndDateCollector {
                 .name("ObjectAndDateCollector")
                 .tag("tag", repoFetcher.meta().tag())
                 .tag("url", repoFetcher.meta().url());
+
         final var passedObjects = new AtomicInteger();
         final var unknownObjects = new AtomicInteger();
         final var rejectedObjects = new AtomicInteger();
+        final var ignoredObjects = new AtomicInteger();
         final var maxObjectSize = new AtomicInteger();
 
         try (Tracer.SpanInScope ignored = this.tracer.withSpan(span.start())) {
             var rpkiObjects = repoFetcher.fetchObjects();
 
-            var expirationSummary = calculateExpirationSummary(passedObjects, unknownObjects, rejectedObjects, maxObjectSize, rpkiObjects);
+            var expirationSummary = calculateExpirationSummary(passedObjects, unknownObjects, rejectedObjects, ignoredObjects, maxObjectSize, rpkiObjects);
             span.event("expiration summary: done");
 
             objectConsumer.accept(rpkiObjects);
 
             repositoriesState.updateByTag(repoFetcher.meta().tag(), Instant.now(), expirationSummary.map(RepositoryEntry::from));
 
-            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get(), maxObjectSize.get());
+            collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url())
+                    .objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get(), ignoredObjects.get(), maxObjectSize.get());
+
         } catch (SnapshotNotModifiedException e) {
             collectorUpdateMetrics.trackSuccess(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url());
         } catch (RepoUpdateAbortedException e) {
             collectorUpdateMetrics.trackAborted(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url());
         } catch (Exception e) {
             // Includes RepoUpdateFailedException
-            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url()).objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get(), maxObjectSize.get());
+            collectorUpdateMetrics.trackFailure(getClass().getSimpleName(), repoFetcher.meta().tag(), repoFetcher.meta().url())
+                    .objectCount(passedObjects.get(), rejectedObjects.get(), unknownObjects.get(), ignoredObjects.get(), maxObjectSize.get());
             throw e;
         } finally {
             running.set(false);
@@ -125,7 +133,12 @@ public class ObjectAndDateCollector {
     }
 
     @VisibleForTesting
-    Stream<RepoObject> calculateExpirationSummary(AtomicInteger passedObjects, AtomicInteger unknownObjects, AtomicInteger rejectedObjects, AtomicInteger maxObjectSize, Map<String, RpkiObject> rpkiObjects) {
+    Stream<RepoObject> calculateExpirationSummary(AtomicInteger passedObjects,
+                                                  AtomicInteger unknownObjects,
+                                                  AtomicInteger rejectedObjects,
+                                                  AtomicInteger ignoredObjects,
+                                                  AtomicInteger maxObjectSize,
+                                                  Map<String, RpkiObject> rpkiObjects) {
         return rpkiObjects.entrySet().parallelStream().map(e -> {
             var objectUri = e.getKey();
             var object = e.getValue();
@@ -141,8 +154,12 @@ public class ObjectAndDateCollector {
             if (REJECTED.equals(statusAndObject.getLeft())) {
                 rejectedObjects.incrementAndGet();
             }
+            if (IGNORED.equals(statusAndObject.getLeft())) {
+                ignoredObjects.incrementAndGet();
+            }
+            return statusAndObject.getRight().map(validityPeriod ->
+                    new RepoObject(validityPeriod.creation(), validityPeriod.expiration(), objectUri, Sha256.asBytes(object.bytes())));
 
-            return statusAndObject.getRight().map(validityPeriod -> new RepoObject(validityPeriod.creation(), validityPeriod.expiration(), objectUri, Sha256.asBytes(object.bytes())));
         }).flatMap(Optional::stream);
     }
 
@@ -244,8 +261,12 @@ public class ObjectAndDateCollector {
             };
         } catch (Exception e) {
             var hash = Sha256.asString(decoded);
+            if (AppConfig.ignoreObject(config, objectUri, hash)) {
+                return Pair.of(IGNORED, Optional.empty());
+            }
             maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
-                    "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, message(e), hash, BaseEncoding.base64().encode(decoded));
+                    "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(),
+                    objectUri, message(e), hash, BaseEncoding.base64().encode(decoded));
             switch (objectType) {
                 // Assume there was a problem that caused the object to be syntactically invalid.
                 // Try to extract the validity period from the EE certificate for objects derived from a generic signed object.
@@ -300,7 +321,7 @@ public class ObjectAndDateCollector {
     }
 
     public enum ObjectStatus {
-        ACCEPTED, UNKNOWN, REJECTED
+        ACCEPTED, UNKNOWN, REJECTED, IGNORED
     }
 
     public record ObjectValidityPeriod(Instant creation, Instant expiration) {

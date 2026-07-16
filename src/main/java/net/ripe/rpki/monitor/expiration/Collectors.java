@@ -75,6 +75,6 @@ public class Collectors {
     }
 
     private ObjectAndDateCollector makeCollector(RepoFetcher fetcher, ObjectConsumer objectConsumer) {
-        return new ObjectAndDateCollector(fetcher, metrics, repositoriesState, objectConsumer, tracer, config.getProperties().isAcceptAspaV1());
+        return new ObjectAndDateCollector(fetcher, metrics, repositoriesState, objectConsumer, tracer, config);
     }
 }
