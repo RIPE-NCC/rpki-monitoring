@@ -38,14 +38,4 @@ public class AppConfig {
     ) {
         return new ApplicationInfo(gitProperties.map(GitProperties::getShortCommitId).orElse("unknown"));
     }
-
-    public static boolean ignoreObject(AppConfig appConfig, String uri, String hash) {
-        if (appConfig == null) {
-            return false;
-        }
-        if (appConfig.getObjectFilterConfig() == null) {
-            return false;
-        }
-        return appConfig.getObjectFilterConfig().ignore(uri, hash);
-    }
 }

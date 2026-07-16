@@ -21,6 +21,7 @@ import net.ripe.rpki.commons.validation.ValidationCheck;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.certificateanalysis.ObjectConsumer;
 import net.ripe.rpki.monitor.config.AppConfig;
+import net.ripe.rpki.monitor.config.ObjectFilterConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.*;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
@@ -261,7 +262,7 @@ public class ObjectAndDateCollector {
             };
         } catch (Exception e) {
             var hash = Sha256.asString(decoded);
-            if (AppConfig.ignoreObject(config, objectUri, hash)) {
+            if (ObjectFilterConfig.ignoreObject(config, objectUri, hash)) {
                 return Pair.of(IGNORED, Optional.empty());
             }
             maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
