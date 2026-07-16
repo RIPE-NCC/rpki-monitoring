@@ -305,3 +305,8 @@ certificate.analysis:
 
 rpkimonitor:
   accept-aspa-v1: true
+
+object-filter:
+  # Ignore consistently broken objects in PAAS
+  urls:
+    - "rsync://rsync.paas.rpki.ripe.net/repository/fe3708a0-67d5-4ac2-abc4-a332590b99af/4/3134372e39332e3135312e302f32342d3234203d3e203531313637.roa"
