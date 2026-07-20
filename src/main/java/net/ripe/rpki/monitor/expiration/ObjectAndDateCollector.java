@@ -314,6 +314,6 @@ public class ObjectAndDateCollector {
     }
 
     private String message(Exception e) {
-        return e.getMesage() != null ? e.getMessage() : e.getClass().getName();
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getName();
     }
 }
