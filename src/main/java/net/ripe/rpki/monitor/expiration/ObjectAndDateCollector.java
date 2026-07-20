@@ -245,7 +245,7 @@ public class ObjectAndDateCollector {
         } catch (Exception e) {
             var hash = Sha256.asString(decoded);
             maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
-                    "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, e.getMessage(), hash, BaseEncoding.base64().encode(decoded));
+                    "[{}-{}] Object at {} rejected: msg={} sha256(body)={}. body={}", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, message(e), hash, BaseEncoding.base64().encode(decoded));
             switch (objectType) {
                 // Assume there was a problem that caused the object to be syntactically invalid.
                 // Try to extract the validity period from the EE certificate for objects derived from a generic signed object.
@@ -311,5 +311,9 @@ public class ObjectAndDateCollector {
 
     private Pair<ObjectStatus, Optional<ObjectValidityPeriod>> acceptedObjectValidBetween(Date creation, Date expiration) {
         return Pair.of(ACCEPTED, Optional.of(new ObjectValidityPeriod(creation.toInstant(), expiration.toInstant())));
+    }
+
+    private String message(Exception e) {
+        return e.getMesage() != null ? e.getMessage() : e.getClass().getName();
     }
 }
