@@ -158,16 +158,17 @@ class AbstractObjectsAboutToExpireCollectorTest {
         assertThat(res.getLeft()).isEqualTo(UNKNOWN);
         assertThat(res.getRight()).isEmpty();
     }
-}
 
-record NoopRepoFetcher(String name, String url) implements RepoFetcher {
-    @Override
-    public ImmutableMap<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
-        return ImmutableMap.of();
+    record NoopRepoFetcher(String name, String url) implements RepoFetcher {
+        @Override
+        public ImmutableMap<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
+            return ImmutableMap.of();
+        }
+
+        @Override
+        public Meta meta() {
+            return new Meta(name, url);
+        }
     }
 
-    @Override
-    public Meta meta() {
-        return new Meta(name, url);
-    }
 }
