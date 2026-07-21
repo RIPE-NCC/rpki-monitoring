@@ -172,7 +172,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
 
     private static AppConfig newAppConfig() {
         AppConfig appConfig = new AppConfig();
-        appConfig.setObjectFilterConfig(new ObjectFilterConfig());
+        appConfig.setObjectFilterConfig(ObjectFilterConfig.empty());
         appConfig.setProperties(new MonitorProperties());
         return appConfig;
     }

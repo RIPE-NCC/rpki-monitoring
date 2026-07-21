@@ -37,7 +37,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         rsyncConfig.setDirectories(List.of("ta", "repository"));
         rsyncConfig.setBaseDirectory(tempDirectory);
         appConfig.setRsyncConfig(rsyncConfig);
-        appConfig.setObjectFilterConfig(new ObjectFilterConfig());
+        appConfig.setObjectFilterConfig(ObjectFilterConfig.empty());
 
         var meterRegistry = new SimpleMeterRegistry();
         var rsyncFetcher = new RsyncFetcher(rsyncConfig, "rsync", rsyncConfig.getRepositoryUrl(), new FetcherMetrics(new SimpleMeterRegistry()));
