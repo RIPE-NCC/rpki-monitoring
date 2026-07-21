@@ -1,7 +1,6 @@
 package net.ripe.rpki.monitor.certificateanalysis;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import lombok.AllArgsConstructor;
@@ -10,18 +9,14 @@ import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCms;
 import net.ripe.rpki.commons.crypto.cms.manifest.ManifestCmsParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509CertificateParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificate;
-import net.ripe.rpki.commons.crypto.x509cert.X509ResourceCertificateParser;
 import net.ripe.rpki.commons.crypto.x509cert.X509RouterCertificate;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -39,17 +34,15 @@ class ExtractRpkiCertificateSpan extends RecursiveTask<Stream<CertificateEntry>>
     private Optional<X509ResourceCertificate> parseCertificate(byte[] encoded) {
             ValidationResult validationResult = ValidationResult.withLocation(certificateUrl);
             var cert = X509CertificateParser.parseCertificate(validationResult, encoded);
-
-            return switch (cert) {
-                case X509ResourceCertificate resourceCert: yield Optional.of(resourceCert);
-                case X509RouterCertificate __: yield Optional.empty();
-                default:
-                    log.error("Error when parsing {}", certificateUrl);
-                    yield Optional.empty();
-            };
+            if (cert instanceof X509RouterCertificate) {
+                return Optional.empty();
+            }
+            if (cert instanceof X509ResourceCertificate resourceCert) {
+                return Optional.of(resourceCert);
+            }
+            log.error("Error when parsing {}", certificateUrl);
+            return Optional.empty();
     }
-
-
 
     @Override
     protected Stream<CertificateEntry> compute() {
