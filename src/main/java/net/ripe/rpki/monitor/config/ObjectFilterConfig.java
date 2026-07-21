@@ -5,10 +5,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.List;
 
 @ConfigurationProperties("object-filter")
-public record ObjectFilterConfig(List<String> hashes, List<String> urls) {
+public record ObjectFilterConfig(List<String> hashes, List<String> uris) {
 
     public boolean ignore(String objectUri, String hash) {
-        return (urls != null && urls.contains(objectUri))
+        return (uris != null && uris.contains(objectUri))
                 || (hashes != null && hashes.contains(hash));
     }
 

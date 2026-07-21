@@ -308,5 +308,5 @@ rpkimonitor:
 
 object-filter:
   # Ignore consistently broken objects in PAAS
-  urls:
-    - "rsync://rsync.paas.rpki.ripe.net/repository/fe3708a0-67d5-4ac2-abc4-a332590b99af/4/3134372e39332e3135312e302f32342d3234203d3e203531313637.roa"
+  uris:
+    - "rsync://rsync.paas.rpki.ripe.net/repository/89270f6c-a3fe-4299-b079-309ed97f3824/0/946DE15D34BEAE24E29EA16A3FE1E6591B27AD9C.cer"
