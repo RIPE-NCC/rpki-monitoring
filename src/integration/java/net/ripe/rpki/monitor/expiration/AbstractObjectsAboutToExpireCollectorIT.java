@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static net.ripe.rpki.monitor.expiration.AbstractObjectsAboutToExpireCollectorTest.newAppConfig;
 import static net.ripe.rpki.monitor.util.RrdpContent.prefetch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -48,7 +49,7 @@ class AbstractObjectsAboutToExpireCollectorIT {
             state,
             (objects) -> {},
             Tracer.NOOP,
-            new AppConfig()
+            newAppConfig()
     );
 
     @BeforeAll
