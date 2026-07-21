@@ -3,6 +3,7 @@ package net.ripe.rpki.monitor.expiration;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.tracing.Tracer;
 import net.ripe.rpki.monitor.config.AppConfig;
+import net.ripe.rpki.monitor.config.ObjectFilterConfig;
 import net.ripe.rpki.monitor.config.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
@@ -36,6 +37,7 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
         rsyncConfig.setDirectories(List.of("ta", "repository"));
         rsyncConfig.setBaseDirectory(tempDirectory);
         appConfig.setRsyncConfig(rsyncConfig);
+        appConfig.setObjectFilterConfig(new ObjectFilterConfig());
 
         var meterRegistry = new SimpleMeterRegistry();
         var rsyncFetcher = new RsyncFetcher(rsyncConfig, "rsync", rsyncConfig.getRepositoryUrl(), new FetcherMetrics(new SimpleMeterRegistry()));

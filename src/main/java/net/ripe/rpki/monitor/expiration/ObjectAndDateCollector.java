@@ -21,7 +21,6 @@ import net.ripe.rpki.commons.validation.ValidationCheck;
 import net.ripe.rpki.commons.validation.ValidationResult;
 import net.ripe.rpki.monitor.certificateanalysis.ObjectConsumer;
 import net.ripe.rpki.monitor.config.AppConfig;
-import net.ripe.rpki.monitor.config.ObjectFilterConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.*;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
@@ -69,21 +68,18 @@ public class ObjectAndDateCollector {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AppConfig config;
 
-    private final boolean acceptAspaV1;
-
     public ObjectAndDateCollector(
             @NonNull final RepoFetcher repoFetcher,
             @NonNull CollectorUpdateMetrics metrics,
             @NonNull RepositoriesState repositoriesState,
             @NonNull ObjectConsumer objectConsumer,
             @NonNull Tracer tracer,
-            AppConfig config) {
+            @NonNull AppConfig config) {
         this.repoFetcher = repoFetcher;
         this.collectorUpdateMetrics = metrics;
         this.repositoriesState = repositoriesState;
         this.objectConsumer = objectConsumer;
         this.tracer = tracer;
-        this.acceptAspaV1 = config.getProperties() != null && config.getProperties().isAcceptAspaV1();
         this.config = config;
     }
 
@@ -193,7 +189,7 @@ public class ObjectAndDateCollector {
                     // This may be present in repositories that we monitor but do not control. In this case we do not
                     // want to reject objects, but can no longer parse these either
                     Predicate<ValidationCheck> isAspaV0Failure = check -> ASPA_VERSION.equals(check.getKey()) && Arrays.equals(new String[]{"0 [missing]"}, check.getParams());
-                    if (acceptAspaV1 && validationResult.getFailuresForAllLocations().stream().allMatch(isAspaV0Failure)) {
+                    if (config.getProperties().isAcceptAspaV1() && validationResult.getFailuresForAllLocations().stream().allMatch(isAspaV0Failure)) {
                         yield Pair.of(ACCEPTED, genericParseValidityPeriod(decoded));
                     }
 
@@ -262,7 +258,7 @@ public class ObjectAndDateCollector {
             };
         } catch (Exception e) {
             var hash = Sha256.asString(decoded);
-            if (ObjectFilterConfig.ignoreObject(config, objectUri, hash)) {
+            if (config.getObjectFilterConfig().ignore(objectUri, hash)) {
                 return Pair.of(IGNORED, Optional.empty());
             }
             maybeLogObject(String.format("%s-%s-%s-%s-rejected", repoFetcher.meta().tag(), repoFetcher.meta().url(), objectUri, hash),
