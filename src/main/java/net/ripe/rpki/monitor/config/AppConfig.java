@@ -29,6 +29,9 @@ public class AppConfig {
     @Autowired
     private ApplicationInfo info;
 
+    @Autowired
+    private ObjectFilterConfig objectFilterConfig;
+
     @Bean
     public static ApplicationInfo appInfo(
             Optional<GitProperties> gitProperties

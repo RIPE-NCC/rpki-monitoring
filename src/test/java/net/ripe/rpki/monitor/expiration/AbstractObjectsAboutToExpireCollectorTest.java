@@ -2,6 +2,9 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableMap;
 import io.micrometer.tracing.Tracer;
+import net.ripe.rpki.monitor.config.AppConfig;
+import net.ripe.rpki.monitor.config.MonitorProperties;
+import net.ripe.rpki.monitor.config.ObjectFilterConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
@@ -45,7 +48,7 @@ class AbstractObjectsAboutToExpireCollectorTest {
             state,
             (objects) -> {},
             Tracer.NOOP,
-            false
+            newAppConfig()
     );
 
     @Test
@@ -85,13 +88,15 @@ class AbstractObjectsAboutToExpireCollectorTest {
         assertThat(rejectedByNonAccepting.getLeft()).isEqualTo(REJECTED);
         assertThat(rejectedByNonAccepting.getRight()).hasValue(aspaProfile13Validity);
 
+        var appConfig = newAppConfig();
+        appConfig.getProperties().setAcceptAspaV1(true);
         ObjectAndDateCollector acceptingCollector = new ObjectAndDateCollector(
                 new NoopRepoFetcher("noop", "https://rrdp.ripe.net"),
                 mock(CollectorUpdateMetrics.class),
                 state,
                 (objects) -> {},
                 Tracer.NOOP,
-                true
+                appConfig
         );
 
         // But the accepting collector accepts it
@@ -152,16 +157,24 @@ class AbstractObjectsAboutToExpireCollectorTest {
         assertThat(res.getLeft()).isEqualTo(UNKNOWN);
         assertThat(res.getRight()).isEmpty();
     }
-}
 
-record NoopRepoFetcher(String name, String url) implements RepoFetcher {
-    @Override
-    public ImmutableMap<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
-        return ImmutableMap.of();
+    record NoopRepoFetcher(String name, String url) implements RepoFetcher {
+        @Override
+        public ImmutableMap<String, RpkiObject> fetchObjects() throws FetcherException, SnapshotNotModifiedException {
+            return ImmutableMap.of();
+        }
+
+        @Override
+        public Meta meta() {
+            return new Meta(name, url);
+        }
     }
 
-    @Override
-    public Meta meta() {
-        return new Meta(name, url);
+    public static AppConfig newAppConfig() {
+        AppConfig appConfig = new AppConfig();
+        appConfig.setObjectFilterConfig(ObjectFilterConfig.empty());
+        appConfig.setProperties(new MonitorProperties());
+        return appConfig;
     }
+
 }

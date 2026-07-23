@@ -2,6 +2,8 @@ package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.tracing.Tracer;
+import net.ripe.rpki.monitor.config.AppConfig;
+import net.ripe.rpki.monitor.config.ObjectFilterConfig;
 import net.ripe.rpki.monitor.config.RsyncConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
@@ -24,22 +26,25 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
     private ObjectAndDateCollector subject;
 
-    private final RsyncConfig config = new RsyncConfig();
+    private final RsyncConfig rsyncConfig = new RsyncConfig();
+    private final AppConfig appConfig = new AppConfig();
     private RepositoriesState repositories;
 
     @BeforeEach
     public void beforeEach(@TempDir Path tempDirectory) throws Exception {
         var uri = this.getClass().getClassLoader().getResource("rsync_data").toURI();
-        config.setRepositoryUrl(uri.getPath());
-        config.setDirectories(List.of("ta", "repository"));
-        config.setBaseDirectory(tempDirectory);
+        rsyncConfig.setRepositoryUrl(uri.getPath());
+        rsyncConfig.setDirectories(List.of("ta", "repository"));
+        rsyncConfig.setBaseDirectory(tempDirectory);
+        appConfig.setRsyncConfig(rsyncConfig);
+        appConfig.setObjectFilterConfig(ObjectFilterConfig.empty());
 
         var meterRegistry = new SimpleMeterRegistry();
-        var rsyncFetcher = new RsyncFetcher(config, "rsync", config.getRepositoryUrl(), new FetcherMetrics(new SimpleMeterRegistry()));
+        var rsyncFetcher = new RsyncFetcher(rsyncConfig, "rsync", rsyncConfig.getRepositoryUrl(), new FetcherMetrics(new SimpleMeterRegistry()));
         var collectorUpdateMetrics = new CollectorUpdateMetrics(meterRegistry);
 
-        repositories = RepositoriesState.init(List.of(Triple.of("rsync", config.getRepositoryUrl(), RepositoryTracker.Type.RSYNC)), Duration.ZERO);
-        subject = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositories, objects -> {}, Tracer.NOOP, false);
+        repositories = RepositoriesState.init(List.of(Triple.of("rsync", rsyncConfig.getRepositoryUrl(), RepositoryTracker.Type.RSYNC)), Duration.ZERO);
+        subject = new ObjectAndDateCollector(rsyncFetcher, collectorUpdateMetrics, repositories, objects -> {}, Tracer.NOOP, appConfig);
     }
 
     @Test

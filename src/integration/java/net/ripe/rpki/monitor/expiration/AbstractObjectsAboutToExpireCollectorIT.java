@@ -2,6 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableMap;
 import io.micrometer.tracing.Tracer;
+import net.ripe.rpki.monitor.config.AppConfig;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.RrdpSnapshotClient;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static net.ripe.rpki.monitor.expiration.AbstractObjectsAboutToExpireCollectorTest.newAppConfig;
 import static net.ripe.rpki.monitor.util.RrdpContent.prefetch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -47,7 +49,7 @@ class AbstractObjectsAboutToExpireCollectorIT {
             state,
             (objects) -> {},
             Tracer.NOOP,
-            false
+            newAppConfig()
     );
 
     @BeforeAll
@@ -63,9 +65,10 @@ class AbstractObjectsAboutToExpireCollectorIT {
         var passed = new AtomicInteger();
         var rejected = new AtomicInteger();
         var unknown = new AtomicInteger();
+        var ignore = new AtomicInteger();
         var maxObjectSize = new AtomicInteger();
 
-        var res = collector.calculateExpirationSummary(passed, rejected, unknown, maxObjectSize, objects).toList();
+        var res = collector.calculateExpirationSummary(passed, rejected, unknown, ignore, maxObjectSize, objects).toList();
 
         assertThat(passed.get() + rejected.get() + unknown.get()).isEqualTo(objects.size());
         assertThat(maxObjectSize.get()).isGreaterThan(10_240).isLessThan(4_096_000);
