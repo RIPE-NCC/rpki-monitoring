@@ -2,9 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.tracing.Tracer;
-import net.ripe.rpki.monitor.config.AppConfig;
-import net.ripe.rpki.monitor.config.ObjectFilterConfig;
-import net.ripe.rpki.monitor.config.RsyncConfig;
+import net.ripe.rpki.monitor.config.*;
 import net.ripe.rpki.monitor.expiration.fetchers.RsyncFetcher;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
@@ -14,6 +12,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -26,8 +25,11 @@ class RsyncObjectsAboutToExpireCollectorIntegrationTest {
 
     private ObjectAndDateCollector subject;
 
+    @Mock
+    private static ApplicationInfo info;
+
     private final RsyncConfig rsyncConfig = new RsyncConfig();
-    private final AppConfig appConfig = new AppConfig();
+    private final AppConfig appConfig = new AppConfig(new MonitorProperties(), new RrdpConfig(), rsyncConfig, new CoreConfig(), info, ObjectFilterConfig.empty());
     private RepositoriesState repositories;
 
     @BeforeEach

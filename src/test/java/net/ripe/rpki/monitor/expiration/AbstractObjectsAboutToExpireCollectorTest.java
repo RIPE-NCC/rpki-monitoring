@@ -2,9 +2,7 @@ package net.ripe.rpki.monitor.expiration;
 
 import com.google.common.collect.ImmutableMap;
 import io.micrometer.tracing.Tracer;
-import net.ripe.rpki.monitor.config.AppConfig;
-import net.ripe.rpki.monitor.config.MonitorProperties;
-import net.ripe.rpki.monitor.config.ObjectFilterConfig;
+import net.ripe.rpki.monitor.config.*;
 import net.ripe.rpki.monitor.expiration.fetchers.FetcherException;
 import net.ripe.rpki.monitor.expiration.fetchers.RepoFetcher;
 import net.ripe.rpki.monitor.expiration.fetchers.SnapshotNotModifiedException;
@@ -14,6 +12,7 @@ import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import java.text.ParseException;
 import java.time.Duration;
@@ -170,11 +169,11 @@ class AbstractObjectsAboutToExpireCollectorTest {
         }
     }
 
+    @Mock
+    private static ApplicationInfo info;
+
     public static AppConfig newAppConfig() {
-        AppConfig appConfig = new AppConfig();
-        appConfig.setObjectFilterConfig(ObjectFilterConfig.empty());
-        appConfig.setProperties(new MonitorProperties());
-        return appConfig;
+        return new AppConfig(new MonitorProperties(), new RrdpConfig(), new RsyncConfig(), new CoreConfig(), info, ObjectFilterConfig.empty());
     }
 
 }
