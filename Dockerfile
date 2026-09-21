@@ -9,7 +9,7 @@ COPY src/main/resources/application.yaml build/resources/main/git.properties* sr
 RUN gradle bootJar --no-daemon \
     && find /app -name 'rpki-monitoring*.jar' -not -name '*plain*' -exec cp {} /app/app.jar \;
 
-FROM eclipse-temurin:25-jre-alpine@sha256:fd546f46322c4640dd5d862b1871be99c5f005720905b4c0e118dd7d0c2079aa
+FROM eclipse-temurin:25-jre-alpine@sha256:2ca9adf44f5c29d28ecd26cf92d75cc0c66b7f32bfd839a4439e363a8b428af8
 
 RUN apk add tini rsync
 
