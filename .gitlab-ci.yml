@@ -48,7 +48,7 @@ variables:
   TERM: dumb
 
 default:
-  image: gradle:9-jdk25-noble@sha256:24bfc32c975cc4c489e9872867974ecaf732d429bff673a154e1af55275ba5d3
+  image: gradle:9-jdk25-noble@sha256:c1a7d0d3d239f792bf1a82f713d153af01ce0ebf6f464706ffb8aa1654b38925
   before_script:
     - apt-get update &&  apt-get install --yes --no-install-recommends docker.io rsync
 
