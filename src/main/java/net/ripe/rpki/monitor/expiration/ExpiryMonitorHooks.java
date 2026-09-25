@@ -41,7 +41,9 @@ public class ExpiryMonitorHooks {
         if (expiryMonitoring.shouldTrack(tracker)) {
             log.info("track({}, {}, {})", tracker.getUrl(), tracker.getTag(), tracker.getType());
             expiryMonitoring.match().stream().parallel().forEach(matcher -> {
-                var matcherMetrics = metrics.computeIfAbsent(new TrackedMonitor(tracker.getTag(), tracker.getUrl(), matcher), monitor -> new MatcherMetrics(monitor, meterRegistry));
+                var matcherMetrics = metrics.computeIfAbsent(
+                        new TrackedMonitor(tracker.getTag(), tracker.getUrl(), matcher),
+                        monitor -> new MatcherMetrics(monitor, meterRegistry));
 
                 matcherMetrics.trackObjects(tracker.view(Instant.now()).entries());
             });

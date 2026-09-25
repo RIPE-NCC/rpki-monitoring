@@ -178,6 +178,7 @@ certificate.analysis:
 
 management:
   tracing.enabled: true
+
 ---
 spring.config.activate.on-profile: production
 
@@ -265,6 +266,7 @@ management:
 
 rpkimonitor:
   accept-aspa-v1: true
+
 ---
 spring.config.activate.on-profile: paas-production
 
@@ -311,3 +313,35 @@ object-filter:
   uris:
     - "rsync://rsync.paas.rpki.ripe.net/repository/89270f6c-a3fe-4299-b079-309ed97f3824/0/946DE15D34BEAE24E29EA16A3FE1E6591B27AD9C.cer"
     - "rsync://rsync.paas.rpki.ripe.net/repository/2dfb30ca-e1c2-4921-b054-d4af09165af1/0/326130393a626534303a323830303a3a2f34302d3438203d3e20323133313730.roa"
+
+---
+spring.config.activate.on-profile: localcert
+
+rrdp:
+  interval: 1M
+  targets:
+    - name: main
+      notification-url: https://localcert.ripe.net/rrdp/notification.xml        
+
+rsync:
+  repository-url: rsync://localcert.ripe.net
+  directories:
+    - ta
+    - repository
+  base-directory: /tmp/rsync/
+  fetch-ta: false
+  timeout: 30
+  interval: 5M
+  targets:
+    - name: rsync
+      url: rsync://localcert.ripe.net
+
+core:
+  enable: true
+  url: https://localcert.ripe.net/certification/
+
+certificate.analysis:
+  enabled: false
+
+rpkimonitor:
+  accept-aspa-v1: true
