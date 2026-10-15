@@ -1,12 +1,13 @@
 package net.ripe.rpki.monitor.expiration;
 
 import io.micrometer.tracing.Tracer;
-import net.ripe.rpki.monitor.config.AppConfig;
+import net.ripe.rpki.monitor.config.*;
 import net.ripe.rpki.monitor.metrics.CollectorUpdateMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoriesState;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.mock;
 
 class ObjectAndDateCollectorTest {
 
+    @Mock
     private final RepositoriesState state = RepositoriesState.init(
             List.of(Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)),
             Duration.ZERO
@@ -30,7 +32,7 @@ class ObjectAndDateCollectorTest {
             state,
             (objects) -> {},
             Tracer.NOOP,
-            new AppConfig()
+            new AppConfig(new MonitorProperties(), new RrdpConfig(), new RsyncConfig(), new CoreConfig(), mock(ApplicationInfo.class), ObjectFilterConfig.empty())
     );
 
     @Test
