@@ -5,7 +5,6 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
 import net.ripe.rpki.monitor.config.RrdpConfig;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +15,6 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class FetcherMetrics {
 
-    @Autowired
     private final MeterRegistry registry;
 
     private final ConcurrentHashMap<String, RsyncFetcherMetrics> rsyncMetrics = new ConcurrentHashMap<>();

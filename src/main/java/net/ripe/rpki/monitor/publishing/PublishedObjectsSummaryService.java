@@ -9,13 +9,11 @@ import net.ripe.rpki.commons.util.RepositoryObjectType;
 import net.ripe.rpki.monitor.metrics.PublishedObjectMetrics;
 import net.ripe.rpki.monitor.repositories.RepositoryEntry;
 import net.ripe.rpki.monitor.repositories.RepositoryTracker;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,7 +32,6 @@ public class PublishedObjectsSummaryService {
             Duration.of(3411, SECONDS)
     );
 
-    @Autowired
     private final PublishedObjectMetrics publishedObjectMetrics;
     public record RepositoryKey(String tag, String url){}
     public record RepositoryObjectTypeKey(@Delegate RepositoryKey key, RepositoryObjectType type) {}

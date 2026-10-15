@@ -1,12 +1,10 @@
 package net.ripe.rpki.monitor.metrics;
 
-
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.tuple.Triple;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,7 +25,6 @@ public class CollectorUpdateMetrics {
     public static final String COLLECTOR_MAX_SIZE_DESCRIPTION = "Size of the biggest object retrieved by collector";
     public static final String STATUS = "status";
 
-    @Autowired
     private final MeterRegistry registry;
 
     private final ConcurrentHashMap<Triple<String, String, String>, ExecutionStatus> executionStatus = new ConcurrentHashMap<>();
