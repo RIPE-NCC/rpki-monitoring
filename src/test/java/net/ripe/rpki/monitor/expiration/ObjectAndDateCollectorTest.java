@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 class ObjectAndDateCollectorTest {
 
     @Mock
-    private ApplicationInfo info;
     private final RepositoriesState state = RepositoriesState.init(
             List.of(Triple.of("rrdp", "https://rrdp.ripe.net", RepositoryTracker.Type.RRDP)),
             Duration.ZERO
@@ -33,7 +32,7 @@ class ObjectAndDateCollectorTest {
             state,
             (objects) -> {},
             Tracer.NOOP,
-            new AppConfig(new MonitorProperties(), new RrdpConfig(), new RsyncConfig(), new CoreConfig(), info, ObjectFilterConfig.empty())
+            new AppConfig(new MonitorProperties(), new RrdpConfig(), new RsyncConfig(), new CoreConfig(), mock(ApplicationInfo.class), ObjectFilterConfig.empty())
     );
 
     @Test
