@@ -2,7 +2,8 @@ package net.ripe.rpki.monitor;
 
 import com.google.common.base.Joiner;
 import io.micrometer.common.KeyValues;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.resources.Resource;
@@ -21,15 +22,20 @@ import net.ripe.rpki.monitor.util.http.WebClientBuilderFactory;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.autoconfigure.tracing.SdkTracerProviderBuilderCustomizer;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.boot.micrometer.tracing.opentelemetry.autoconfigure.SdkTracerProviderBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
-import org.springframework.web.reactive.function.client.*;
+import org.springframework.web.reactive.function.client.ClientRequestObservationContext;
+import org.springframework.web.reactive.function.client.ClientRequestObservationConvention;
+import org.springframework.web.reactive.function.client.DefaultClientRequestObservationConvention;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
 
 import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;
 import static java.util.stream.Collectors.toSet;
@@ -45,9 +51,7 @@ public class Application {
 
     @Bean
     public WebClientBuilderFactory webclientConfigurer(WebClient.Builder baseBuilder, AppConfig appConfig) {
-        // Explicit event loop is required for custom DnsNameResolverBuilder
-        NioEventLoopGroup group = new NioEventLoopGroup(1);
-
+        var group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         return new WebClientBuilderFactory(group, baseBuilder, "rpki-monitor %s".formatted(appConfig.getInfo().gitCommitId()));
     }
 

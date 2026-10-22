@@ -29,13 +29,13 @@ gitProperties {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-quartz")
     implementation("org.springframework.boot:spring-boot-starter-web")
-    // for WebClient
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-webclient")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     implementation("net.ripe.rpki:rpki-commons:2.0")
 
+    implementation("org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry")
     implementation("io.micrometer:micrometer-observation")
     implementation("io.micrometer:micrometer-registry-otlp")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
