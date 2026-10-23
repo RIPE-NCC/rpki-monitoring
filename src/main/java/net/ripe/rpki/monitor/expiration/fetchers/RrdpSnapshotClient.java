@@ -73,7 +73,7 @@ public class RrdpSnapshotClient {
             Verify.verify(!Strings.isNullOrEmpty(snapshotUrl));
             Verify.verify(!Strings.isNullOrEmpty(desiredSnapshotHash));
             if (previousState.map(state -> state.snapshotHash.equals(desiredSnapshotHash) && state.snapshotUrl.equals(snapshotUrl)).orElse(false)) {
-                log.info("snapshot not modified: snapshot is the same as during the last check (url={} serial={} session={} client={})", snapshotUrl, sessionIdUUID, notificationSerial, httpClient.describe());
+                log.info("snapshot not modified: snapshot is the same as during the last check (url={} session={} serial={} client={})", snapshotUrl, sessionIdUUID, notificationSerial, httpClient.describe());
                 throw new SnapshotNotModifiedException(snapshotUrl);
             } else {
                 previousState.ifPresent(prev -> {
@@ -83,7 +83,7 @@ public class RrdpSnapshotClient {
                         log.error("RRDP inconsistency: url is equal ({}) but hash differs; current={} != prev={}", snapshotUrl, desiredSnapshotHash, prev.snapshotHash);
                     }
                 });
-                log.info("downloading snapshot: serial={} session={} url={} expected_hash={} client={}", notificationSerial, sessionIdUUID, snapshotUrl, desiredSnapshotHash, httpClient.describe());
+                log.info("downloading snapshot: session={} serial={} url={} expected_hash={} client={}", sessionIdUUID, notificationSerial, snapshotUrl, desiredSnapshotHash, httpClient.describe());
             }
 
             final byte[] snapshotContent = loadSnapshot(snapshotUrl, desiredSnapshotHash);
