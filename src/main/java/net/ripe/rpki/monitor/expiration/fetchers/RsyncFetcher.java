@@ -11,6 +11,7 @@ import net.ripe.rpki.commons.rsync.Rsync;
 import net.ripe.rpki.monitor.config.RsyncConfig;
 import net.ripe.rpki.monitor.metrics.FetcherMetrics;
 import net.ripe.rpki.monitor.publishing.dto.RpkiObject;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
@@ -18,13 +19,8 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.commons.lang3.StringUtils.appendIfMissing;
-import static org.apache.commons.lang3.StringUtils.removeEnd;
 
 @Slf4j
 @Setter
@@ -57,10 +53,10 @@ public class RsyncFetcher implements RepoFetcher {
     @SneakyThrows
     public RsyncFetcher(RsyncConfig rsyncConfig, String name, String rsyncUrl, FetcherMetrics fetcherMetrics) {
         this.name = name;
-        this.rsyncUrl = removeEnd(rsyncUrl, "/");
+        this.rsyncUrl = Strings.CS.removeEnd(rsyncUrl, "/");
 
         this.rsyncTimeout = rsyncConfig.getTimeout();
-        this.repositoryUrl = removeEnd(rsyncConfig.getRepositoryUrl(), "/");
+        this.repositoryUrl = Strings.CS.removeEnd(rsyncConfig.getRepositoryUrl(), "/");
         this.directories = rsyncConfig.getDirectories();
         this.metrics = fetcherMetrics.rsync(this.rsyncUrl);
 
@@ -106,7 +102,7 @@ public class RsyncFetcher implements RepoFetcher {
     public ImmutableMap<String, RpkiObject> fetchObjects() throws FetcherException {
         try {
             for (var directory : directories) {
-                rsyncPathFromRepository(rsyncUrl + "/" + appendIfMissing(directory, "/"), targetPath.resolve(directory));
+                rsyncPathFromRepository(rsyncUrl + "/" + Strings.CS.appendIfMissing(directory, "/"), targetPath.resolve(directory));
             }
 
             // Gather all objects in path

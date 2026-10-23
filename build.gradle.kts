@@ -4,7 +4,7 @@ import java.util.*
 plugins {
     java
     id("io.freefair.lombok") version "9.8.2"
-    id("org.springframework.boot") version "3.5.16"
+    id("org.springframework.boot") version "4.1.1"
     id("com.gorylenko.gradle-git-properties") version "4.0.1"
     jacoco
     id("org.sonarqube") version "7.5.0.8588"
@@ -29,13 +29,13 @@ gitProperties {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-quartz")
     implementation("org.springframework.boot:spring-boot-starter-web")
-    // for WebClient
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-webclient")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     implementation("net.ripe.rpki:rpki-commons:2.0")
 
+    implementation("org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry")
     implementation("io.micrometer:micrometer-observation")
     implementation("io.micrometer:micrometer-registry-otlp")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
