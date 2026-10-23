@@ -9,6 +9,8 @@ import io.netty.resolver.ResolvedAddressTypes;
 import io.netty.resolver.dns.DnsNameResolverBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.util.unit.DataSize;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
@@ -46,8 +48,13 @@ public record WebClientBuilderFactory(EventLoopGroup eventLoopGroup, WebClient.B
     }
 
     private WebClient.Builder forHttpClient(HttpClient httpClient) {
+        var strategies = ExchangeStrategies.builder()
+                .codecs(codecs -> codecs.defaultCodecs()
+                        .maxInMemorySize((int) DataSize.ofMegabytes(512).toBytes()))
+                .build();
         return baseBuilder
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .exchangeStrategies(strategies)
                 .defaultHeader(HttpHeaders.USER_AGENT, userAgent);
     }
 

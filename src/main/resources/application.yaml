@@ -8,8 +8,6 @@ spring:
   main.banner-mode: off
   output.ansi.enabled: ALWAYS
   application.name: rpki-monitoring
-  # Affects maximum HTTP response size
-  codec.max-in-memory-size: 1GB
 
 # The total number of collectors (over all types) that can be active at a time.
 # influences peak heap usage.
@@ -321,7 +319,7 @@ rrdp:
   interval: 1M
   targets:
     - name: main
-      notification-url: https://localcert.ripe.net/rrdp/notification.xml        
+      notification-url: https://localcert.ripe.net/rrdp/notification.xml
 
 rsync:
   repository-url: rsync://localcert.ripe.net
