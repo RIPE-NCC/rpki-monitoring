@@ -1,4 +1,4 @@
-FROM gradle:9-jdk25-corretto@sha256:4991f51a5ecb3384eb6e26d63e4745d983784bc2bef2a100548a41fd71703e71 as builder
+FROM gradle:9-jdk25-corretto@sha256:655ec9b518f5cacb08484a860e2f9baf5c1f586d484b7209935642ba619c56b4 as builder
 
 RUN dnf install -y rsync && dnf clean all
 
