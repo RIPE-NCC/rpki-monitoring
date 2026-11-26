@@ -91,8 +91,9 @@ public class CertificateAnalysisConfigTest {
 
         // When grace period is not present, any pair of certificates is reported
         subject.setKeyrollPublicationPointGracePeriod(null);
-        assertThat(subject.hasAnyCertificateAfterGracePeriodStarts(now).test(entries)).isFalse()
-                .withFailMessage("When grace period is not set, nothing should be reported as being in grace period");
+        assertThat(subject.hasAnyCertificateAfterGracePeriodStarts(now).test(entries))
+                .withFailMessage("When grace period is not set, nothing should be reported as being in grace period")
+                    .isFalse();
 
         subject.setKeyrollPublicationPointGracePeriod(Duration.ofSeconds(0));
         assertThat(subject.hasAnyCertificateAfterGracePeriodStarts(now).test(entries)).isFalse();

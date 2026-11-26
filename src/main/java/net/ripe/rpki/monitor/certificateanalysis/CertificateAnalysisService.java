@@ -151,10 +151,14 @@ public class CertificateAnalysisService {
             var res = certificateComparisonDuration.record(() -> compareCertificates(resourceCertificates));
             processedPassed.increment();
             return res;
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            processingFailed.increment();
+            throw new ProcessingException("Interrupted while trying to explore objects", e);
+        } catch (ExecutionException e) {
             log.error("Failed to explore objects.", e);
             processingFailed.increment();
-            throw new RuntimeException(e);
+            throw new ProcessingException("Execution failed while exploring objects",e);
         } catch (IllegalStateException e) {
             log.error("Error while processing", e);
             processingFailed.increment();
@@ -265,5 +269,11 @@ public class CertificateAnalysisService {
                 .addAll(lhs.difference(rhs))
                 .addAll(rhs.difference(lhs))
                 .build();
+    }
+}
+
+class ProcessingException extends RuntimeException {
+    public ProcessingException(String message, Throwable cause) {
+        super(message, cause);
     }
 }
